@@ -446,6 +446,16 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       <input id="insNum" type="text" inputmode="numeric" autocomplete="off" style="width:78px;text-align:center" placeholder="art. nº" aria-label="Número do artigo" title="Número do artigo para inserir onde o cursor está">
       <button class="act" id="insDo">Inserir artigo</button>
     </div>
+    <div class="grp" id="ttsControls">
+      <button type="button" class="act" id="ttsBtn" title="Ouvir o texto desta página em voz alta">🔊 Ouvir</button>
+      <button type="button" class="linkbtn" id="ttsStop" hidden title="Parar a leitura">⏹ Parar</button>
+      <select id="ttsRate" class="mini" aria-label="Velocidade da leitura" title="Velocidade da leitura">
+        <option value="0.8">0,8×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.2">1,2×</option>
+        <option value="1.5">1,5×</option>
+      </select>
+    </div>
   </div>
 </div></div>
 <main>
@@ -98489,6 +98499,65 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   window.addEventListener('resize',function(){ updPgCounter(); updAulaPgs(); });
   try{ if(window.ResizeObserver) new ResizeObserver(updPgCounter).observe(mainEl); }catch(e){}
   document.addEventListener('click',function(){ setTimeout(updPgCounter,60); });
+
+  // ---- Ouvir em voz alta (leitura TTS do navegador, voz do aparelho) ----
+  (function(){
+    var btn=document.getElementById('ttsBtn'), stopB=document.getElementById('ttsStop'), rate=document.getElementById('ttsRate');
+    if(!btn) return;
+    if(!('speechSynthesis' in window)){ var tc=document.getElementById('ttsControls'); if(tc) tc.style.display='none'; return; }
+    var synth=window.speechSynthesis;
+    var chunks=[], idx=0, on=false, paused=false, voice=null;
+    function loadVoice(){ var vs=synth.getVoices()||[]; voice=vs.filter(function(v){return /pt[-_]?br/i.test(v.lang);})[0]||vs.filter(function(v){return /^pt/i.test(v.lang);})[0]||null; }
+    loadVoice(); try{ synth.onvoiceschanged=loadVoice; }catch(e){}
+    function reset(){ on=false; paused=false; chunks=[]; idx=0; btn.textContent='🔊 Ouvir'; stopB.hidden=true; }
+    function stop(){ try{ synth.cancel(); }catch(e){} reset(); }
+    function getText(){
+      var ed=document.getElementById('editor'); if(!ed) return '';
+      var nt=document.getElementById('noteTitle');
+      var clone=ed.cloneNode(true);
+      // tira anexos (PDF/Word/imagens) que nao tem texto util para ler
+      [].slice.call(clone.querySelectorAll('.pdfatt,.pdfview,.docview,canvas,img,script,style')).forEach(function(n){ n.remove(); });
+      var t=(nt&&nt.value?nt.value+'. ':'')+(clone.innerText||clone.textContent||'');
+      return t.replace(/ /g,' ').replace(/[ \t]+/g,' ').trim();
+    }
+    function split(text){
+      // divide em frases/linhas e limita cada pedaco (~180) p/ nao cortar no Android
+      var parts=text.split(/\n+|(?<=[.!?:;])\s+/), out=[], buf='';
+      parts.forEach(function(p){ p=(p||'').trim(); if(!p)return;
+        if(p.length>180){ if(buf){out.push(buf);buf='';} var sub=p.match(/[\s\S]{1,180}(\s|$)/g)||[p]; sub.forEach(function(s){ s=s.trim(); if(s)out.push(s); }); return; }
+        if((buf+' '+p).trim().length>180){ if(buf)out.push(buf); buf=p; }
+        else buf=buf?buf+' '+p:p; });
+      if(buf)out.push(buf);
+      return out;
+    }
+    function speakNext(){
+      if(!on) return;
+      if(idx>=chunks.length){ reset(); return; }
+      var u=new SpeechSynthesisUtterance(chunks[idx]);
+      u.lang='pt-BR'; if(voice)u.voice=voice; u.rate=parseFloat(rate.value)||1;
+      u.onend=function(){ idx++; speakNext(); };
+      u.onerror=function(){ idx++; speakNext(); };
+      try{ synth.speak(u); }catch(e){ reset(); }
+    }
+    function start(){
+      var text=getText();
+      if(!text){ if(typeof toast==='function') toast('Esta pagina nao tem texto para ler'); return; }
+      try{ synth.cancel(); }catch(e){}
+      chunks=split(text); idx=0; on=true; paused=false;
+      btn.textContent='⏸ Pausar'; stopB.hidden=false;
+      setTimeout(speakNext, 60); // alguns Android precisam de um respiro apos o cancel
+    }
+    btn.addEventListener('click',function(){
+      if(!on){ start(); return; }
+      if(paused){ try{ synth.resume(); }catch(e){} paused=false; btn.textContent='⏸ Pausar'; }
+      else { try{ synth.pause(); }catch(e){} paused=true; btn.textContent='▶ Continuar'; }
+    });
+    stopB.addEventListener('click',stop);
+    rate.addEventListener('change',function(){ if(on){ chunks=chunks.slice(idx); idx=0; try{ synth.cancel(); }catch(e){} paused=false; btn.textContent='⏸ Pausar'; stopB.hidden=false; setTimeout(speakNext,60); } });
+    // para ao sair da aula/material
+    try{ var vn=document.getElementById('view-note'); if(vn){ new MutationObserver(function(){ if(vn.hidden) stop(); }).observe(vn,{attributes:true,attributeFilter:['hidden']}); } }catch(e){}
+    var aj=document.getElementById('aulaJump'); if(aj) aj.addEventListener('change',stop);
+  })();
 
   showIndex();
   setTimeout(updPgCounter, 100);
