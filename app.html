@@ -16,6 +16,11 @@ html,body{overflow-x:clip;max-width:100%}
   #searchControls{max-width:100%}
   #searchControls input,#searchControls select{min-width:0}
   article p,.code p,article li,.code li{overflow-wrap:break-word}
+  /* No celular, as barras do topo (navegacao + cabecalho da aula) NAO ficam
+     grudadas: no PC elas sao baixas e ajudam, mas no celular elas empilham e
+     ocupam quase a tela toda, cobrindo o conteudo. Deixando-as rolar junto, o
+     conteudo (texto e PDF das aulas/materiais) ocupa a tela inteira ao rolar. */
+  .bar,#noteHead{position:static !important}
 }
 </style>
 <title>GraDireito</title>
