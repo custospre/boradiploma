@@ -97684,18 +97684,19 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   var ctxMenu=document.createElement('div'); ctxMenu.className='ctxmenu'; ctxMenu.hidden=true; document.body.appendChild(ctxMenu);
   var ctxCite=null;
   function hideCtx(){ ctxMenu.hidden=true; if(ctxCite) ctxCite.classList.remove('ctxsel'); ctxCite=null; }
+  function openPdfMenu(pa,x,y){
+    hideCtx(); ctxCite=pa; pa.classList.add('ctxsel');
+    var isDocx=pa.getAttribute('data-kind')==='docx';
+    ctxMenu.innerHTML='<button type="button" data-a="pview">👁 Ver / fechar aqui na página</button><button type="button" data-a="popen">🗗 Abrir em janela separada</button>'+(isDocx?'':'<button type="button" data-a="ptext">📝 Transformar em texto editável</button>')+'<button type="button" data-a="pdl">⬇ Salvar uma cópia no computador</button><button type="button" class="danger" data-a="pdel">🗑 Excluir arquivo desta página</button>';
+    ctxMenu.hidden=false;
+    var w0=ctxMenu.offsetWidth, h0=ctxMenu.offsetHeight;
+    ctxMenu.style.left=Math.max(8,Math.min(x,window.innerWidth-w0-8))+'px';
+    ctxMenu.style.top=Math.max(8,Math.min(y,window.innerHeight-h0-8))+'px';
+  }
   if(editor) editor.addEventListener('contextmenu',function(e){
     if(e.target.closest&&e.target.closest('.docview')){ hideCtx(); return; }
     var pa=e.target.closest&&e.target.closest('.pdfatt');
-    if(pa&&editor.contains(pa)){
-      e.preventDefault(); hideCtx(); ctxCite=pa; pa.classList.add('ctxsel');
-      ctxMenu.innerHTML='<button type="button" data-a="pview">👁 Ver / fechar aqui na página</button><button type="button" data-a="popen">🗗 Abrir em janela separada</button><button type="button" data-a="pdl">⬇ Salvar uma cópia no computador</button><button type="button" class="danger" data-a="pdel">🗑 Excluir arquivo desta página</button>';
-      ctxMenu.hidden=false;
-      var w0=ctxMenu.offsetWidth, h0=ctxMenu.offsetHeight;
-      ctxMenu.style.left=Math.max(8,Math.min(e.clientX,window.innerWidth-w0-8))+'px';
-      ctxMenu.style.top=Math.max(8,Math.min(e.clientY,window.innerHeight-h0-8))+'px';
-      return;
-    }
+    if(pa&&editor.contains(pa)){ e.preventDefault(); openPdfMenu(pa,e.clientX,e.clientY); return; }
     var c=e.target.closest&&e.target.closest('.cite'); if(!c||!editor.contains(c)){ hideCtx(); return; }
     e.preventDefault(); hideCtx(); ctxCite=c; c.classList.add('ctxsel');
     var h=c.querySelector('.cite-h'), nm=h?h.textContent:'artigo';
@@ -97710,6 +97711,22 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     var b=e.target.closest('button'); if(!b||!ctxCite)return; var c=ctxCite;
     var pact=b.getAttribute('data-a');
     if(pact==='pview'){ hideCtx(); togglePdfView(c); return; }
+    if(pact==='ptext'){
+      var aid3=c.getAttribute('data-att'), pa3=c; hideCtx(); toast('Convertendo PDF em texto…');
+      getAtt(aid3,function(r){
+        if(!r||!r.blob){ toast('Arquivo não encontrado neste aparelho'); return; }
+        pdfToText(r.blob).then(function(txt){
+          if(!txt||!txt.trim()){ toast('Esse PDF não tem texto para extrair (parece escaneado/imagem)'); return; }
+          var frag=document.createElement('div'); frag.innerHTML=pdfTextToHTML(txt);
+          var after=(pa3.nextSibling&&pa3.nextSibling.nodeName==='P')?pa3.nextSibling:pa3;
+          var anchor=after.nextSibling, parent=pa3.parentNode;
+          while(frag.firstChild){ parent.insertBefore(frag.firstChild, anchor); }
+          if(typeof persistNote==='function') persistNote(); if(typeof updAulaPgs==='function') updAulaPgs();
+          toast('Texto do PDF adicionado abaixo do arquivo ✓');
+        }).catch(function(){ toast('Não consegui converter este PDF (precisa de internet)'); });
+      });
+      return;
+    }
     if(pact==='popen'||pact==='pdl'||pact==='pdel'){
       var aid=c.getAttribute('data-att'), anm=(c.querySelector('.pdfname')||{}).textContent||'arquivo.pdf'; hideCtx();
       if(pact==='popen') openAtt(aid);
@@ -97751,6 +97768,22 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       ctxMenu.style.left=Math.max(8,Math.min(x,window.innerWidth-w-8))+'px';
       ctxMenu.style.top=Math.max(8,Math.min(y,window.innerHeight-hh-8))+'px';
     });
+    // segurar o dedo (~0,5s) num PDF/Word anexado abre o menu (toque simples abre o arquivo)
+    var lpStart=0, lpPa=null, lpX=0, lpY=0, lpMoved=false;
+    editor.addEventListener('touchstart',function(e){
+      var pa=e.target.closest&&e.target.closest('.pdfatt');
+      lpPa=(pa&&editor.contains(pa))?pa:null;
+      if(!lpPa)return; var t=e.touches[0]; lpStart=Date.now(); lpX=t.clientX; lpY=t.clientY; lpMoved=false;
+    },{passive:true});
+    editor.addEventListener('touchmove',function(e){
+      if(!lpPa)return; var t=e.touches[0];
+      if(Math.abs(t.clientX-lpX)>12||Math.abs(t.clientY-lpY)>12) lpMoved=true;
+    },{passive:true});
+    editor.addEventListener('touchend',function(e){
+      if(!lpPa)return; var pa=lpPa; lpPa=null;
+      if(lpMoved)return;
+      if(Date.now()-lpStart>=480){ e.preventDefault(); openPdfMenu(pa,lpX,lpY); }
+    },{passive:false});
   }
   // ---- PDFs anexados (guardados no IndexedDB do app; a página guarda só o cartão) ----
   var IDBH=null;
@@ -97821,6 +97854,35 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   function downloadAtt(id,name){ getAtt(id,function(r){ if(!r||!r.blob){ toast('Arquivo não encontrado neste aparelho'); return; }
     var url=URL.createObjectURL(r.blob), a=document.createElement('a'); a.href=url; a.download=r.name||name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function(){ try{URL.revokeObjectURL(url);}catch(e){} },5000); toast('Cópia salva na pasta de downloads'); }); }
+  // --- Converter PDF anexado em texto editavel (usa pdf.js carregado da internet) ---
+  var _pdfjsP=null;
+  function loadPdfJs(){
+    if(_pdfjsP) return _pdfjsP;
+    _pdfjsP=new Promise(function(res,rej){
+      if(window.pdfjsLib){ res(window.pdfjsLib); return; }
+      var s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload=function(){ try{ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(window.pdfjsLib); }catch(e){ rej(e); } };
+      s.onerror=function(){ _pdfjsP=null; rej(new Error('cdn')); };
+      document.head.appendChild(s);
+    });
+    return _pdfjsP;
+  }
+  function pdfToText(blob){
+    return loadPdfJs().then(function(lib){
+      return blob.arrayBuffer().then(function(buf){
+        return lib.getDocument({data:buf}).promise.then(function(pdf){
+          var out=[], chain=Promise.resolve();
+          for(var i=1;i<=pdf.numPages;i++){ (function(n){ chain=chain.then(function(){ return pdf.getPage(n).then(function(pg){ return pg.getTextContent().then(function(tc){
+            var t='';
+            (tc.items||[]).forEach(function(it){ if(it&&typeof it.str==='string'){ t+=it.str; if(it.hasEOL) t+='\n'; } });
+            out.push(t);
+          }); }); }); })(i); }
+          return chain.then(function(){ return out.join('\n\n'); });
+        });
+      });
+    });
+  }
   function dropAttIfUnused(id){ var used=false; getSubs().forEach(function(s){ s.aulas.concat(s.estudos||[]).forEach(function(o){ if((o.body||'').indexOf('data-att="'+id+'"')>=0) used=true; }); });
     if(!used) fileStore('readwrite',function(st){ return st.delete(id); }); }
   var attPdf=document.getElementById('attPdf'), attPdfIn=document.getElementById('attPdfIn');
