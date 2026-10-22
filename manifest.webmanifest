@@ -1,7 +1,7 @@
 {
-  "name": "GraDireito",
-  "short_name": "GraDireito",
-  "description": "Estudo de Direito: aulas e leis integradas, com prazos e lembretes.",
+  "name": "BoraDiploma",
+  "short_name": "BoraDiploma",
+  "description": "Organize seus estudos e conquiste a sua formatura: aulas, materiais e leis integradas, com prazos e lembretes.",
   "lang": "pt-BR",
   "start_url": "./app.html",
   "scope": "./",
