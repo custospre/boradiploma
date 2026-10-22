@@ -98134,12 +98134,14 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     // captura a selecao NO INSTANTE em que toca/clica o seletor de cor (antes do foco sair),
     // mas so quando ha texto realmente selecionado (nao sobrescreve com cursor vazio).
     var fcLabel=fmtColor.closest('label')||fmtColor;
-    function grabSelNow(){ try{ var s=window.getSelection(); if(s&&s.rangeCount&&editor.contains(s.anchorNode)&&!s.isCollapsed) savedRange=s.getRangeAt(0).cloneRange(); }catch(e){} }
+    // captura a posicao no instante do clique na cor (texto selecionado OU so o cursor).
+    // Com cursor (sem seleccao), a cor passa a valer para o texto que voce DIGITAR a seguir.
+    function grabSelNow(){ try{ var s=window.getSelection(); if(s&&s.rangeCount&&editor.contains(s.anchorNode)) savedRange=s.getRangeAt(0).cloneRange(); }catch(e){} }
     ['pointerdown','mousedown','touchstart'].forEach(function(ev){ fcLabel.addEventListener(ev,grabSelNow,true); });
     function applyColor(){
       var s=window.getSelection();
-      var hasSel=(savedRange&&!savedRange.collapsed)||(s&&s.rangeCount&&editor.contains(s.anchorNode)&&!s.isCollapsed);
-      if(!hasSel){ if(typeof toast==='function') toast('Selecione (pinte) o texto primeiro, depois escolha a cor'); return; }
+      var ok=(savedRange&&editor.contains(savedRange.startContainer))||(s&&s.rangeCount&&editor.contains(s.anchorNode));
+      if(!ok){ if(typeof toast==='function') toast('Clique dentro do texto da aula (ou selecione um trecho) e escolha a cor'); return; }
       execCmd('foreColor',fmtColor.value);
     }
     fmtColor.addEventListener('input',applyColor);
