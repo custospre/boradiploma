@@ -98214,7 +98214,11 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   // rola a tela para o elemento ficar no topo, logo abaixo das barras fixas
   function scrollToTop(el){
     function go(){ var bar=document.querySelector('.bar'), nh=document.getElementById('noteHead');
-      var off=(bar?bar.offsetHeight:0)+(nh&&!viewNote.hidden?nh.offsetHeight:0)+10;
+      // idem scrollToEl: so desconta barras que estao FIXAS (PC). No celular elas
+      // rolam junto, entao nao desconta e o artigo inserido vai pro topo da tela.
+      var barFix=bar && /^(sticky|fixed)$/.test(getComputedStyle(bar).position);
+      var nhFix=nh && /^(sticky|fixed)$/.test(getComputedStyle(nh).position);
+      var off=(barFix?bar.offsetHeight:0)+(nhFix&&!viewNote.hidden?nh.offsetHeight:0)+10;
       var y=el.getBoundingClientRect().top+(window.pageYOffset||document.documentElement.scrollTop||0)-off;
       window.scrollTo({top:Math.max(0,y),behavior:'smooth'}); }
     requestAnimationFrame(function(){ requestAnimationFrame(go); });
@@ -98269,7 +98273,11 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   function clearHit(){ if(cur){cur.classList.remove('hit');cur=null;} }
   function scrollToEl(el){
     var bar=document.querySelector('.bar');
-    var off=(bar?bar.getBoundingClientRect().height:0)+12;
+    // So desconta a altura da barra quando ela fica FIXA no topo (PC). No celular
+    // a barra rola junto (position:static), entao o desconto levaria o artigo pro
+    // meio/baixo da tela — nesse caso usamos so uma folga pequena (topo da tela).
+    var fixed=bar && /^(sticky|fixed)$/.test(getComputedStyle(bar).position);
+    var off=(fixed?bar.getBoundingClientRect().height:0)+12;
     var y=el.getBoundingClientRect().top + (window.pageYOffset||document.documentElement.scrollTop||0) - off;
     window.scrollTo({top:Math.max(0,y),behavior:'smooth'});
   }
