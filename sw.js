@@ -3,7 +3,7 @@
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'gradireito-v4';
+const CACHE = 'gradireito-v5';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -32,11 +32,20 @@ self.addEventListener('activate', (event) => {
 });
 
 // Estrategia: tenta a rede; se falhar (sem internet), usa o que esta guardado.
+// Para a PAGINA principal (navegacao / app.html / index), forcamos buscar da rede
+// SEM usar o cache do proprio navegador (cache:'no-store'). Sem isso, o celular
+// podia abrir uma versao velha por ate 10 min (cache HTTP do GitHub Pages) mesmo
+// com internet — era o que prendia as correcoes/traducao.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
+  var url;
+  try { url = new URL(req.url); } catch (e) { url = { pathname: '' }; }
+  var isDoc = (req.mode === 'navigate') ||
+              /(^|\/)(app\.html|index\.html|)$/.test(url.pathname);
+  var netReq = isDoc ? new Request(req.url, { cache: 'no-store' }) : req;
   event.respondWith(
-    fetch(req)
+    fetch(netReq)
       .then((resp) => {
         const copy = resp.clone();
         caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
