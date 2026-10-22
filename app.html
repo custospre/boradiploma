@@ -98116,14 +98116,35 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   function saveSel(){ try{ var s=window.getSelection(); if(s && s.rangeCount && editor.contains(s.anchorNode)) savedRange=s.getRangeAt(0).cloneRange(); }catch(e){} }
   function restoreSel(){ try{ if(savedRange){ var s=window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); } }catch(e){} }
   if(editor){ editor.addEventListener('keyup',saveSel); editor.addEventListener('mouseup',saveSel); editor.addEventListener('focus',saveSel); }
+  // No celular a selecao com o dedo NAO dispara mouseup, entao a cor/formatacao
+  // caia numa selecao velha e "nao mudava nada". Guardamos a selecao do toque via
+  // selectionchange (so quando ha texto selecionado dentro do editor).
+  if(editor){ document.addEventListener('selectionchange',function(){ try{ var s=window.getSelection(); if(s&&s.rangeCount&&editor.contains(s.anchorNode)&&!s.isCollapsed) savedRange=s.getRangeAt(0).cloneRange(); }catch(e){} }); }
   function execCmd(cmd,val){ editor.focus(); restoreSel(); try{ document.execCommand(cmd,false,(val==null?null:val)); }catch(e){} saveSel(); persistNote(); }
   var fmtbar=document.getElementById('fmtbar');
   if(fmtbar){
     fmtbar.addEventListener('mousedown',function(e){ if(e.target.closest('button')) e.preventDefault(); });
+    // tambem guarda a selecao assim que o dedo toca a barra (antes de abrir a cor)
+    fmtbar.addEventListener('touchstart',function(){ saveSel(); },{passive:true,capture:true});
     [].slice.call(fmtbar.querySelectorAll('button[data-cmd]')).forEach(function(b){ b.addEventListener('click',function(){ execCmd(b.getAttribute('data-cmd')); }); });
     var hb=fmtbar.querySelector('button[data-hilite]'); if(hb) hb.addEventListener('click',function(){ try{ execCmd('hiliteColor','#ffe08a'); }catch(e){ execCmd('backColor','#ffe08a'); } });
   }
-  var fmtColor=document.getElementById('fmtColor'); if(fmtColor) fmtColor.addEventListener('input',function(){ execCmd('foreColor',fmtColor.value); });
+  var fmtColor=document.getElementById('fmtColor');
+  if(fmtColor){
+    // captura a selecao NO INSTANTE em que toca/clica o seletor de cor (antes do foco sair),
+    // mas so quando ha texto realmente selecionado (nao sobrescreve com cursor vazio).
+    var fcLabel=fmtColor.closest('label')||fmtColor;
+    function grabSelNow(){ try{ var s=window.getSelection(); if(s&&s.rangeCount&&editor.contains(s.anchorNode)&&!s.isCollapsed) savedRange=s.getRangeAt(0).cloneRange(); }catch(e){} }
+    ['pointerdown','mousedown','touchstart'].forEach(function(ev){ fcLabel.addEventListener(ev,grabSelNow,true); });
+    function applyColor(){
+      var s=window.getSelection();
+      var hasSel=(savedRange&&!savedRange.collapsed)||(s&&s.rangeCount&&editor.contains(s.anchorNode)&&!s.isCollapsed);
+      if(!hasSel){ if(typeof toast==='function') toast('Selecione (pinte) o texto primeiro, depois escolha a cor'); return; }
+      execCmd('foreColor',fmtColor.value);
+    }
+    fmtColor.addEventListener('input',applyColor);
+    fmtColor.addEventListener('change',applyColor);
+  }
   var fmtBlock=document.getElementById('fmtBlock'); if(fmtBlock) fmtBlock.addEventListener('change',function(){ execCmd('formatBlock', fmtBlock.value); fmtBlock.selectedIndex=0; });
   var fmtSize=document.getElementById('fmtSize'); if(fmtSize) fmtSize.addEventListener('change',function(){ if(fmtSize.value) execCmd('fontSize', fmtSize.value); fmtSize.selectedIndex=0; });
 
