@@ -97734,6 +97734,24 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   document.addEventListener('mousedown',function(e){ if(!ctxMenu.hidden && !ctxMenu.contains(e.target)) hideCtx(); });
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') hideCtx(); });
   window.addEventListener('scroll',function(){ if(!ctxMenu.hidden) hideCtx(); },{passive:true});
+  // No celular (sem botao direito): tocar num artigo inserido (.cite) abre o
+  // mesmo menu Excluir/Copiar. Toque num link dentro do artigo abre o link.
+  if(editor && window.matchMedia && window.matchMedia('(pointer: coarse)').matches){
+    editor.addEventListener('click',function(e){
+      if(e.target.closest && e.target.closest('a[href]')) return;
+      var c=e.target.closest && e.target.closest('.cite');
+      if(!c || !editor.contains(c)) return;
+      if(!ctxMenu.hidden && ctxCite===c){ hideCtx(); return; }
+      hideCtx(); ctxCite=c; c.classList.add('ctxsel');
+      var h=c.querySelector('.cite-h'), nm=h?h.textContent:'artigo';
+      ctxMenu.innerHTML='<button type="button" class="danger" data-a="del">🗑 Excluir '+esc(nm)+'</button><button type="button" data-a="copy">📋 Copiar texto do artigo</button>';
+      ctxMenu.hidden=false;
+      var r=c.getBoundingClientRect(), w=ctxMenu.offsetWidth, hh=ctxMenu.offsetHeight;
+      var x=e.clientX||(r.left+24), y=e.clientY||(r.top+24);
+      ctxMenu.style.left=Math.max(8,Math.min(x,window.innerWidth-w-8))+'px';
+      ctxMenu.style.top=Math.max(8,Math.min(y,window.innerHeight-hh-8))+'px';
+    });
+  }
   // ---- PDFs anexados (guardados no IndexedDB do app; a página guarda só o cartão) ----
   var IDBH=null;
   function idb(cb){ if(IDBH) return cb(IDBH); try{ var rq=indexedDB.open('gradireito_arquivos',1);
