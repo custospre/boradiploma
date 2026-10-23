@@ -98471,7 +98471,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
         var c=classify(t), tag=c.tag, addr=c.addr; if(first&&!tag){ tag='Caput'; addr='caput'; } first=false;
         var ind=2+c.lvl*20;
         var badge=tag?'<b style="font-size:.7rem;background:#f0e6c8;color:#7a1f2b;border-radius:5px;padding:1px 6px;margin-right:6px;white-space:nowrap">'+tag+'</b>':'';
-        return '<label style="display:flex;gap:9px;align-items:flex-start;padding:8px 2px;padding-left:'+ind+'px;border-bottom:1px solid #f3f3f3;cursor:pointer"><input type="checkbox" checked data-addr="'+escAttr(addr)+'" style="margin-top:4px;width:18px;height:18px;flex:none"><span>'+badge+'<span class="pmtext">'+esc(t)+'</span></span></label>';
+        return '<label style="display:flex;gap:9px;align-items:flex-start;padding:8px 2px;padding-left:'+ind+'px;border-bottom:1px solid #f3f3f3;cursor:pointer"><input type="checkbox" data-addr="'+escAttr(addr)+'" style="margin-top:4px;width:18px;height:18px;flex:none"><span>'+badge+'<span class="pmtext">'+esc(t)+'</span></span></label>';
       }).join('');
       pm.hidden=false;
     }
