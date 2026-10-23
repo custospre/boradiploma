@@ -98493,6 +98493,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     insParts.addEventListener('click',openParts);
     pm.querySelector('#pmCancel').addEventListener('click',closeParts);
     pm.addEventListener('click',function(e){ if(e.target===pm) closeParts(); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape' && !pm.hidden){ e.preventDefault(); closeParts(); } },true);
     pm.querySelector('#pmAll').addEventListener('click',function(){ [].slice.call(pmList.querySelectorAll('input')).forEach(function(c){c.checked=true;}); });
     pm.querySelector('#pmNone').addEventListener('click',function(){ [].slice.call(pmList.querySelectorAll('input')).forEach(function(c){c.checked=false;}); });
     pm.querySelector('#pmInsert').addEventListener('click',function(){
