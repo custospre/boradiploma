@@ -447,7 +447,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       <select id="insCode" class="mini" aria-label="Código" title="Código de onde vem o artigo" style="display:none"></select>
       <input id="insNum" type="text" inputmode="numeric" autocomplete="off" style="width:78px;text-align:center" placeholder="art. nº" aria-label="Número do artigo" title="Número do artigo para inserir onde o cursor está">
       <button class="act" id="insDo">Inserir artigo</button>
-      <button class="act" id="insParts" title="Escolher só os trechos que precisa (caput, §, incisos)">☑ Trechos</button>
+      <button class="act" id="insParts" title="Escolher só as partes que precisa (caput, §, incisos, alíneas)">☑ Partes</button>
     </div>
     <div class="grp" id="ttsControls">
       <button type="button" class="act" id="ttsBtn" title="Ouvir o texto desta página em voz alta">🔊 Ouvir</button>
@@ -98459,7 +98459,20 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       var ps=[].slice.call(el.querySelectorAll('p')).map(function(p){return (p.textContent||'').trim();}).filter(function(t){return t;});
       if(!ps.length){ toast('Esse artigo não tem trechos para escolher'); return; }
       pmTitle.textContent=(NAMES[curCode]||'')+' — '+(NUMLBL[curCode]?NUMLBL[curCode][1]:'Art. ')+curNum;
-      pmList.innerHTML=ps.map(function(t){ return '<label style="display:flex;gap:9px;align-items:flex-start;padding:8px 2px;border-bottom:1px solid #f3f3f3;cursor:pointer"><input type="checkbox" checked style="margin-top:4px;width:18px;height:18px;flex:none"><span>'+esc(t)+'</span></label>'; }).join('');
+      function classify(s){ s=(s||'').trim(); var m;
+        if(m=s.match(/^§\s*(\d+)/)) return {lvl:0,tag:'§',addr:'§ '+m[1]+'º'};
+        if(/^par[áa]grafo\s+único/i.test(s)) return {lvl:0,tag:'Parág. único',addr:'parágrafo único'};
+        if(m=s.match(/^([IVXLCDM]+)\s*[-–—.)]/)) return {lvl:1,tag:'Inciso',addr:'inciso '+m[1]};
+        if(m=s.match(/^([a-z])\s*\)/)) return {lvl:2,tag:'Alínea',addr:'alínea '+m[1]};
+        if(m=s.match(/^(\d+)\s*[.)]/)) return {lvl:3,tag:'Item',addr:'item '+m[1]};
+        return {lvl:0,tag:'',addr:''}; }
+      var first=true;
+      pmList.innerHTML=ps.map(function(t){
+        var c=classify(t), tag=c.tag, addr=c.addr; if(first&&!tag){ tag='Caput'; addr='caput'; } first=false;
+        var ind=2+c.lvl*20;
+        var badge=tag?'<b style="font-size:.7rem;background:#f0e6c8;color:#7a1f2b;border-radius:5px;padding:1px 6px;margin-right:6px;white-space:nowrap">'+tag+'</b>':'';
+        return '<label style="display:flex;gap:9px;align-items:flex-start;padding:8px 2px;padding-left:'+ind+'px;border-bottom:1px solid #f3f3f3;cursor:pointer"><input type="checkbox" checked data-addr="'+escAttr(addr)+'" style="margin-top:4px;width:18px;height:18px;flex:none"><span>'+badge+'<span class="pmtext">'+esc(t)+'</span></span></label>';
+      }).join('');
       pm.hidden=false;
     }
     function closeParts(){ pm.hidden=true; }
@@ -98469,14 +98482,19 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     pm.querySelector('#pmAll').addEventListener('click',function(){ [].slice.call(pmList.querySelectorAll('input')).forEach(function(c){c.checked=true;}); });
     pm.querySelector('#pmNone').addEventListener('click',function(){ [].slice.call(pmList.querySelectorAll('input')).forEach(function(c){c.checked=false;}); });
     pm.querySelector('#pmInsert').addEventListener('click',function(){
-      var lines=[].slice.call(pmList.querySelectorAll('input:checked')).map(function(c){ return c.parentNode.querySelector('span').textContent; });
-      if(!lines.length){ toast('Marque ao menos um trecho'); return; }
-      var partial=lines.length<pmList.querySelectorAll('input').length;
+      var checked=[].slice.call(pmList.querySelectorAll('input:checked'));
+      if(!checked.length){ toast('Marque ao menos uma parte'); return; }
+      var lines=checked.map(function(c){ return c.parentNode.querySelector('.pmtext').textContent; });
+      var partial=checked.length<pmList.querySelectorAll('input').length;
+      // monta o endereço completo das partes escolhidas (ex.: caput; § 2º; inciso I)
+      var addrs=[]; checked.forEach(function(c){ var a=c.getAttribute('data-addr'); if(a && addrs.indexOf(a)<0) addrs.push(a); });
+      var artLabel=(NUMLBL[curCode]?' — '+NUMLBL[curCode][1]:' — Art. ')+esc(curNum);
+      var endereco=(partial && addrs.length)?(' — '+esc(addrs.join('; '))):'';
       var txt=lines.join('\n');
-      var h='<div class="cite" contenteditable="false"><div class="cite-h">'+esc(NAMES[curCode])+(NUMLBL[curCode]?' — '+NUMLBL[curCode][1]:' — Art. ')+esc(curNum)+(partial?' (trecho)':'')+'</div><div>'+esc(txt).replace(/\n/g,'<br>')+'</div></div><p><br></p>';
+      var h='<div class="cite" contenteditable="false"><div class="cite-h">'+esc(NAMES[curCode])+artLabel+endereco+'</div><div>'+esc(txt).replace(/\n/g,'<br>')+'</div></div><p><br></p>';
       closeParts();
-      if(curNoteId){ insertIntoOpenNote(h,true); toast(curIsEst?'Trecho inserido no material':'Trecho inserido na aula'); }
-      else { var a=getSubs(); var tid=getActAula(); var r=findAula(a,tid); if(!r){ var o=newAula(getActSub()); a=getSubs(); r=findAula(a,o.id); } insertIntoStoredAula(r.aula,h); r.aula.updated=Date.now(); saveSubs(a); toast('Trecho inserido em “'+pgTitle(r)+'”'); }
+      if(curNoteId){ insertIntoOpenNote(h,true); toast(curIsEst?'Inserido no material':'Inserido na aula'); }
+      else { var a=getSubs(); var tid=getActAula(); var r=findAula(a,tid); if(!r){ var o=newAula(getActSub()); a=getSubs(); r=findAula(a,o.id); } insertIntoStoredAula(r.aula,h); r.aula.updated=Date.now(); saveSubs(a); toast('Inserido em “'+pgTitle(r)+'”'); }
       insNum.value='';
     });
   }
