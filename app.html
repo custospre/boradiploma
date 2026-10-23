@@ -157,7 +157,7 @@ mark.on{background:var(--mark-on);outline:1px solid var(--accent)}
 #prtInfo{font-family:var(--font-head);font-size:.8rem;color:var(--muted);margin-left:auto}
 #prtSheets{padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:16px;transform-origin:top center}
 .prtSheet{position:relative;background:#fff;color:#000;box-shadow:0 3px 14px rgba(0,0,0,.45);
-  box-sizing:border-box;overflow:hidden;flex:0 0 auto}
+  box-sizing:border-box;overflow:visible;flex:0 0 auto}
 .prtBody{outline:none;font-family:var(--font-body);line-height:1.5;color:#000;overflow-wrap:break-word}
 .prtBody *{color:#000;background:transparent;box-shadow:none}
 .prtBody h1,.prtBody h2,.prtBody h3{font-family:var(--font-head);line-height:1.25;margin:0 0 .45em}
@@ -172,18 +172,27 @@ mark.on{background:var(--mark-on);outline:1px solid var(--accent)}
 .prtBody a{color:#000;text-decoration:underline}
 .prtBody img{max-width:100%;height:auto}
 .prtBody mark,.prtBody .hit{background:none;font-weight:700}
+.prtBody ul,.prtBody ol{padding-left:1.9em !important;margin:.4em 0;list-style-position:outside}
+.prtBody li{margin-left:0}
+.prtBody [style*="text-indent:-"],.prtBody [style*="text-indent: -"]{text-indent:0 !important}
+.prtBody [style*="margin-left:-"],.prtBody [style*="margin-left: -"]{margin-left:0 !important}
 .prtBody table{border-collapse:collapse;width:100%}
 .prtBody th,.prtBody td{border:.5pt solid #777;padding:3px 5px;font-size:.9em}
 .prtBreak{height:0;overflow:hidden;border-top:1px dashed #c33}
 .prtNum{position:absolute;right:9px;bottom:5px;font-family:var(--font-head);font-size:8pt;color:#888}
 .prtWait{font-family:var(--font-head);color:#fff;padding:34px 12px;font-size:1rem;text-align:center}
+/* nome do trabalho/avaliacao editavel no proprio titulo */
+#estTitleEdit{outline:none;cursor:text;border-bottom:1px dashed transparent;border-radius:2px}
+#estTitleEdit:hover{border-bottom-color:var(--line)}
+#estTitleEdit:focus{border-bottom-color:var(--accent);background:var(--accent-soft)}
+#estTitle .tidim{color:var(--muted);font-weight:500}
 @media print{
   :root.prtmode body>*{display:none!important}
   :root.prtmode body>#prtOverlay{display:block!important;position:static!important;overflow:visible!important;
     background:#fff!important;padding:0!important}
   :root.prtmode #prtBar{display:none!important}
   :root.prtmode #prtSheets{zoom:1!important;transform:none!important;padding:0!important;gap:0!important;display:block!important}
-  :root.prtmode .prtSheet{box-shadow:none!important;margin:0!important;break-after:page;page-break-after:always}
+  :root.prtmode .prtSheet{box-shadow:none!important;margin:0!important;overflow:hidden!important;break-after:page;page-break-after:always}
   :root.prtmode .prtSheet:last-child{break-after:auto;page-break-after:auto}
   :root.prtmode .prtBreak{border-top:none}
   :root.prtmode html,:root.prtmode body{background:#fff!important}
@@ -310,7 +319,13 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
 .fmtcolor input{width:20px;height:20px;border:none;background:none;padding:0;cursor:pointer}
 #editor h2{font-family:var(--font-head);font-weight:800;font-size:1.3rem;margin:.6em 0 .2em}
 #editor h3{font-family:var(--font-head);font-weight:700;font-size:1.1rem;margin:.5em 0 .2em}
-#editor ul,#editor ol{padding-left:1.5em;margin:.4em 0}
+/* O recuo das listas usa !important porque texto colado do Word/PDF costuma vir
+   com padding-left:0 no proprio elemento; sem isso o numero do item e desenhado
+   fora da borda esquerda do quadro. O mesmo vale para recuos negativos. */
+#editor ul,#editor ol{padding-left:1.9em !important;margin:.4em 0;list-style-position:outside}
+#editor li{margin-left:0}
+#editor [style*="text-indent:-"],#editor [style*="text-indent: -"]{text-indent:0 !important}
+#editor [style*="margin-left:-"],#editor [style*="margin-left: -"]{margin-left:0 !important}
 #editor{min-height:52vh;width:100%;max-width:100%;box-sizing:border-box;font-family:Calibri,'Segoe UI',Candara,Arial,sans-serif;font-size:1.05rem;line-height:1.7;outline:none;
   border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--surface);
   overflow-wrap:anywhere;word-break:break-word}
@@ -97528,7 +97543,20 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       [].slice.call(document.querySelectorAll('#'+SEC.id+' .dynrow')).forEach(function(r){ if(r.getAttribute('data-id')!==ITEM.id) r.style.display='none'; });
       var ab=document.querySelector('#'+SEC.id+' .addbtn'); if(ab) ab.style.display='none';
       itemViewOn=true; itemViewSec=opt.sec; itemViewId=ITEM.id; itemViewIcon=SEC.t.slice(0,SEC.t.indexOf(' '));
-      if(estTitle) estTitle.textContent=itemViewIcon+' '+(ITEM.label||'')+' — '+(s.name||'disciplina');
+      if(estTitle){
+        estTitle.innerHTML='<span class="tiic"></span><span id="estTitleEdit" contenteditable="true" spellcheck="true" lang="pt-BR" title="Clique aqui para mudar o nome"></span><span class="tidim"></span>';
+        estTitle.querySelector('.tiic').textContent=itemViewIcon+' ';
+        var _te=estTitle.querySelector('#estTitleEdit');
+        _te.textContent=(ITEM.label||'');
+        estTitle.querySelector('.tidim').textContent=' — '+(s.name||'disciplina');
+        _te.addEventListener('input',function(){
+          var v=(_te.textContent||'').replace(/\s+/g,' ').trim();
+          updateDyn(itemViewSec,itemViewId,'label',v);
+          var ci=document.querySelector('#view-subject .dynrow[data-id="'+itemViewId+'"] .dlabel');
+          if(ci && ci.value!==v) ci.value=v;
+        });
+        _te.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); _te.blur(); } });
+      }
       var w=''; if(ITEM.date){ var du=daysUntil(ITEM.date); w=fmtBR(ITEM.date)+' · '+(du<0?('foi há '+(-du)+' dia'+(du===-1?'':'s')):(du===0?'é HOJE':(du===1?'é amanhã':('faltam '+du+' dias')))); } else { w='sem data definida'; }
       if(estLead) estLead.textContent=(opt.sec==='avals'?'Avaliação':'Trabalho')+' · '+w;
     } else { itemViewOn=false; [].slice.call(document.querySelectorAll('#view-subject .addbtn')).forEach(function(b){ b.style.display=''; }); }
@@ -97604,7 +97632,10 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   }
   function subSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(persistSubject,400); }
   if(subName) subName.addEventListener('input',subSave);
-  if(subName) subName.addEventListener('input',function(){ var et=document.getElementById('estTitle'); if(et && / — /.test(et.textContent)) et.textContent=et.textContent.replace(/ — .*$/, ' — '+subName.value); });
+  if(subName) subName.addEventListener('input',function(){ var et=document.getElementById('estTitle'); if(!et)return;
+    var dim=et.querySelector('.tidim');
+    if(dim){ dim.textContent=' — '+subName.value; return; }
+    if(/ — /.test(et.textContent)) et.textContent=et.textContent.replace(/ — .*$/, ' — '+subName.value); });
   if(subProf) subProf.addEventListener('input',subSave);
   if(subFone) subFone.addEventListener('input',subSave);
   if(subEmail) subEmail.addEventListener('input',subSave);
@@ -97636,7 +97667,10 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     [].slice.call(document.querySelectorAll('#view-subject .dynrow')).forEach(function(row){
       var kind=row.getAttribute('data-kind'), id=row.getAttribute('data-id');
       var lab=row.querySelector('.dlabel'), dat=row.querySelector('.ddate'), rm=row.querySelector('.drm');
-      lab.addEventListener('input',function(){ updateDyn(kind,id,'label',lab.value); if(itemViewOn && kind===itemViewSec && id===itemViewId){ var et=document.getElementById('estTitle'); if(et) et.textContent=itemViewIcon+' '+lab.value+' — '+((subName&&subName.value)||'disciplina'); } });
+      lab.addEventListener('input',function(){ updateDyn(kind,id,'label',lab.value); if(itemViewOn && kind===itemViewSec && id===itemViewId){ var et=document.getElementById('estTitle'); if(!et)return;
+        var ed=et.querySelector('#estTitleEdit');
+        if(ed){ if(ed.textContent!==lab.value) ed.textContent=lab.value; return; }
+        et.textContent=itemViewIcon+' '+lab.value+' — '+((subName&&subName.value)||'disciplina'); } });
       if(dat) dat.addEventListener('change',function(){ updateDyn(kind,id,'date',dat.value); });
       rm.addEventListener('click',function(){ removeDyn(kind,id); });
       var u=row.querySelector('.durl'), au=row.querySelector('.daula'), op=row.querySelector('.dopen'), gq=row.querySelector('.dgo');
@@ -98305,6 +98339,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
         +'<label class="prtf">Ver <select id="prtZoom"><option value="auto">caber na tela</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option></select></label>'
         +'<span class="prtsep"></span>'
         +'<button type="button" class="notesbtn" id="prtBreak" title="Empurra o texto daqui para diante para a folha seguinte">&#9988; Quebrar aqui</button>'
+        +'<button type="button" class="notesbtn" id="prtRedo" title="Reorganizar o texto nas folhas">&#8635; Refazer folhas</button>'
         +'<button type="button" class="notesbtn" id="prtSave" title="Guardar no texto da aula as correções feitas aqui">&#128190; Guardar correções</button>'
         +'<span id="prtInfo"></span></div><div id="prtSheets"></div>';
       document.body.appendChild(ov);
@@ -98320,6 +98355,14 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       ov.querySelector('#prtZoom').addEventListener('change',function(){ cfg.zoom=(this.value==='auto')?'auto':(+this.value); aplicaZoom(); });
       window.addEventListener('resize',function(){ if(ov && !ov.hidden && cfg.zoom==='auto') aplicaZoom(); });
       ov.querySelector('#prtBreak').addEventListener('click',quebraAqui);
+      ov.querySelector('#prtRedo').addEventListener('click',function(){ refazComCursor(); toast('Folhas reorganizadas'); });
+      // enquanto se digita, se o texto passar do fim da folha ele e levado para
+      // a folha seguinte sozinho (antes ele simplesmente sumia)
+      var tRefaz=null;
+      sheetsBox.addEventListener('input',function(){
+        clearTimeout(tRefaz);
+        tRefaz=setTimeout(function(){ if(transbordou()) refazComCursor(); },800);
+      });
       ov.querySelector('#prtSave').addEventListener('click',guarda);
       document.addEventListener('keydown',function(e){ if(e.key==='Escape' && ov && !ov.hidden){ e.preventDefault(); fecha(); } });
     }
@@ -98397,6 +98440,60 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     function refaz(){ src.html=junta(); info.textContent='montando\u2026';
       sheetsBox.innerHTML='<div class="prtWait">Refazendo as folhas\u2026</div>';
       setTimeout(desenha,40); }
+
+    // --- refazer as folhas sem perder o lugar do cursor ---
+    function corpos(){ return [].slice.call(sheetsBox.querySelectorAll('.prtBody')); }
+    function tamanho(b){ var r=document.createRange(); r.selectNodeContents(b); return r.toString().length; }
+    function transbordou(){
+      var A=area(), cs=corpos();
+      for(var i=0;i<cs.length;i++){ if(cs[i].scrollHeight > A.h*0.985 + 1) return true; }
+      return false;
+    }
+    function ondeEstaOCursor(){
+      var sel=window.getSelection(); if(!sel || !sel.rangeCount) return null;
+      var r=sel.getRangeAt(0), cs=corpos(), total=0;
+      for(var i=0;i<cs.length;i++){
+        if(cs[i].contains(r.startContainer)){
+          var rr=document.createRange(); rr.selectNodeContents(cs[i]);
+          try{ rr.setEnd(r.startContainer,r.startOffset); }catch(e){ return null; }
+          return total + rr.toString().length;
+        }
+        total += tamanho(cs[i]);
+      }
+      return null;
+    }
+    function poeCursor(off){
+      if(off==null) return;
+      var cs=corpos();
+      for(var i=0;i<cs.length;i++){
+        var n=tamanho(cs[i]);
+        if(off<=n){ cursorEm(cs[i],off); return; }
+        off-=n;
+      }
+      if(cs.length) cursorEm(cs[cs.length-1], tamanho(cs[cs.length-1]));
+    }
+    function cursorEm(root,off){
+      var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null), acc=0, n;
+      while((n=w.nextNode())){
+        if(acc+n.length>=off){
+          try{
+            var r=document.createRange(); r.setStart(n,Math.max(0,off-acc)); r.collapse(true);
+            var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+            var el=(n.parentNode&&n.parentNode.scrollIntoView)?n.parentNode:root;
+            el.scrollIntoView({block:'center'});
+          }catch(e){}
+          return;
+        }
+        acc+=n.length;
+      }
+      try{ root.focus(); }catch(e){}
+    }
+    function refazComCursor(){
+      var off=ondeEstaOCursor();
+      src.html=junta();
+      desenha();
+      poeCursor(off);
+    }
 
     function quebraAqui(){
       var sel=window.getSelection();
