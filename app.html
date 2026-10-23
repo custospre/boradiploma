@@ -98442,10 +98442,24 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   if(insParts){
     var pm=document.createElement('div'); pm.id='partsModal'; pm.hidden=true;
     pm.style.cssText='position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px';
-    pm.innerHTML='<div style="background:#fff;border-radius:12px;max-width:620px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)">'
-      +'<div style="padding:14px 16px;border-bottom:1px solid #eee;font-weight:700" id="pmTitle">Escolher trechos</div>'
-      +'<div style="padding:6px 10px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="linkbtn" id="pmAll">Marcar todos</button><button type="button" class="linkbtn" id="pmNone">Desmarcar todos</button></div>'
-      +'<div id="pmList" style="overflow:auto;padding:8px 14px;flex:1"></div>'
+    pm.innerHTML='<div style="background:#fff;border-radius:12px;max-width:640px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)">'
+      +'<div style="padding:14px 16px;border-bottom:1px solid #eee;font-weight:700" id="pmTitle">Partes do artigo</div>'
+      +'<div style="border-bottom:1px solid #f0f0f0">'
+        +'<button type="button" id="adHead" style="all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;padding:11px 16px;box-sizing:border-box;font-weight:600;color:#7a1f2b"><span id="adCaret">▸</span> Montar o endereço exato (§ · inciso · alínea · item)</button>'
+        +'<div id="adBody" hidden style="padding:0 16px 14px">'
+          +'<div style="font-size:.78rem;color:#666;margin-bottom:8px">Marque o nível e digite o número. Ex.: § 4, Inciso 2, Alínea 1.</div>'
+          +'<div style="display:flex;flex-direction:column;gap:8px">'
+            +'<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="adPar" style="width:18px;height:18px"><b style="min-width:92px">§ Parágrafo</b><input id="adParN" type="text" inputmode="numeric" placeholder="nº" style="width:62px;padding:4px 6px"></label>'
+            +'<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="adInc" style="width:18px;height:18px"><b style="min-width:92px">Inciso</b><input id="adIncN" type="text" placeholder="2 ou II" style="width:62px;padding:4px 6px"></label>'
+            +'<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="adAli" style="width:18px;height:18px"><b style="min-width:92px">Alínea</b><input id="adAliN" type="text" placeholder="a ou 1" style="width:62px;padding:4px 6px"></label>'
+            +'<label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="adItem" style="width:18px;height:18px"><b style="min-width:92px">Item</b><input id="adItemN" type="text" inputmode="numeric" placeholder="nº" style="width:62px;padding:4px 6px"></label>'
+          +'</div>'
+          +'<div style="margin-top:10px;text-align:right"><button type="button" class="act" id="adInsert">Inserir este endereço</button></div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="padding:9px 16px 2px;font-size:.8rem;color:#888">Ou escolha na lista do artigo:</div>'
+      +'<div style="padding:4px 10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="linkbtn" id="pmAll">Marcar todos</button><button type="button" class="linkbtn" id="pmNone">Desmarcar todos</button></div>'
+      +'<div id="pmList" style="overflow:auto;padding:4px 14px;flex:1"></div>'
       +'<div style="padding:12px 16px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end"><button type="button" class="linkbtn" id="pmCancel">Cancelar</button><button type="button" class="act" id="pmInsert">Inserir selecionado</button></div>'
       +'</div>';
     document.body.appendChild(pm);
@@ -98492,6 +98506,33 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       var endereco=(partial && addrs.length)?(' — '+esc(addrs.join('; '))):'';
       var txt=lines.join('\n');
       var h='<div class="cite" contenteditable="false"><div class="cite-h">'+esc(NAMES[curCode])+artLabel+endereco+'</div><div>'+esc(txt).replace(/\n/g,'<br>')+'</div></div><p><br></p>';
+      closeParts();
+      if(curNoteId){ insertIntoOpenNote(h,true); toast(curIsEst?'Inserido no material':'Inserido na aula'); }
+      else { var a=getSubs(); var tid=getActAula(); var r=findAula(a,tid); if(!r){ var o=newAula(getActSub()); a=getSubs(); r=findAula(a,o.id); } insertIntoStoredAula(r.aula,h); r.aula.updated=Date.now(); saveSubs(a); toast('Inserido em “'+pgTitle(r)+'”'); }
+      insNum.value='';
+    });
+    // sanfona "Montar o endereço exato"
+    pm.querySelector('#adHead').addEventListener('click',function(){ var b=pm.querySelector('#adBody'), c=pm.querySelector('#adCaret'); b.hidden=!b.hidden; c.textContent=b.hidden?'▸':'▾'; });
+    function toRoman(n){ n=+n; if(!n)return ''; var m=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']], r=''; m.forEach(function(p){ while(n>=p[0]){ r+=p[1]; n-=p[0]; } }); return r; }
+    function toLetter(n){ n=+n; return (n>=1&&n<=26)?String.fromCharCode(96+n):String(n); }
+    pm.querySelector('#adInsert').addEventListener('click',function(){
+      var el=document.getElementById(curCode+'-art-'+curNum)||document.getElementById(curCode+'-adct-'+curNum);
+      if(!el){ toast('Artigo não encontrado'); return; }
+      var ps=[].slice.call(el.querySelectorAll('p'));
+      function txt(i){ return (ps[i].textContent||'').trim(); }
+      var s=0, e=ps.length, addr=[(NUMLBL[curCode]?NUMLBL[curCode][1].trim():'Art.')+' '+curNum];
+      function findIn(re){ for(var i=s;i<e;i++){ if(re.test(txt(i))) return i; } return -1; }
+      function bound(from,re){ for(var i=from+1;i<e;i++){ if(re.test(txt(i))) return i; } return e; }
+      function want(cb,inp){ return pm.querySelector(cb).checked?((pm.querySelector(inp).value||'').trim()):null; }
+      var pNum=want('#adPar','#adParN'), iVal=want('#adInc','#adIncN'), aVal=want('#adAli','#adAliN'), itNum=want('#adItem','#adItemN');
+      if(!pNum&&!iVal&&!aVal&&!itNum){ toast('Marque e preencha ao menos um nível (§, inciso, alínea ou item)'); return; }
+      if(pNum){ var pn=pNum.replace(/\D/g,''); var i1=findIn(new RegExp('^§\\s*'+pn+'\\b')); if(i1<0){ toast('§ '+pn+' não encontrado nesse artigo'); return; } s=i1; e=bound(i1,/^§\s*\d/); addr.push('§ '+pn+'º'); }
+      if(iVal){ var rom=/^[ivxlcdm]+$/i.test(iVal)?iVal.toUpperCase():toRoman(iVal.replace(/\D/g,'')); var i2=findIn(new RegExp('^'+rom+'\\s*[-–—.)]')); if(i2<0){ toast('Inciso '+rom+' não encontrado'); return; } s=i2; e=bound(i2,/^[IVXLCDM]+\s*[-–—.)]/); addr.push('inciso '+rom); }
+      if(aVal){ var let=/^[a-z]$/i.test(aVal)?aVal.toLowerCase():toLetter(aVal.replace(/\D/g,'')); var i3=findIn(new RegExp('^'+let+'\\s*\\)')); if(i3<0){ toast('Alínea '+let+' não encontrada'); return; } s=i3; e=bound(i3,/^[a-z]\s*\)/); addr.push('alínea '+let); }
+      if(itNum){ var itn=itNum.replace(/\D/g,''); var i4=findIn(new RegExp('^'+itn+'\\s*[.)]')); if(i4<0){ toast('Item '+itn+' não encontrado'); return; } s=i4; e=bound(i4,/^\d+\s*[.)]/); addr.push('item '+itn); }
+      var lines=[]; for(var k=s;k<e;k++){ var t=txt(k); if(t) lines.push(t); }
+      if(!lines.length){ toast('Não encontrei esse endereço'); return; }
+      var h='<div class="cite" contenteditable="false"><div class="cite-h">'+esc(NAMES[curCode])+' — '+esc(addr.join(', '))+'</div><div>'+esc(lines.join('\n')).replace(/\n/g,'<br>')+'</div></div><p><br></p>';
       closeParts();
       if(curNoteId){ insertIntoOpenNote(h,true); toast(curIsEst?'Inserido no material':'Inserido na aula'); }
       else { var a=getSubs(); var tid=getActAula(); var r=findAula(a,tid); if(!r){ var o=newAula(getActSub()); a=getSubs(); r=findAula(a,o.id); } insertIntoStoredAula(r.aula,h); r.aula.updated=Date.now(); saveSubs(a); toast('Inserido em “'+pgTitle(r)+'”'); }
