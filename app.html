@@ -98220,13 +98220,29 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     if(curIsEst) openSubject(curSubjectId,{est:true,estItem:curNoteId,fromAula:curEstAula||null});
     else openSubject(curSubjectId,{est:true,fromAula:curNoteId}); });
   if(goAula) goAula.addEventListener('click',function(){ if(curSubjectId&&curEstAula) openNote(curSubjectId,curEstAula); });
+  // --- margem da folha (em mm), escolhida na tela de impressao e usada tambem
+  //     na pagina da aula, para o texto quebrar no mesmo lugar nos dois ---
+  function margemGuardada(){
+    try{ var v=+localStorage.getItem('gd_margem_mm'); return (v>=10&&v<=30)?v:20; }catch(e){ return 20; }
+  }
+  function guardaMargem(v){
+    try{ localStorage.setItem('gd_margem_mm', String(v)); }catch(e){}
+    if(typeof updAulaPgs==='function') updAulaPgs();
+  }
   // páginas estimadas da aula (folha A4, margens de 2 cm: 17 x 25,7 cm)
   function updAulaPgs(){
     if(!aulaPgs||!editor||viewNote.hidden)return;
     var cs=getComputedStyle(editor), w=editor.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
     var hgt=editor.scrollHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
     var words=(editor.innerText||'').trim().split(/\s+/).filter(Boolean).length;
-    var alt=w*257/170;                      // altura de uma folha A4, em pixels
+    var mg=margemGuardada();                // margem escolhida, em mm
+    var utilW=210-2*mg, utilH=297-2*mg;     // area util da folha A4, em mm
+    // o editor ganha a largura de uma folha: o texto quebra onde vai quebrar no papel
+    editor.style.maxWidth='calc('+utilW+'mm + '+(parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight))+'px)';
+    editor.style.marginLeft='0'; editor.style.marginRight='auto';
+    w=editor.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+    hgt=editor.scrollHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+    var alt=w*utilH/utilW;                  // altura de uma folha, em pixels
     var pg=words?Math.max(1,Math.ceil(hgt/alt)):0;
     aulaPgs.textContent='· '+pg+' pág. A4 · '+words+' palavra'+(words===1?'':'s');
     marcaFolhas(pg,alt,parseFloat(cs.paddingTop));
@@ -98340,7 +98356,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     if(!printBtn) return;
     var ov=null, sheetsBox=null, info=null, pageStyle=null, src=null;
     var PAPEL={a4:{w:210,h:297,n:'A4'}, carta:{w:216,h:279,n:'Carta'}};
-    var cfg={papel:'a4', margem:20, letra:12, deitado:false, zoom:'auto'};
+    var cfg={papel:'a4', margem:margemGuardada(), letra:12, deitado:false, zoom:'auto'};
 
     function mm(v){ return v*96/25.4; }           // milimetros -> pixels na tela
     function folha(){ var p=PAPEL[cfg.papel]; return cfg.deitado?{w:p.h,h:p.w}:{w:p.w,h:p.h}; }
@@ -98353,7 +98369,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
         +'<button type="button" class="notesbtn" id="prtBack" title="Fechar sem imprimir (Esc)">&#8617; Voltar</button>'
         +'<span class="prtsep"></span>'
         +'<label class="prtf">Papel <select id="prtPapel"><option value="a4">A4</option><option value="carta">Carta</option></select></label>'
-        +'<label class="prtf">Margem <select id="prtMargem"><option value="15">estreita</option><option value="20">normal</option><option value="25">larga</option></select></label>'
+        +'<label class="prtf">Margem <select id="prtMargem"><option value="10">1,0 cm</option><option value="15">1,5 cm</option><option value="20">2,0 cm</option><option value="25">2,5 cm</option><option value="30">3,0 cm</option></select></label>'
         +'<label class="prtf">Letra <select id="prtLetra"><option value="10">pequena</option><option value="12">normal</option><option value="14">grande</option></select></label>'
         +'<label class="prtf">Deitado <input type="checkbox" id="prtDeitado"></label>'
         +'<label class="prtf">Ver <select id="prtZoom"><option value="auto">caber na tela</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option></select></label>'
@@ -98369,7 +98385,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       ov.querySelector('#prtDo').addEventListener('click',function(){ try{ window.print(); }catch(e){ toast('Nao consegui abrir a impressao'); } });
       ov.querySelector('#prtBack').addEventListener('click',fecha);
       ov.querySelector('#prtPapel').addEventListener('change',function(){ cfg.papel=this.value; refaz(); });
-      ov.querySelector('#prtMargem').addEventListener('change',function(){ cfg.margem=+this.value; refaz(); });
+      ov.querySelector('#prtMargem').addEventListener('change',function(){ cfg.margem=+this.value; guardaMargem(cfg.margem); refaz(); });
       ov.querySelector('#prtLetra').addEventListener('change',function(){ cfg.letra=+this.value; refaz(); });
       ov.querySelector('#prtDeitado').addEventListener('change',function(){ cfg.deitado=this.checked; refaz(); });
       ov.querySelector('#prtZoom').addEventListener('change',function(){ cfg.zoom=(this.value==='auto')?'auto':(+this.value); aplicaZoom(); });
@@ -98427,7 +98443,11 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     function desenha(){
       sheetsBox.style.zoom='';
       var A=area(), f=folha();
-      pageStyle.textContent='@page{size:'+f.w+'mm '+f.h+'mm;margin:0}';
+      // A margem vai para o @page (e nao para dentro da folha) e, no papel, a
+      // folha tem o tamanho da area util. Assim ela cabe mesmo quando o
+      // navegador impoe a margem dele, em vez de estourar para a pagina seguinte.
+      pageStyle.textContent='@page{size:'+f.w+'mm '+f.h+'mm;margin:'+cfg.margem+'mm}'
+        +'@media print{:root.prtmode .prtSheet{width:auto !important;height:'+(f.h-2*cfg.margem-2)+'mm !important;padding:0 !important}}';
       sheetsBox.innerHTML='';
       var tmp=document.createElement('div'); tmp.innerHTML=src.html;
       [].slice.call(tmp.querySelectorAll('script,style,canvas,iframe,.fmtbar,.dhandle,.prtNum,button,select,input,textarea,.rowbtns,.pdfview,.docview,.emptybox,.estback')).forEach(function(n){ n.remove(); });
@@ -99150,7 +99170,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     if(viewNote && !viewNote.hidden && editor){
       var ecs=getComputedStyle(editor);
       var ew=editor.clientWidth-parseFloat(ecs.paddingLeft)-parseFloat(ecs.paddingRight);
-      var ealt=ew*257/170;
+      var emg=margemGuardada(), ealt=ew*(297-2*emg)/(210-2*emg);
       var ehgt=editor.scrollHeight-parseFloat(ecs.paddingTop)-parseFloat(ecs.paddingBottom);
       var eY=Math.max(1,Math.ceil(ehgt/ealt));
       if(eY<2){ pgCounter.hidden=true; return; }
