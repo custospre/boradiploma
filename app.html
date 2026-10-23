@@ -56,8 +56,9 @@ html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.6;font-size:17px}
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--surface);
   border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.06)}
-.bar-in{max-width:820px;margin:0;display:flex;gap:10px 12px;align-items:center;flex-wrap:wrap;
-  padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));
+.bar-in{max-width:1060px;margin:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px 10px;align-items:center;
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px))}
 #backBtn{font-family:var(--font-head);font-weight:600;font-size:.86rem;padding:7px 12px;border:1px solid var(--line);
   border-radius:8px;background:var(--bg);color:var(--accent);cursor:pointer}
@@ -65,7 +66,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-heig
 /* ---- barra de cima: todos os botoes do mesmo tamanho e da mesma cor ----
    Com largura igual, eles se alinham em colunas sozinhos ao quebrar a linha. */
 .bar-in button,.bar-in .pickbtn{
-  box-sizing:border-box;width:152px;height:38px;padding:0 10px;
+  box-sizing:border-box;width:100%;height:38px;padding:0 8px;
   font-family:var(--font-head);font-weight:600;font-size:.82rem;line-height:1;
   display:inline-flex;align-items:center;justify-content:center;gap:5px;
   border-radius:8px;cursor:pointer;
@@ -79,21 +80,53 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-heig
 .bar-in button.savebtn{margin-left:0 !important}
 .bar-in button.savebtn.dirty{background:var(--accent) !important;border-color:var(--accent) !important;
   color:#fff !important}
-/* as setinhas de procurar palavra sao estreitas */
-.bar-in button.nav{width:40px;min-width:40px}
-/* os campos de digitar e as listas acompanham a altura */
-.bar-in input,.bar-in select{box-sizing:border-box;height:38px}
-.bar-in select.mini{width:152px}
-.bar-in #n,.bar-in #q,.bar-in #leiNum,.bar-in #insLei,.bar-in #insNum{width:100px}
-.bar-in #ttsRate{width:76px}
+/* os campos de digitar e as listas tambem ocupam a celula inteira */
+.bar-in input,.bar-in select{box-sizing:border-box;height:38px;width:100%}
+.bar-in .pickwrap{display:block;width:100%}
 .bar-in .sep{display:none}
+/* a procura de palavra fica na sua propria linha, sem esticar as setinhas */
+.bar-in #searchControls{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.bar-in #searchControls button.nav{width:40px}
+.bar-in #searchControls input{width:120px}
+.bar-in #searchControls button:not(.nav){width:152px}
+.bar-in #searchControls select{width:152px}
 /* o caminho (Indice > Disciplina > Aula) nao aparece mais na barra; o JS
    continua escrevendo nele, so que oculto */
 #crumb{display:none}
-@media (max-width:560px){
-  .bar-in button,.bar-in .pickbtn,.bar-in select.mini{width:calc(50% - 6px)}
-  .bar-in button.nav{width:40px;min-width:40px}
+/* Na tela inicial nao aparece barra nenhuma: ali ficam so a logomarca e a
+   relacao dos itens. Vale tambem no computador. */
+body:has(#view-index:not([hidden])) .bar{display:none !important}
+/* ---- ordem dos botoes ----
+   Ouvir e a velocidade moram num bloco separado; "display:contents" solta esses
+   filhos para dentro da mesma grade, para poderem ser ordenados junto. O
+   ":not([hidden])" e necessario para o bloco continuar sumindo fora da aula. */
+#noteControls:not([hidden]){display:contents}
+#noteControls > .grp{display:contents}
+/* Posicao FIXA de cada botao na grade: assim a coluna nao se move quando
+   algum deles esta escondido (ex.: o botao da aula, dentro da propria aula). */
+@media (min-width:901px){
+  .bar-in #homeBtn   {grid-area:1/1}
+  .bar-in #aulaBtn   {grid-area:1/2}
+  .bar-in #notesBtn  {grid-area:1/3}
+  .bar-in #ttsBtn    {grid-area:1/4}
+  .bar-in #ttsRate   {grid-area:1/5}
+  .bar-in #saveBtn   {grid-area:1/6}
+  .bar-in #backBtn   {grid-area:2/1}
+  .bar-in #newAulaTop{grid-area:2/2}
+  .bar-in #newEstTop {grid-area:2/3}
+  .bar-in #shareBtn  {grid-area:2/4}
+  .bar-in #printBtn  {grid-area:2/5}
+  .bar-in #ttsStop   {grid-area:2/6}
+  .bar-in .pickwrap  {grid-area:3/1}
+  .bar-in #insLei    {grid-area:3/2}
+  .bar-in #insNum    {grid-area:3/3}
+  .bar-in #insParts  {grid-area:3/4}
+  .bar-in #insDo     {grid-area:3/5}
+  .bar-in #searchControls{grid-row:4;grid-column:1/-1}
 }
+.bar-in .savestate{display:none}
+@media (max-width:900px){ .bar-in{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:560px){ .bar-in{grid-template-columns:repeat(2,minmax(0,1fr))} }
 #crumb .dim{color:var(--muted);font-weight:500}
 .grp{display:flex;gap:8px;align-items:center}
 label.l{font-family:var(--font-head);font-size:.8rem;color:var(--muted)}
