@@ -76,6 +76,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-heig
   border:1px solid var(--accent) !important;background:var(--accent-soft) !important;
   color:var(--accent) !important}
 /* o Salvar continua se destacando quando ha coisa por gravar */
+.bar-in button.savebtn{margin-left:0 !important}
 .bar-in button.savebtn.dirty{background:var(--accent) !important;border-color:var(--accent) !important;
   color:#fff !important}
 /* as setinhas de procurar palavra sao estreitas */
@@ -86,8 +87,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-heig
 .bar-in #n,.bar-in #q,.bar-in #leiNum,.bar-in #insLei,.bar-in #insNum{width:100px}
 .bar-in #ttsRate{width:76px}
 .bar-in .sep{display:none}
-/* o caminho (Indice > Disciplina > Aula) ocupa a linha toda, em cima */
-#crumb{flex:1 0 100%;order:-1;padding-bottom:2px}
+/* o caminho (Indice > Disciplina > Aula) nao aparece mais na barra; o JS
+   continua escrevendo nele, so que oculto */
+#crumb{display:none}
 @media (max-width:560px){
   .bar-in button,.bar-in .pickbtn,.bar-in select.mini{width:calc(50% - 6px)}
   .bar-in button.nav{width:40px;min-width:40px}
