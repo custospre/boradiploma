@@ -62,6 +62,36 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-heig
 #backBtn{font-family:var(--font-head);font-weight:600;font-size:.86rem;padding:7px 12px;border:1px solid var(--line);
   border-radius:8px;background:var(--bg);color:var(--accent);cursor:pointer}
 #crumb{font-family:var(--font-head);font-weight:700;color:var(--accent);letter-spacing:.02em;font-size:.9rem}
+/* ---- barra de cima: todos os botoes do mesmo tamanho e da mesma cor ----
+   Com largura igual, eles se alinham em colunas sozinhos ao quebrar a linha. */
+.bar-in button,.bar-in .pickbtn{
+  box-sizing:border-box;width:152px;height:38px;padding:0 10px;
+  font-family:var(--font-head);font-weight:600;font-size:.82rem;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  border-radius:8px;cursor:pointer;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 0 auto}
+/* mesma cor para todos, inclusive Partes, Inserir artigo e Ouvir */
+.bar-in button,.bar-in button.act,.bar-in button.nav,.bar-in .pickbtn,.bar-in #backBtn,
+.bar-in #go,.bar-in #leiGo,.bar-in #insDo,.bar-in #insParts,.bar-in #ttsBtn{
+  border:1px solid var(--accent) !important;background:var(--accent-soft) !important;
+  color:var(--accent) !important}
+/* o Salvar continua se destacando quando ha coisa por gravar */
+.bar-in button.savebtn.dirty{background:var(--accent) !important;border-color:var(--accent) !important;
+  color:#fff !important}
+/* as setinhas de procurar palavra sao estreitas */
+.bar-in button.nav{width:40px;min-width:40px}
+/* os campos de digitar e as listas acompanham a altura */
+.bar-in input,.bar-in select{box-sizing:border-box;height:38px}
+.bar-in select.mini{width:152px}
+.bar-in #n,.bar-in #q,.bar-in #leiNum,.bar-in #insLei,.bar-in #insNum{width:100px}
+.bar-in #ttsRate{width:76px}
+.bar-in .sep{display:none}
+/* o caminho (Indice > Disciplina > Aula) ocupa a linha toda, em cima */
+#crumb{flex:1 0 100%;order:-1;padding-bottom:2px}
+@media (max-width:560px){
+  .bar-in button,.bar-in .pickbtn,.bar-in select.mini{width:calc(50% - 6px)}
+  .bar-in button.nav{width:40px;min-width:40px}
+}
 #crumb .dim{color:var(--muted);font-weight:500}
 .grp{display:flex;gap:8px;align-items:center}
 label.l{font-family:var(--font-head);font-size:.8rem;color:var(--muted)}
@@ -508,8 +538,8 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
 </style>
 
 <div class="bar"><div class="bar-in">
-  <button id="backBtn" hidden>← Página anterior</button>
   <button id="homeBtn" class="notesbtn" title="Ir ao índice">🏠 Índice</button>
+  <button id="backBtn" hidden>← Página anterior</button>
   <span id="crumb">Índice</span>
   <button id="notesBtn" class="notesbtn">📒 Disciplinas</button>
   <button id="aulaBtn" class="notesbtn" hidden title="Voltar para a aula atual">📝 Aula</button>
