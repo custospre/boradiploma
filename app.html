@@ -97544,11 +97544,10 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       var ab=document.querySelector('#'+SEC.id+' .addbtn'); if(ab) ab.style.display='none';
       itemViewOn=true; itemViewSec=opt.sec; itemViewId=ITEM.id; itemViewIcon=SEC.t.slice(0,SEC.t.indexOf(' '));
       if(estTitle){
-        estTitle.innerHTML='<span class="tiic"></span><span id="estTitleEdit" contenteditable="true" spellcheck="true" lang="pt-BR" title="Clique aqui para mudar o nome"></span><span class="tidim"></span>';
+        estTitle.innerHTML='<span class="tiic"></span><span id="estTitleEdit" contenteditable="true" spellcheck="true" lang="pt-BR" title="Clique aqui para mudar o nome"></span>';
         estTitle.querySelector('.tiic').textContent=itemViewIcon+' ';
         var _te=estTitle.querySelector('#estTitleEdit');
         _te.textContent=(ITEM.label||'');
-        estTitle.querySelector('.tidim').textContent=' — '+(s.name||'disciplina');
         _te.addEventListener('input',function(){
           var v=(_te.textContent||'').replace(/\s+/g,' ').trim();
           updateDyn(itemViewSec,itemViewId,'label',v);
