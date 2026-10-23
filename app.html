@@ -98226,8 +98226,29 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     var cs=getComputedStyle(editor), w=editor.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
     var hgt=editor.scrollHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
     var words=(editor.innerText||'').trim().split(/\s+/).filter(Boolean).length;
-    var pg=words?Math.max(1,Math.ceil(hgt/(w*257/170))):0;
+    var alt=w*257/170;                      // altura de uma folha A4, em pixels
+    var pg=words?Math.max(1,Math.ceil(hgt/alt)):0;
     aulaPgs.textContent='· '+pg+' pág. A4 · '+words+' palavra'+(words===1?'':'s');
+    marcaFolhas(pg,alt,parseFloat(cs.paddingTop));
+  }
+  // Risca uma linha tracejada onde termina cada folha A4, como a quebra de
+  // pagina do Word, para saber onde o texto vai cortar na impressao.
+  function marcaFolhas(pg,alt,padTop){
+    if(!editor)return;
+    var imgs=[], poss=[];
+    for(var i=1;i<pg;i++){
+      imgs.push('repeating-linear-gradient(to right,var(--accent) 0 8px,transparent 8px 16px)');
+      poss.push('0 '+Math.round(padTop+i*alt)+'px');
+    }
+    if(imgs.length){
+      editor.style.backgroundImage=imgs.join(',');
+      editor.style.backgroundPosition=poss.join(',');
+      editor.style.backgroundSize='100% 1px';
+      editor.style.backgroundRepeat='no-repeat';
+    } else {
+      editor.style.backgroundImage=''; editor.style.backgroundPosition='';
+      editor.style.backgroundSize=''; editor.style.backgroundRepeat='';
+    }
   }
 
   // --- barra de formatação (rich text) ---
@@ -98360,7 +98381,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       var tRefaz=null;
       sheetsBox.addEventListener('input',function(){
         clearTimeout(tRefaz);
-        tRefaz=setTimeout(function(){ if(transbordou()) refazComCursor(); },800);
+        tRefaz=setTimeout(function(){ if(transbordou()||encolheu()) refazComCursor(); },800);
       });
       ov.querySelector('#prtSave').addEventListener('click',guarda);
       document.addEventListener('keydown',function(e){ if(e.key==='Escape' && ov && !ov.hidden){ e.preventDefault(); fecha(); } });
@@ -98428,6 +98449,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
         d.setAttribute('contenteditable','false'); d.textContent=(i+1)+' / '+fs.length; s.appendChild(d); });
       info.textContent=fs.length+(fs.length===1?' folha':' folhas')+' \u00b7 '+PAPEL[cfg.papel].n+(cfg.deitado?' deitado':'')+' \u00b7 o texto pode ser corrigido aqui';
       aplicaZoom();
+      ultimoTam=tamanhoTotal();
     }
     function junta(){
       return [].slice.call(sheetsBox.querySelectorAll('.prtBody')).map(function(b){
@@ -98448,6 +98470,12 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       for(var i=0;i<cs.length;i++){ if(cs[i].scrollHeight > A.h*0.985 + 1) return true; }
       return false;
     }
+    // Quando se apaga texto, nada transborda, mas sobra buraco nas folhas: o
+    // texto de baixo precisa subir. Comparar com o tamanho da ultima montagem
+    // resolve isso sem risco de ficar remontando em circulo.
+    var ultimoTam=-1;
+    function tamanhoTotal(){ var cs=corpos(), t=0; for(var i=0;i<cs.length;i++) t+=tamanho(cs[i]); return t; }
+    function encolheu(){ return ultimoTam>=0 && tamanhoTotal() < ultimoTam; }
     function ondeEstaOCursor(){
       var sel=window.getSelection(); if(!sel || !sel.rangeCount) return null;
       var r=sel.getRangeAt(0), cs=corpos(), total=0;
@@ -99117,6 +99145,21 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   function updPgCounter(){
     if(!pgCounter||!mainEl)return;
     var barH=barEl?barEl.offsetHeight:0, pageH=Math.max(200,window.innerHeight-barH);
+    // Dentro de uma aula, contar as FOLHAS A4 (as mesmas das linhas tracejadas),
+    // e nao telas roladas: assim o numero bate com o que sai impresso.
+    if(viewNote && !viewNote.hidden && editor){
+      var ecs=getComputedStyle(editor);
+      var ew=editor.clientWidth-parseFloat(ecs.paddingLeft)-parseFloat(ecs.paddingRight);
+      var ealt=ew*257/170;
+      var ehgt=editor.scrollHeight-parseFloat(ecs.paddingTop)-parseFloat(ecs.paddingBottom);
+      var eY=Math.max(1,Math.ceil(ehgt/ealt));
+      if(eY<2){ pgCounter.hidden=true; return; }
+      var topo=editor.getBoundingClientRect().top+(window.pageYOffset||0)+parseFloat(ecs.paddingTop);
+      var ref=(window.pageYOffset||0)+barH+Math.max(60,(window.innerHeight-barH)/2);
+      var eX=Math.min(eY,Math.max(1,Math.floor((ref-topo)/ealt)+1));
+      pgCounter.hidden=false; pgCounter.innerHTML='Folha <b>'+eX+'</b> de '+eY+' (A4)';
+      return;
+    }
     var total=document.documentElement.scrollHeight-(parseFloat(getComputedStyle(mainEl).paddingBottom)||0)-barH;
     var Y=Math.max(1,Math.ceil(total/pageH)), y=window.pageYOffset||document.documentElement.scrollTop||0;
     var X=(y+pageH>=total-2)?Y:Math.min(Y,Math.floor((y+2)/pageH)+1);
