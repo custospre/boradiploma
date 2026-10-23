@@ -427,6 +427,12 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     </div>
     <div class="sep"></div>
     <div class="grp">
+      <label class="l" for="leiNum">Lei nº</label>
+      <input id="leiNum" type="text" inputmode="numeric" autocomplete="off" placeholder="ex.: 5474" aria-label="Número da lei" style="width:92px">
+      <button class="act" id="leiGo">Ir</button>
+    </div>
+    <div class="sep"></div>
+    <div class="grp">
       <label class="l" for="q">Palavra</label>
       <input id="q" type="text" autocomplete="off" placeholder="ex.: prescrição" aria-label="Buscar palavra">
       <button class="nav" id="prev" aria-label="Anterior" disabled>&#8249;</button>
@@ -98830,23 +98836,45 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     function resolve(ab){ ab=nrm(ab).replace(/[.\s]/g,'');
       if(ALIAS[ab]) return ALIAS[ab];
       if(typeof NAMES!=='undefined' && NAMES[ab]) return ab;
-      if(typeof NAMES!=='undefined'){ for(var c in NAMES){ if(sigla(NAMES[c])===ab) return c; } for(var c2 in NAMES){ if(nrm(NAMES[c2]).replace(/[^a-z0-9]/g,'').indexOf(ab)>=0 && ab.length>=3) return c2; } }
+      if(typeof NAMES!=='undefined'){ for(var c in NAMES){ if(sigla(NAMES[c])===ab) return c; } }
       return null;
     }
+    // índice de NÚMERO da lei -> código (lê o começo de cada seção: "Lei nº 5.474…")
+    var LAWIDX=null;
+    function buildIdx(){ if(LAWIDX) return LAWIDX; LAWIDX={};
+      [].slice.call(document.querySelectorAll('section.code')).forEach(function(c){
+        var t=(c.textContent||'').slice(0,170); var m=t.match(/n[ºo°]\s*([\d.]+)/i);
+        if(m){ var n=m[1].replace(/\D/g,''); if(n && !LAWIDX[n]) LAWIDX[n]=c.id.replace(/^code-/,''); } });
+      return LAWIDX;
+    }
+    function jumpArt(code,num){ setTimeout(function(){ var el=document.getElementById(code+'-art-'+num)||document.getElementById(code+'-adct-'+num);
+      if(el){ try{ clearHit(); }catch(e){} el.classList.add('hit'); try{ cur=el; }catch(e){} scrollToEl(el); }
+      else { toast('Abri '+((typeof NAMES!=='undefined'&&NAMES[code])||code)+', mas não achei o Art. '+num); } }, 70); }
     function go(){
       var v=(qj.value||'').trim(); if(!v) return;
-      var numM=v.match(/(\d[\d.\-\/]*)\s*$/); var num=numM?numM[1].replace(/\D/g,''):'';
-      var ab=v.replace(/\bart(igo)?\.?/ig,'').replace(/\d[\d.\-\/]*\s*$/,'').trim();
-      if(!ab){ toast('Digite a sigla da lei. Ex.: CC art 7'); return; }
-      var code=resolve(ab);
-      if(!code){ toast('Não achei a lei “'+ab+'”. Use a sigla (CC, CP, CF, CPC, CLT…) ou o botão Buscar Lei.'); return; }
+      var digits=((v.match(/\d[\d.]*/)||[''])[0]).replace(/\D/g,'');
+      var letters=nrm(v).replace(/\d[\d.\-\/]*/g,' ').replace(/n[ºo°]?\.?/ig,' ').replace(/\bart(igo)?\.?/ig,' ').replace(/[^a-z\s]/g,' ').replace(/\s+/g,'');
+      var lawWord=/^(lei|leis|l|lc|leicomplementar|dl|dlei|decreto|decretolei|mp|ec|emenda|emendaconstitucional)$/.test(letters);
+      // MODO NÚMERO DA LEI: "Lei 5474", "5474", "LC 123"
+      if(digits && (letters==='' || lawWord)){
+        var codeN=buildIdx()[digits];
+        if(codeN){ openCode(codeN); qj.value=''; return; }
+        toast('Não achei a Lei nº '+digits+'. Confira o número, ou use o botão Buscar Lei.'); return;
+      }
+      // MODO SIGLA + ARTIGO: "CC art 7"
+      if(!letters){ toast('Digite a sigla (ex.: CC art 7) ou o número da lei (ex.: Lei 5474).'); return; }
+      var code=resolve(letters);
+      if(!code){ toast('Não achei “'+letters+'”. Use a sigla (CC, CP, CF, CPC, CLT…), o número da lei, ou o Buscar Lei.'); return; }
       openCode(code);
-      if(num){ setTimeout(function(){ var el=document.getElementById(code+'-art-'+num)||document.getElementById(code+'-adct-'+num);
-        if(el){ try{ clearHit(); }catch(e){} el.classList.add('hit'); try{ cur=el; }catch(e){} scrollToEl(el); }
-        else { toast('Abri '+((typeof NAMES!=='undefined'&&NAMES[code])||code)+', mas não achei o Art. '+num); } }, 70); }
+      if(digits) jumpArt(code,digits);
       qj.value='';
     }
     qj.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); go(); } });
+    // campo "Lei nº" ao lado do "Artigo nº" (abre a lei pelo número)
+    var leiNum=document.getElementById('leiNum'), leiGo=document.getElementById('leiGo');
+    function goLei(){ var d=(((leiNum&&leiNum.value)||'').match(/\d[\d.]*/)||[''])[0].replace(/\D/g,''); if(!d){ toast('Digite o número da lei'); if(leiNum) leiNum.focus(); return; } var code=buildIdx()[d]; if(code){ openCode(code); leiNum.value=''; } else toast('Não achei a Lei nº '+d+'. Confira o número ou use o Buscar Lei.'); }
+    if(leiGo) leiGo.addEventListener('click',goLei);
+    if(leiNum) leiNum.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); goLei(); } });
   })();
 
   showIndex();
