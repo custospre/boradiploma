@@ -82,6 +82,9 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-heig
   color:#fff !important}
 /* os campos de digitar e as listas tambem ocupam a celula inteira */
 .bar-in input,.bar-in select{box-sizing:border-box;height:38px;width:100%}
+/* Lei n e art. n tinham largura fixa escrita no proprio HTML (84px e 78px),
+   que vencia a da grade e desalinhava a coluna. */
+.bar-in #insLei,.bar-in #insNum,.bar-in #ttsRate{width:100% !important}
 .bar-in .pickwrap{display:block;width:100%}
 .bar-in .sep{display:none}
 /* a procura de palavra fica na sua propria linha, sem esticar as setinhas */
