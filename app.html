@@ -97272,18 +97272,15 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   var tree=document.getElementById('tree');
   function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
   function indexSearchHTML(){
-    var opts=''; try{ if(typeof NAMES!=='undefined'){ Object.keys(NAMES).sort(function(a,b){ return String(NAMES[a]).localeCompare(String(NAMES[b]),'pt'); }).forEach(function(k){ opts+='<option value="'+escAttr(NAMES[k])+'"></option>'; }); } }catch(e){}
     return '<div class="qjcard" style="margin:2px 0 10px;padding:9px 11px;background:var(--surface,#fff);border:1px solid var(--line);border-radius:10px">'
       +'<div style="font-weight:700;color:var(--accent,#7a1f2b);font-size:.84rem;margin-bottom:6px">🔎 Consulta rápida</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
-      +'<label class="l" for="qjLei" style="font-size:.76rem;color:#777">Lei</label>'
-      +'<input id="qjLei" list="qjLawList" type="text" autocomplete="off" placeholder="nome, sigla ou nº" aria-label="Lei (nome, sigla ou número)" style="flex:1;min-width:120px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;box-sizing:border-box">'
-      +'<datalist id="qjLawList">'+opts+'</datalist>'
-      +'<label class="l" for="qjArt" style="font-size:.76rem;color:#777">Art.</label>'
-      +'<input id="qjArt" type="text" inputmode="numeric" autocomplete="off" placeholder="nº" aria-label="Artigo nº" style="width:52px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;box-sizing:border-box">'
+      +'<button type="button" id="qjPick" class="pickbtn">Buscar Lei ▾</button>'
+      +'<input id="qjLei" type="text" inputmode="numeric" autocomplete="off" placeholder="Lei nº" aria-label="Número da lei" style="width:72px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;box-sizing:border-box">'
+      +'<input id="qjArt" type="text" inputmode="numeric" autocomplete="off" placeholder="art. nº" aria-label="Artigo nº" style="width:66px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;box-sizing:border-box">'
       +'<button type="button" class="act" id="qjParts" title="Ir a uma parte do artigo (§, inciso, alínea)">☑ Partes</button>'
       +'<button type="button" class="act" id="qjGo">Ir</button></div>'
-      +'<div style="font-size:.7rem;color:#999;margin-top:5px">Escolha a lei na lista (digite o nome), ou use a sigla/nº · + Art → abre o artigo · ☑ Partes → § / inciso</div></div>';
+      +'<div style="font-size:.7rem;color:#999;margin-top:5px">Buscar Lei (lista) ou Lei nº · + art. nº → abre o artigo · ☑ Partes → § / inciso</div></div>';
   }
   function nodeHTML(n,lvl){
     var cls='tnode tlvl'+lvl;
@@ -97452,6 +97449,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
   }
 
   // --- single Disciplina (aulas list) ---
+  var itemViewOn=false,itemViewSec='',itemViewId='',itemViewIcon='';
   function openSubject(sid,opt){
     flushAll(); opt=opt||{};
     var a=getSubs(); var s=findSub(a,sid); if(!s){ showSubjects(); return; }
@@ -97476,10 +97474,11 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     if(ITEM){
       [].slice.call(document.querySelectorAll('#'+SEC.id+' .dynrow')).forEach(function(r){ if(r.getAttribute('data-id')!==ITEM.id) r.style.display='none'; });
       var ab=document.querySelector('#'+SEC.id+' .addbtn'); if(ab) ab.style.display='none';
-      if(estTitle) estTitle.textContent=SEC.t.slice(0,SEC.t.indexOf(' '))+' '+(ITEM.label||'')+' — '+(s.name||'disciplina');
+      itemViewOn=true; itemViewSec=opt.sec; itemViewId=ITEM.id; itemViewIcon=SEC.t.slice(0,SEC.t.indexOf(' '));
+      if(estTitle) estTitle.textContent=itemViewIcon+' '+(ITEM.label||'')+' — '+(s.name||'disciplina');
       var w=''; if(ITEM.date){ var du=daysUntil(ITEM.date); w=fmtBR(ITEM.date)+' · '+(du<0?('foi há '+(-du)+' dia'+(du===-1?'':'s')):(du===0?'é HOJE':(du===1?'é amanhã':('faltam '+du+' dias')))); } else { w='sem data definida'; }
       if(estLead) estLead.textContent=(opt.sec==='avals'?'Avaliação':'Trabalho')+' · '+w;
-    } else { [].slice.call(document.querySelectorAll('#view-subject .addbtn')).forEach(function(b){ b.style.display=''; }); }
+    } else { itemViewOn=false; [].slice.call(document.querySelectorAll('#view-subject .addbtn')).forEach(function(b){ b.style.display=''; }); }
     renderAulas(s); renderEstBack(s); window.scrollTo({top:0});
     if(opt.est && estSection){
       estSection.classList.add('open');
@@ -97582,7 +97581,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     [].slice.call(document.querySelectorAll('#view-subject .dynrow')).forEach(function(row){
       var kind=row.getAttribute('data-kind'), id=row.getAttribute('data-id');
       var lab=row.querySelector('.dlabel'), dat=row.querySelector('.ddate'), rm=row.querySelector('.drm');
-      lab.addEventListener('input',function(){ updateDyn(kind,id,'label',lab.value); });
+      lab.addEventListener('input',function(){ updateDyn(kind,id,'label',lab.value); if(itemViewOn && kind===itemViewSec && id===itemViewId){ var et=document.getElementById('estTitle'); if(et) et.textContent=itemViewIcon+' '+lab.value+' — '+((subName&&subName.value)||'disciplina'); } });
       if(dat) dat.addEventListener('change',function(){ updateDyn(kind,id,'date',dat.value); });
       rm.addEventListener('click',function(){ removeDyn(kind,id); });
       var u=row.querySelector('.durl'), au=row.querySelector('.daula'), op=row.querySelector('.dopen'), gq=row.querySelector('.dgo');
@@ -98349,7 +98348,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
       all.forEach(function(it){ if(it.date) mset[mkey(it.date)]=1; });
       var months=Object.keys(mset).sort();
       var nprox=all.filter(function(it){ return it.date && daysUntil(it.date)>=0; }).length;
-      h+='<div class="pcard'+(prazosSub?' open':'')+'"><button class="pchead" type="button" title="Clique para abrir ou fechar">'+esc(s.name||'(disciplina)')+'<span class="notemeta" style="font-weight:600;margin-left:8px">'+(nprox?(nprox+' prazo'+(nprox===1?'':'s')+' pela frente'):'sem prazos pela frente')+'</span><span class="dcaret">▶</span></button><div class="pcbody">';
+      h+='<div class="pcard open"><button class="pchead" type="button" title="Clique para abrir ou fechar">'+esc(s.name||'(disciplina)')+'<span class="notemeta" style="font-weight:600;margin-left:8px">'+(nprox?(nprox+' prazo'+(nprox===1?'':'s')+' pela frente'):'sem prazos pela frente')+'</span><span class="dcaret">▶</span></button><div class="pcbody">';
       h+='<table class="ptable"><thead><tr><th></th>';
       months.forEach(function(k){ h+='<th>'+mlabel(k)+'</th>'; });
       h+='</tr></thead><tbody>';
@@ -98901,32 +98900,40 @@ main:has(> #view-note:not([hidden])){padding-top:2px}
     }
     // Índice: campos Lei + Artigo (mesmo sistema das aulas)
     // o card fica DENTRO do nó ÍNDICE (a árvore é redesenhada), então usamos delegação
+    // "Buscar Lei" (dropdown) usa um painel no BODY (fora da árvore) p/ não conflitar com o clique da árvore
+    var qjCode=null, qjPanel=null;
+    function qjPickBtn(){ return document.getElementById('qjPick'); }
+    function ensurePanel(){ if(qjPanel) return qjPanel; qjPanel=document.createElement('div'); qjPanel.className='pickpanel tree';
+      qjPanel.style.cssText='position:fixed;z-index:400;display:none;max-height:62vh;overflow:auto;background:#fff;border:1px solid var(--line,#ccc);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.22);min-width:220px;max-width:92vw;padding:4px';
+      document.body.appendChild(qjPanel);
+      qjPanel.addEventListener('click',function(e){ var leaf=e.target.closest('.tleaf'); if(leaf){ qjCode=leaf.getAttribute('data-code'); var b=qjPickBtn(); if(b) b.textContent=((typeof NAMES!=='undefined'&&NAMES[qjCode])||'Lei')+' ▾'; hidePanel(); var qa=document.getElementById('qjArt'); if(qa) qa.focus(); return; } var g=e.target.closest('.trow-group'); if(g){ g.parentNode.classList.toggle('open'); } });
+      return qjPanel; }
+    function showPanel(){ var b=qjPickBtn(); if(!b) return; ensurePanel(); buildPickInto(qjPanel, qjCode); var r=b.getBoundingClientRect(); qjPanel.style.left=Math.max(8,Math.min(r.left, window.innerWidth-232))+'px'; qjPanel.style.top=(r.bottom+4)+'px'; qjPanel.style.display='block'; }
+    function hidePanel(){ if(qjPanel) qjPanel.style.display='none'; }
+    function qjLaw(){ if(qjCode) return qjCode; var qjLei=document.getElementById('qjLei'); var lv=((qjLei&&qjLei.value)||'').trim(); return lv?resolveLaw(lv):null; }
+    function qjReset(){ qjCode=null; var b=qjPickBtn(); if(b) b.textContent='Buscar Lei ▾'; var l=document.getElementById('qjLei'),a=document.getElementById('qjArt'); if(l)l.value=''; if(a)a.value=''; }
     function qjRun(){
-      var qjLei=document.getElementById('qjLei'), qjArt=document.getElementById('qjArt');
-      var lv=((qjLei&&qjLei.value)||'').trim();
-      if(!lv){ toast('Digite a lei (sigla CC, CP… ou o número, ex.: 5474)'); if(qjLei) qjLei.focus(); return; }
-      var code=resolveLaw(lv);
-      if(!code){ toast('Não achei “'+lv+'”. Use a sigla (CC, CP, CF, CPC, CLT…) ou o número da lei.'); return; }
+      var code=qjLaw();
+      if(!code){ toast('Escolha a lei (Buscar Lei) ou digite a Lei nº'); return; }
       openCode(code);
-      var art=(((qjArt&&qjArt.value)||'').replace(/\D/g,''));
+      var art=(((document.getElementById('qjArt')||{}).value||'').replace(/\D/g,''));
       if(art) jumpArt(code,art);
-      if(qjLei) qjLei.value=''; if(qjArt) qjArt.value='';
+      qjReset();
     }
     function qjPartsRun(){
-      var qjLei=document.getElementById('qjLei'), qjArt=document.getElementById('qjArt');
-      var lv=((qjLei&&qjLei.value)||'').trim();
-      if(!lv){ toast('Digite a lei e o artigo primeiro'); if(qjLei) qjLei.focus(); return; }
-      var code=resolveLaw(lv); if(!code){ toast('Não achei “'+lv+'”. Use a sigla ou o número da lei.'); return; }
-      var art=(((qjArt&&qjArt.value)||'').replace(/\D/g,'')); if(!art){ toast('Digite o nº do artigo para escolher a parte'); if(qjArt) qjArt.focus(); return; }
+      var code=qjLaw(); if(!code){ toast('Escolha a lei primeiro (Buscar Lei ou Lei nº)'); return; }
+      var art=(((document.getElementById('qjArt')||{}).value||'').replace(/\D/g,'')); if(!art){ toast('Digite o nº do artigo para escolher a parte'); var qa=document.getElementById('qjArt'); if(qa) qa.focus(); return; }
       if(typeof openPartsNav==='function'){ openPartsNav(code,art); } else { openCode(code); jumpArt(code,art); }
     }
     document.addEventListener('click',function(e){
-      if(e.target && e.target.closest){
-        if(e.target.closest('#qjGo')){ e.preventDefault(); e.stopPropagation(); qjRun(); return; }
-        if(e.target.closest('#qjParts')){ e.preventDefault(); e.stopPropagation(); qjPartsRun(); return; }
-      }
+      if(!(e.target && e.target.closest)) return;
+      if(e.target.closest('#qjPick')){ e.preventDefault(); e.stopPropagation(); if(qjPanel && qjPanel.style.display==='block') hidePanel(); else showPanel(); return; }
+      if(e.target.closest('#qjGo')){ e.preventDefault(); e.stopPropagation(); qjRun(); return; }
+      if(e.target.closest('#qjParts')){ e.preventDefault(); e.stopPropagation(); qjPartsRun(); return; }
+      if(qjPanel && qjPanel.style.display==='block' && !e.target.closest('.pickpanel')) hidePanel();
     });
-    document.addEventListener('keydown',function(e){ if(e.key==='Enter' && e.target && (e.target.id==='qjLei'||e.target.id==='qjArt')){ e.preventDefault(); qjRun(); } });
+    document.addEventListener('keydown',function(e){ if(e.key==='Enter' && e.target && (e.target.id==='qjLei'||e.target.id==='qjArt')){ e.preventDefault(); qjRun(); } if(e.key==='Escape') hidePanel(); });
+    document.addEventListener('input',function(e){ if(e.target && e.target.id==='qjLei' && e.target.value){ qjCode=null; var b=qjPickBtn(); if(b) b.textContent='Buscar Lei ▾'; } });
     // campo "Lei nº" ao lado do "Artigo nº" (abre a lei pelo número)
     var leiNum=document.getElementById('leiNum'), leiGo=document.getElementById('leiGo');
     function goLei(){ var d=(((leiNum&&leiNum.value)||'').match(/\d[\d.]*/)||[''])[0].replace(/\D/g,''); if(!d){ toast('Digite o número da lei'); if(leiNum) leiNum.focus(); return; } var code=buildIdx()[d]; if(code){ openCode(code); leiNum.value=''; } else toast('Não achei a Lei nº '+d+'. Confira o número ou use o Buscar Lei.'); }
