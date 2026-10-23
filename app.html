@@ -181,6 +181,9 @@ mark.on{background:var(--mark-on);outline:1px solid var(--accent)}
 .prtBreak{height:0;overflow:hidden;border-top:1px dashed #c33}
 .prtNum{position:absolute;right:9px;bottom:5px;font-family:var(--font-head);font-size:8pt;color:#888}
 .prtWait{font-family:var(--font-head);color:#fff;padding:34px 12px;font-size:1rem;text-align:center}
+.prtDica{flex:1 0 100%;font-family:var(--font-head);font-size:.78rem;line-height:1.45;color:var(--muted);
+  background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;margin-top:2px}
+.prtDica b{color:var(--accent)}
 /* nome do trabalho/avaliacao editavel no proprio titulo */
 #estTitleEdit{outline:none;cursor:text;border-bottom:1px dashed transparent;border-radius:2px}
 #estTitleEdit:hover{border-bottom-color:var(--line)}
@@ -195,7 +198,30 @@ mark.on{background:var(--mark-on);outline:1px solid var(--accent)}
   :root.prtmode .prtSheet{box-shadow:none!important;margin:0!important;overflow:hidden!important;break-after:page;page-break-after:always}
   :root.prtmode .prtSheet:last-child{break-after:auto;page-break-after:auto}
   :root.prtmode .prtBreak{border-top:none}
-  :root.prtmode html,:root.prtmode body{background:#fff!important}
+  :root.prtmode{background:#fff!important}
+  :root.prtmode body{background:#fff!important}
+  /* Imprimindo direto (Ctrl+P), sem passar pela pre-visualizacao: sai so o
+     texto da pagina, nunca os botoes, as barras e os avisos da tela. */
+  :root:not(.prtmode) body>.bar,
+  :root:not(.prtmode) body>#toast,
+  :root:not(.prtmode) body>#pgCounter,
+  :root:not(.prtmode) body>#prazoModal,
+  :root:not(.prtmode) body>.ctxmenu,
+  :root:not(.prtmode) body>#partsModal,
+  :root:not(.prtmode) #noteHead,
+  :root:not(.prtmode) .fmtbar,
+  :root:not(.prtmode) .rowbtns,
+  :root:not(.prtmode) .dhandle,
+  :root:not(.prtmode) .estback,
+  :root:not(.prtmode) .pdfview,
+  :root:not(.prtmode) .docview,
+  :root:not(.prtmode) .emptybox,
+  :root:not(.prtmode) #editor button,
+  :root:not(.prtmode) #editor select{display:none!important}
+  :root:not(.prtmode) #editor{border:none!important;padding:0!important;max-width:none!important;
+    min-height:0!important;background:#fff!important;background-image:none!important}
+  :root:not(.prtmode) main{max-width:none!important;padding:0!important}
+  :root:not(.prtmode) body{background:#fff!important}
 }
 .tsoon{color:var(--muted);font-size:.68rem;border:1px solid var(--line);border-radius:999px;padding:1px 7px;margin-left:auto}
 .homecenter{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;min-height:52vh}
@@ -98482,7 +98508,9 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
         +'<button type="button" class="notesbtn" id="prtBreak" title="Empurra o texto daqui para diante para a folha seguinte">&#9988; Quebrar aqui</button>'
         +'<button type="button" class="notesbtn" id="prtRedo" title="Reorganizar o texto nas folhas">&#8635; Refazer folhas</button>'
         +'<button type="button" class="notesbtn" id="prtSave" title="Guardar no texto da aula as correções feitas aqui">&#128190; Guardar correções</button>'
-        +'<span id="prtInfo"></span></div><div id="prtSheets"></div>';
+        +'<span id="prtInfo"></span>'
+        +'<div class="prtDica">Na janela que abrir, em <b>Mais configurações</b>: desmarque <b>Cabeçalhos e rodapés</b> (tira a data e o endereço do site das bordas) e ponha <b>Margens: Nenhuma</b> (as margens já estão na folha).</div>'
+        +'</div><div id="prtSheets"></div>';
       document.body.appendChild(ov);
       sheetsBox=ov.querySelector('#prtSheets'); info=ov.querySelector('#prtInfo');
       pageStyle=document.createElement('style'); pageStyle.id='prtPage'; document.head.appendChild(pageStyle);
@@ -98552,7 +98580,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
       // folha tem o tamanho da area util. Assim ela cabe mesmo quando o
       // navegador impoe a margem dele, em vez de estourar para a pagina seguinte.
       pageStyle.textContent='@page{size:'+f.w+'mm '+f.h+'mm;margin:'+cfg.margem+'mm}'
-        +'@media print{:root.prtmode .prtSheet{width:auto !important;height:'+(f.h-2*cfg.margem-2)+'mm !important;padding:0 !important}}';
+        +'@media print{:root.prtmode .prtSheet{width:auto !important;height:'+(f.h-2*cfg.margem-6)+'mm !important;padding:0 !important}}';
       sheetsBox.innerHTML='';
       var tmp=document.createElement('div'); tmp.innerHTML=src.html;
       [].slice.call(tmp.querySelectorAll('script,style,canvas,iframe,.fmtbar,.dhandle,.prtNum,button,select,input,textarea,.rowbtns,.pdfview,.docview,.emptybox,.estback')).forEach(function(n){ n.remove(); });
