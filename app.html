@@ -56,7 +56,7 @@ html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-body);line-height:1.6;font-size:17px}
 .bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--surface);
   border-bottom:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.06)}
-.bar-in{max-width:1060px;margin:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+.bar-in{max-width:1060px;margin:0 auto;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
   gap:8px 10px;align-items:center;
   padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -154,7 +154,7 @@ button.nav:disabled{opacity:.4;cursor:default}
 #count b{color:var(--accent)}
 .sep{width:1px;align-self:stretch;background:var(--line);margin:2px 0}
 .onlyhits{font-family:var(--font-head);font-size:.75rem;color:var(--muted);display:flex;gap:6px;align-items:center}
-main{max-width:820px;margin:0;padding-block:26px 60vh;
+main{max-width:820px;margin:0 auto;padding-block:26px 60vh;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1{font-family:var(--font-head);font-weight:800;font-size:1.7rem;text-wrap:balance;margin:.1em 0 .1em}
@@ -98364,9 +98364,13 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     var utilW=CP.w-2*mg, utilH=CP.h-2*mg;   // area util da folha, em mm
     // o editor ganha a largura de uma folha: o texto quebra onde vai quebrar no papel
     editor.style.maxWidth='calc('+utilW+'mm + '+(parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight))+'px)';
-    editor.style.marginLeft='0'; editor.style.marginRight='auto';
+    editor.style.marginLeft='auto'; editor.style.marginRight='auto';
     var nh=document.getElementById('noteHead');
-    if(nh) nh.style.maxWidth=editor.style.maxWidth;
+    if(nh){ nh.style.maxWidth=editor.style.maxWidth; nh.style.marginLeft='auto'; nh.style.marginRight='auto'; }
+    var fb=document.querySelector('#view-note .fmtbar');
+    if(fb){ fb.style.maxWidth=editor.style.maxWidth; fb.style.marginLeft='auto'; fb.style.marginRight='auto'; }
+    var nt=document.getElementById('noteTitle');
+    if(nt){ nt.style.maxWidth=editor.style.maxWidth; nt.style.marginLeft='auto'; nt.style.marginRight='auto'; nt.style.display='block'; }
     w=editor.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
     hgt=editor.scrollHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
     var alt=w*utilH/utilW;                  // altura de uma folha, em pixels
