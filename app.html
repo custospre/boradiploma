@@ -278,6 +278,13 @@ main:has(> #view-index:not([hidden])){margin-left:0;margin-right:auto;max-width:
 .prtBreak{height:0;overflow:hidden;border-top:1px dashed #c33}
 .prtNum{position:absolute;right:9px;bottom:5px;font-family:var(--font-head);font-size:8pt;color:#888}
 .prtWait{font-family:var(--font-head);color:#fff;padding:34px 12px;font-size:1rem;text-align:center}
+/* data de entrega na linha da disciplina */
+.dynrow .entwrap{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-head);
+  font-size:.78rem;color:var(--muted);white-space:nowrap}
+.dynrow .dentregue{font-family:var(--font-head);font-size:.82rem;background:var(--surface);
+  border:1px solid var(--line);border-radius:8px;padding:6px 7px;color:var(--fg)}
+.dynrow.jaentregue .dlabel{text-decoration:line-through;opacity:.6}
+.dynrow.jaentregue .dentregue{border-color:var(--accent);color:var(--accent);font-weight:700}
 /* coluna "Data entrega" do painel de prazos */
 .ptable td.pdeliv,.ptable th.pdeliv{padding:4px 8px;white-space:nowrap;text-align:center}
 .ptable input.dentrega{font-family:var(--font-head);font-size:.78rem;padding:4px 6px;
@@ -97779,7 +97786,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
   // Avaliações / Trabalhos dinâmicos
   function rowHTML(kind,it,s){
     var est=kind==='estudos';
-    var h='<div class="dynrow'+(est?' estrow':'')+'" data-kind="'+kind+'" data-okind="'+kind+'" data-id="'+it.id+'" data-oid="'+it.id+'">'
+    var h='<div class="dynrow'+(est?' estrow':'')+(it.entregue?' jaentregue':'')+'" data-kind="'+kind+'" data-okind="'+kind+'" data-id="'+it.id+'" data-oid="'+it.id+'">'
     +'<span class="dhandle" title="Arraste para reordenar">⠿</span>'
     +'<input class="dlabel" spellcheck="true" lang="pt-BR" value="'+escAttr(it.label||'')+'" placeholder="'+(est?'Nome do material (ex.: Resumo — Prescrição)':'Nome')+'" title="'+escAttr(it.label||'')+'">';
     if(est){
@@ -97795,6 +97802,8 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
       return h;
     }
     h+='<input class="ddate" type="date" value="'+(it.date||'')+'">';
+    h+='<label class="entwrap" title="Preenchida a data, este item deixa de aparecer no aviso de prazos">Entrega'
+      +'<input class="dentregue" type="date" value="'+(it.entregue||'')+'"></label>';
     return h+'<button class="linkbtn dpage" title="Abrir a página para digitar ou colar o texto">✍ abrir página</button>'
       +'<button class="linkbtn danger drm">remover</button></div>'; }
   function renderDynRows(s){
@@ -97809,6 +97818,12 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
         if(ed){ if(ed.textContent!==lab.value) ed.textContent=lab.value; return; }
         et.textContent=itemViewIcon+' '+lab.value+' — '+((subName&&subName.value)||'disciplina'); } });
       if(dat) dat.addEventListener('change',function(){ updateDyn(kind,id,'date',dat.value); });
+      var ent=row.querySelector('.dentregue');
+      if(ent) ent.addEventListener('change',function(){
+        updateDyn(kind,id,'entregue',ent.value);
+        row.classList.toggle('jaentregue', !!ent.value);
+        toast(ent.value?('Entregue em '+fmtBR(ent.value)+' — sai do aviso de prazos'):'Entrega desmarcada');
+      });
       rm.addEventListener('click',function(){ removeDyn(kind,id); });
       var u=row.querySelector('.durl'), au=row.querySelector('.daula'), op=row.querySelector('.dopen'), gq=row.querySelector('.dgo');
       if(u) u.addEventListener('input',function(){ updateDyn(kind,id,'url',u.value.trim()); });
