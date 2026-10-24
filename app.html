@@ -391,10 +391,13 @@ select.mini{font:inherit;font-family:var(--font-head);font-size:.82rem;padding:7
 .pcard.open>.pcbody{display:block}
 .pgrouph{font-family:var(--font-head);font-weight:800;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);margin:10px 0 2px}
-.ptable{border-collapse:collapse;width:100%;font-family:var(--font-head);font-size:.86rem}
+.ptable{border-collapse:collapse;width:100%;font-family:var(--font-head);font-size:.86rem;
+  table-layout:fixed}
+.ptable thead th:first-child,.ptable td.prowlbl{width:38%}
+.ptable th.pdeliv,.ptable td.pdeliv{width:165px}
 .ptable th{color:var(--muted);font-weight:700;text-transform:uppercase;font-size:.68rem;letter-spacing:.04em;padding:6px 8px;text-align:center;border-bottom:1px solid var(--line)}
 .ptable th:first-child{text-align:left}
-.prowlbl{font-weight:700;padding:7px 8px;white-space:nowrap}
+.prowlbl{font-weight:700;padding:7px 8px;overflow-wrap:break-word}
 .pcell{text-align:center;padding:6px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .pcell.empty{color:var(--line)}
 .pcell.filled{background:var(--accent-soft);color:var(--accent);font-weight:800;cursor:pointer}
@@ -98983,12 +98986,15 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     if(!subs.length){ prazosBody.innerHTML='<div class="subempty">Sem disciplinas cadastradas ainda.</div>'; return; }
     var h='';
     var now=new Date();
-    sortSubs(subs).filter(function(s){ return !prazosSub || s.id===prazosSub; }).forEach(function(s){
+    var mostra=sortSubs(subs).filter(function(s){ return !prazosSub || s.id===prazosSub; });
+    // Os meses sao calculados uma vez para TODAS as disciplinas mostradas: assim
+    // todas as tabelas tem as mesmas colunas e ficam alinhadas entre si.
+    var mset={};
+    for(var i=0;i<4;i++){ var dd=new Date(now.getFullYear(), now.getMonth()+i, 1); mset[dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)]=1; }
+    mostra.forEach(function(s){ (s.avals||[]).concat(s.trabalhos||[]).forEach(function(it){ if(it.date) mset[mkey(it.date)]=1; }); });
+    var months=Object.keys(mset).sort();
+    mostra.forEach(function(s){
       var all=(s.avals||[]).concat(s.trabalhos||[]);
-      var mset={};
-      for(var i=0;i<4;i++){ var dd=new Date(now.getFullYear(), now.getMonth()+i, 1); mset[dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)]=1; }
-      all.forEach(function(it){ if(it.date) mset[mkey(it.date)]=1; });
-      var months=Object.keys(mset).sort();
       var nprox=all.filter(function(it){ return it.date && !it.entregue && daysUntil(it.date)>=0; }).length;
       h+='<div class="pcard open"><button class="pchead" type="button" title="Clique para abrir ou fechar">'+esc(s.name||'(disciplina)')+'<span class="notemeta" style="font-weight:600;margin-left:8px">'+(nprox?(nprox+' prazo'+(nprox===1?'':'s')+' pela frente'):'sem prazos pela frente')+'</span><span class="dcaret">▶</span></button><div class="pcbody">';
       h+='<table class="ptable"><thead><tr><th></th><th class="pdeliv">Data entrega</th>';
