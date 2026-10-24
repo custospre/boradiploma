@@ -218,6 +218,30 @@ mark.on{background:var(--mark-on);outline:1px solid var(--accent)}
 .tlvl3>.trow>.tlabel{font-weight:600}
 .tleaf>.trow:hover{color:var(--accent)}
 .tdate{color:var(--muted);font-size:.76rem;margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* ---- tela inicial: os itens do indice como botoes ---- */
+#view-index .trow{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);
+  border-radius:8px;padding:8px 10px;margin:0 0 6px;min-height:38px;box-sizing:border-box}
+#view-index .trow:hover{background:var(--accent);color:#fff}
+#view-index .trow:hover .tlabel,#view-index .trow:hover .tcaret,#view-index .trow:hover .tdate{color:#fff}
+#view-index .tlabel{font-family:var(--font-head);font-weight:600;font-size:.84rem}
+#view-index .tlvl1>.trow>.tlabel{font-weight:800}
+#view-index .tcaret{color:inherit}
+#view-index .tkids{margin-left:10px;padding-left:8px}
+/* a tela inicial fica encostada a esquerda (as outras seguem centralizadas) */
+main:has(> #view-index:not([hidden])){margin-left:0;margin-right:auto;max-width:none}
+/* a logomarca comeca na mesma altura da palavra INDICE, e nao no meio da tela.
+   Precisa de peso maior: a regra original de .homecenter vem depois no arquivo. */
+#view-index .homecenter{justify-content:flex-start !important;min-height:0 !important;padding-top:0}
+#view-index .homecenter>.brandcard{margin-top:0}
+#view-index .homewrap2{align-items:start}
+/* Botões do índice mais estreitos e logo no meio da TELA (e nao no meio da
+   sobra do lado direito): a margem negativa desconta metade da coluna dos
+   botoes. So acima de 860px, onde a tela tem duas colunas. */
+@media (min-width:861px){
+  #view-index .homewrap2{grid-template-columns:236px 1fr;gap:24px}
+  /* translate desloca de verdade; margin negativa so esticava o bloco */
+  #view-index .homecenter{transform:translateX(calc((236px + 24px) / -2))}
+}
 /* ---- Pre-visualizacao de impressao (ver e ajustar antes de imprimir) ---- */
 #prtOverlay{position:fixed;inset:0;z-index:60;background:#6b6b6b;overflow:auto;padding:0 0 40px}
 #prtBar{position:sticky;top:0;z-index:2;display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;
@@ -254,6 +278,14 @@ mark.on{background:var(--mark-on);outline:1px solid var(--accent)}
 .prtBreak{height:0;overflow:hidden;border-top:1px dashed #c33}
 .prtNum{position:absolute;right:9px;bottom:5px;font-family:var(--font-head);font-size:8pt;color:#888}
 .prtWait{font-family:var(--font-head);color:#fff;padding:34px 12px;font-size:1rem;text-align:center}
+/* coluna "Data entrega" do painel de prazos */
+.ptable td.pdeliv,.ptable th.pdeliv{padding:4px 8px;white-space:nowrap;text-align:center}
+.ptable input.dentrega{font-family:var(--font-head);font-size:.78rem;padding:4px 6px;
+  border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg)}
+.ptable input.dentrega:focus{outline:2px solid var(--accent);outline-offset:1px}
+.ptable tr.entregue .prowlbl{text-decoration:line-through;opacity:.55}
+.ptable tr.entregue .pcell.filled{opacity:.4}
+.ptable tr.entregue input.dentrega{border-color:var(--accent);color:var(--accent);font-weight:700}
 .prtDica{flex:1 0 100%;font-family:var(--font-head);font-size:.78rem;line-height:1.45;color:var(--muted);
   background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;margin-top:2px}
 .prtDica b{color:var(--accent)}
@@ -98922,6 +98954,15 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
   function mkey(v){ return String(v).slice(0,7); }
   function mlabel(k){ var p=k.split('-'); return MESES[(+p[1])-1]+'/'+p[0].slice(2); }
   function dday(v){ return String(v).slice(8,10); }
+  // Guarda (ou apaga) a data de entrega de uma avaliacao/trabalho. Com data
+  // preenchida o item conta como entregue e sai do aviso de prazos.
+  function marcaEntrega(sid,sec,id,valor){
+    var a=getSubs(), s=findSub(a,sid); if(!s) return;
+    var it=((s[sec])||[]).filter(function(x){ return x.id===id; })[0]; if(!it) return;
+    if(valor) it.entregue=valor; else delete it.entregue;
+    saveSubs(a);
+    toast(valor?('Entregue em '+fmtBR(valor)+' \u2014 sai do aviso de prazos'):'Entrega desmarcada');
+  }
   function renderPrazos(){
     var subs=getSubs();
     if(!subs.length){ prazosBody.innerHTML='<div class="subempty">Sem disciplinas cadastradas ainda.</div>'; return; }
@@ -98933,15 +98974,19 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
       for(var i=0;i<4;i++){ var dd=new Date(now.getFullYear(), now.getMonth()+i, 1); mset[dd.getFullYear()+'-'+('0'+(dd.getMonth()+1)).slice(-2)]=1; }
       all.forEach(function(it){ if(it.date) mset[mkey(it.date)]=1; });
       var months=Object.keys(mset).sort();
-      var nprox=all.filter(function(it){ return it.date && daysUntil(it.date)>=0; }).length;
+      var nprox=all.filter(function(it){ return it.date && !it.entregue && daysUntil(it.date)>=0; }).length;
       h+='<div class="pcard open"><button class="pchead" type="button" title="Clique para abrir ou fechar">'+esc(s.name||'(disciplina)')+'<span class="notemeta" style="font-weight:600;margin-left:8px">'+(nprox?(nprox+' prazo'+(nprox===1?'':'s')+' pela frente'):'sem prazos pela frente')+'</span><span class="dcaret">▶</span></button><div class="pcbody">';
-      h+='<table class="ptable"><thead><tr><th></th>';
+      h+='<table class="ptable"><thead><tr><th></th><th class="pdeliv">Data entrega</th>';
       months.forEach(function(k){ h+='<th>'+mlabel(k)+'</th>'; });
       h+='</tr></thead><tbody>';
       function grp(title,rows){
-        h+='<tr class="pgrouprow"><td colspan="'+(months.length+1)+'">'+title+'</td></tr>';
+        h+='<tr class="pgrouprow"><td colspan="'+(months.length+2)+'">'+title+'</td></tr>';
         (rows||[]).forEach(function(it){ var v=it.date;
-          h+='<tr><td class="prowlbl">'+esc(it.label||'')+'</td>';
+          var sec=(rows===s.avals)?'avals':'trabalhos';
+          h+='<tr'+(it.entregue?' class="entregue"':'')+'><td class="prowlbl">'+esc(it.label||'')+'</td>'
+            +'<td class="pdeliv"><input type="date" class="dentrega" value="'+(it.entregue||'')+'"'
+            +' data-sid="'+s.id+'" data-sec="'+sec+'" data-id="'+it.id+'"'
+            +' title="Preenchida a data, este item deixa de aparecer no aviso de prazos"></td>';
           months.forEach(function(k){
             if(v && mkey(v)===k){ var du=daysUntil(v); var cls=du<0?'past':(du<=3?'soon':'');
               var w=du<0?('há '+(-du)+'d'):(du===0?'hoje':(du===1?'amanhã':('em '+du+'d')));
@@ -98958,6 +99003,13 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     prazosBody.innerHTML=h;
     [].slice.call(prazosBody.querySelectorAll('.pchead')).forEach(function(b){ b.addEventListener('click',function(e){ if(e.target.closest('.pcell'))return; b.parentNode.classList.toggle('open'); }); });
     [].slice.call(prazosBody.querySelectorAll('.pcell.filled')).forEach(function(c){ c.addEventListener('click',function(e){ e.stopPropagation(); openSubject(c.getAttribute('data-sid')); }); });
+    [].slice.call(prazosBody.querySelectorAll('input.dentrega')).forEach(function(inp){
+      inp.addEventListener('click',function(e){ e.stopPropagation(); });
+      inp.addEventListener('change',function(){
+        marcaEntrega(inp.getAttribute('data-sid'), inp.getAttribute('data-sec'), inp.getAttribute('data-id'), inp.value);
+        renderPrazos();
+      });
+    });
   }
 
   // --- insertion of articles into the active aula ---
@@ -99264,7 +99316,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
   function checkPrazos(){
     if(!prazoModal)return;
     var subs=getSubs(), list=[];
-    subs.forEach(function(s){ (s.avals||[]).concat(s.trabalhos||[]).forEach(function(it){ if(!it.date)return; var du=daysUntil(it.date); if(du>=0) list.push({sub:s.name||'(disciplina)',label:it.label,date:it.date,du:du}); }); });
+    subs.forEach(function(s){ (s.avals||[]).concat(s.trabalhos||[]).forEach(function(it){ if(!it.date || it.entregue)return; var du=daysUntil(it.date); if(du>=0) list.push({sub:s.name||'(disciplina)',label:it.label,date:it.date,du:du}); }); });
     if(!list.length)return;
     list.sort(function(a,b){return a.du-b.du;});
     var h='';
