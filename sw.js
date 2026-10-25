@@ -1,9 +1,9 @@
-/* GraDireito - Service Worker (PWA)
+/* BoraDiploma - Service Worker (PWA)
    Faz o app abrir mesmo sem internet (guarda os arquivos no aparelho)
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'gradireito-v43';
+const CACHE = 'boradiploma-v44';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -57,10 +57,10 @@ self.addEventListener('fetch', (event) => {
 
 // --- Lembretes de prazo (push) --- (sera ativado na Fase 3) ---
 self.addEventListener('push', (event) => {
-  let data = { title: 'GraDireito', body: 'Voce tem um prazo chegando.' };
+  let data = { title: 'BoraDiploma', body: 'Voce tem um prazo chegando.' };
   try { if (event.data) data = event.data.json(); } catch (e) {}
   event.waitUntil(
-    self.registration.showNotification(data.title || 'GraDireito', {
+    self.registration.showNotification(data.title || 'BoraDiploma', {
       body: data.body || '',
       icon: './icons/icon-192.png',
       badge: './icons/icon-192.png',
