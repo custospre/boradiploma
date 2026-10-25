@@ -99661,3 +99661,117 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<!-- ===== BoraDiploma: login (Supabase) - Fase 1 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="gd-auth-css">
+#gd-auth{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:var(--bg,#f5f3ee);padding:20px;overflow:auto}
+#gd-auth[hidden]{display:none}
+#gd-auth .box{width:100%;max-width:380px;background:var(--surface,#fffdf8);border:1px solid var(--line,#e2ddd2);
+  border-radius:16px;padding:28px 24px;box-shadow:0 10px 40px rgba(0,0,0,.12);
+  font-family:var(--font-head,system-ui,sans-serif);color:var(--fg,#1f1b16)}
+#gd-auth h1{font-size:22px;margin:0 0 4px;color:var(--accent,#7a1f2b)}
+#gd-auth p.sub{margin:0 0 18px;font-size:14px;color:var(--muted,#6b6459)}
+#gd-auth label{display:block;font-size:13px;margin:12px 0 4px;color:var(--muted,#6b6459)}
+#gd-auth input{width:100%;padding:11px 12px;font-size:16px;border:1px solid var(--line,#e2ddd2);
+  border-radius:10px;background:var(--bg,#fff);color:var(--fg,#1f1b16)}
+#gd-auth button{width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:16px}
+#gd-auth .primary{background:var(--accent,#7a1f2b);color:#fff}
+#gd-auth .link{background:none;color:var(--accent,#7a1f2b);text-decoration:underline;margin-top:10px;font-size:14px}
+#gd-auth .msg{margin-top:14px;font-size:14px;min-height:18px}
+#gd-auth .msg.err{color:#b42318}
+#gd-auth .msg.ok{color:#1a7f37}
+#gd-auth .spin{text-align:center;color:var(--muted,#6b6459);font-size:15px;padding:16px 0}
+#gd-logout{position:fixed;bottom:10px;right:10px;z-index:9998;font-size:12px;background:var(--surface,#fff);
+  border:1px solid var(--line,#e2ddd2);color:var(--muted,#6b6459);border-radius:8px;padding:6px 10px;cursor:pointer;opacity:.75}
+#gd-logout[hidden]{display:none}
+</style>
+<div id="gd-auth">
+  <div class="box">
+    <div id="gd-auth-loading" class="spin">Carregando...</div>
+    <div id="gd-auth-form" hidden>
+      <h1>BoraDiploma</h1>
+      <p class="sub">Entre com seu e-mail para acessar.</p>
+      <label for="gd-email">E-mail</label>
+      <input id="gd-email" type="email" autocomplete="email" placeholder="voce@exemplo.com">
+      <label for="gd-pass">Senha</label>
+      <input id="gd-pass" type="password" autocomplete="current-password" placeholder="sua senha">
+      <button class="primary" id="gd-btn-entrar">Entrar</button>
+      <button class="link" id="gd-btn-criar">Nao tenho conta - criar conta</button>
+      <div class="msg" id="gd-msg"></div>
+    </div>
+  </div>
+</div>
+<button id="gd-logout" hidden>Sair</button>
+<script>
+(function(){
+  var SB_URL = 'https://epumhsiqdxvcboisurvu.supabase.co';
+  var SB_KEY = 'sb_publishable_JW7iq8Kayqkp3OL--TCccg_aTBKOs_S';
+  var sb;
+  try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
+
+  var overlay = document.getElementById('gd-auth');
+  var loading = document.getElementById('gd-auth-loading');
+  var form = document.getElementById('gd-auth-form');
+  var email = document.getElementById('gd-email');
+  var pass = document.getElementById('gd-pass');
+  var msg = document.getElementById('gd-msg');
+  var logoutBtn = document.getElementById('gd-logout');
+
+  function showForm(){ loading.hidden = true; form.hidden = false; }
+  function setMsg(t, cls){ msg.textContent = t||''; msg.className = 'msg' + (cls?(' '+cls):''); }
+  function entrou(){ overlay.hidden = true; logoutBtn.hidden = false; }
+  function saiu(){ overlay.hidden = false; showForm(); logoutBtn.hidden = true; setMsg(''); }
+
+  function traduz(err){
+    var m = (err && err.message) || '';
+    if(/Invalid login credentials/i.test(m)) return 'E-mail ou senha incorretos.';
+    if(/Email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar (veja sua caixa de entrada).';
+    if(/already registered/i.test(m)) return 'Esse e-mail ja tem conta. Tente entrar.';
+    if(/Password should be at least/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+    if(/rate limit|too many/i.test(m)) return 'Muitas tentativas. Espere um pouco e tente de novo.';
+    if(/fetch|network|Failed/i.test(m)) return 'Sem conexao com o servidor. Verifique a internet.';
+    return m || 'Algo deu errado. Tente de novo.';
+  }
+
+  if(!sb){
+    showForm();
+    setMsg('Nao consegui carregar o login (precisa de internet). Recarregue a pagina.', 'err');
+    return;
+  }
+
+  sb.auth.getSession().then(function(res){
+    if(res && res.data && res.data.session){ entrou(); } else { showForm(); }
+  }).catch(function(){ showForm(); });
+
+  sb.auth.onAuthStateChange(function(_evt, session){ if(session){ entrou(); } });
+
+  function entrar(){
+    var e = (email.value||'').trim(), p = pass.value||'';
+    if(!e || !p){ setMsg('Preencha e-mail e senha.', 'err'); return; }
+    setMsg('Entrando...');
+    sb.auth.signInWithPassword({ email:e, password:p }).then(function(r){
+      if(r.error){ setMsg(traduz(r.error), 'err'); } else { entrou(); }
+    });
+  }
+
+  function criar(){
+    var e = (email.value||'').trim(), p = pass.value||'';
+    if(!e || !p){ setMsg('Preencha e-mail e senha para criar a conta.', 'err'); return; }
+    if(p.length < 6){ setMsg('A senha precisa ter pelo menos 6 caracteres.', 'err'); return; }
+    setMsg('Criando conta...');
+    sb.auth.signUp({ email:e, password:p }).then(function(r){
+      if(r.error){ setMsg(traduz(r.error), 'err'); return; }
+      if(r.data && r.data.session){ entrou(); }
+      else { setMsg('Conta criada! Confirme pelo link que enviamos no seu e-mail e depois entre.', 'ok'); }
+    });
+  }
+
+  document.getElementById('gd-btn-entrar').addEventListener('click', entrar);
+  document.getElementById('gd-btn-criar').addEventListener('click', criar);
+  pass.addEventListener('keydown', function(ev){ if(ev.key==='Enter') entrar(); });
+  email.addEventListener('keydown', function(ev){ if(ev.key==='Enter') pass.focus(); });
+  logoutBtn.addEventListener('click', function(){ sb.auth.signOut().then(saiu); });
+})();
+</script>
+<!-- ===== fim login ===== -->
