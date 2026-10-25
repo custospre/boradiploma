@@ -99685,6 +99685,9 @@ if ('serviceWorker' in navigator) {
 #gd-logout{position:fixed;bottom:10px;right:10px;z-index:9998;font-size:12px;background:var(--surface,#fff);
   border:1px solid var(--line,#e2ddd2);color:var(--muted,#6b6459);border-radius:8px;padding:6px 10px;cursor:pointer;opacity:.75}
 #gd-logout[hidden]{display:none}
+#gd-cloud{position:fixed;bottom:10px;right:66px;z-index:9998;font-size:12px;color:var(--muted,#6b6459);
+  background:var(--surface,#fff);border:1px solid var(--line,#e2ddd2);border-radius:8px;padding:6px 10px;opacity:.75}
+#gd-cloud[hidden]{display:none}
 </style>
 <div id="gd-auth">
   <div class="box">
@@ -99703,10 +99706,14 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 <button id="gd-logout" hidden>Sair</button>
+<div id="gd-cloud" hidden></div>
 <script>
 (function(){
   var SB_URL = 'https://epumhsiqdxvcboisurvu.supabase.co';
   var SB_KEY = 'sb_publishable_JW7iq8Kayqkp3OL--TCccg_aTBKOs_S';
+  var LS_KEY = 'vademecum_subjects_v1';
+  var K_LOCALCHG = 'gd_last_local_change';
+  var K_ACCOUNT = 'gd_account';
   var sb;
   try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
 
@@ -99717,11 +99724,20 @@ if ('serviceWorker' in navigator) {
   var pass = document.getElementById('gd-pass');
   var msg = document.getElementById('gd-msg');
   var logoutBtn = document.getElementById('gd-logout');
+  var cloudEl = document.getElementById('gd-cloud');
+
+  var currentUser = null, pushTimer = null, pulling = false, applyingRemote = false;
 
   function showForm(){ loading.hidden = true; form.hidden = false; }
   function setMsg(t, cls){ msg.textContent = t||''; msg.className = 'msg' + (cls?(' '+cls):''); }
-  function entrou(){ overlay.hidden = true; logoutBtn.hidden = false; }
-  function saiu(){ overlay.hidden = false; showForm(); logoutBtn.hidden = true; setMsg(''); }
+  function cloudStatus(t){ if(!cloudEl) return; if(!t){ cloudEl.hidden = true; return; } cloudEl.hidden = false; cloudEl.textContent = t; }
+
+  function entrou(session){
+    if(session && session.user) currentUser = session.user;
+    overlay.hidden = true; logoutBtn.hidden = false;
+    startSync();
+  }
+  function saiu(){ currentUser = null; overlay.hidden = false; showForm(); logoutBtn.hidden = true; setMsg(''); cloudStatus(''); }
 
   function traduz(err){
     var m = (err && err.message) || '';
@@ -99734,6 +99750,84 @@ if ('serviceWorker' in navigator) {
     return m || 'Algo deu errado. Tente de novo.';
   }
 
+  // --- sincronizacao com a nuvem ---
+  function getLocal(){ try{ return localStorage.getItem(LS_KEY); }catch(e){ return null; } }
+  function setLocal(str){ applyingRemote = true; try{ localStorage.setItem(LS_KEY, str); }catch(e){} applyingRemote = false; }
+
+  // Intercepta as gravacoes do app: quando ele salva os dados, agenda o envio pra nuvem.
+  (function hookSetItem(){
+    try{
+      var orig = localStorage.setItem.bind(localStorage);
+      localStorage.setItem = function(k, v){
+        orig(k, v);
+        if(k === LS_KEY && !applyingRemote){
+          try{ orig(K_LOCALCHG, String(Date.now())); }catch(e){}
+          schedulePush();
+        }
+      };
+    }catch(e){}
+  })();
+
+  function schedulePush(){ if(!sb || !currentUser) return; clearTimeout(pushTimer); cloudStatus('salvando na nuvem...'); pushTimer = setTimeout(pushNow, 2500); }
+
+  function pushNow(){
+    if(!sb || !currentUser) return;
+    var str = getLocal(); if(str == null) return;
+    var subj; try{ subj = JSON.parse(str); }catch(e){ return; }
+    sb.from('user_data').upsert({ user_id: currentUser.id, subjects: subj, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(function(r){
+      if(r && r.error){ cloudStatus('sem salvar na nuvem (tentarei de novo)'); }
+      else { try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){} cloudStatus('na nuvem'); setTimeout(function(){ cloudStatus(''); }, 2500); }
+    });
+  }
+
+  function reloadOnce(){
+    try{ if(sessionStorage.getItem('gd_pulled_reload')) return; sessionStorage.setItem('gd_pulled_reload','1'); }catch(e){}
+    location.reload();
+  }
+
+  function startSync(){
+    if(!sb || !currentUser || pulling) return;
+    pulling = true; cloudStatus('sincronizando...');
+    sb.from('user_data').select('subjects,updated_at').eq('user_id', currentUser.id).maybeSingle().then(function(r){
+      pulling = false;
+      if(r && r.error){ cloudStatus(''); return; }
+      var row = r && r.data;
+      var localStr = getLocal();
+      var storedAcc = null; try{ storedAcc = localStorage.getItem(K_ACCOUNT); }catch(e){}
+
+      if(!row || row.subjects == null){
+        // Nuvem vazia pra esta conta.
+        if(storedAcc && storedAcc !== currentUser.id){
+          // Dados locais pertencem a OUTRA conta (troca de conta neste aparelho) -> comeca limpo.
+          setLocal('[]'); try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){}
+          cloudStatus(''); reloadOnce(); return;
+        }
+        // Primeiro envio: sobe o que ja existe no aparelho (migracao dos seus dados).
+        try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){}
+        if(localStr){ pushNow(); } else { cloudStatus(''); }
+        return;
+      }
+
+      var cloudStr = JSON.stringify(row.subjects);
+      try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){}
+      if(cloudStr === localStr){ cloudStatus('na nuvem'); setTimeout(function(){ cloudStatus(''); }, 2000); return; }
+
+      var accountSwitched = (storedAcc && storedAcc !== currentUser.id);
+      var cloudTime = Date.parse((row && row.updated_at) || '') || 0;
+      var localChg = 0; try{ localChg = Number(localStorage.getItem(K_LOCALCHG) || '0') || 0; }catch(e){}
+
+      if(accountSwitched || cloudTime > localChg + 3000){
+        // Nuvem vale (conta trocada, ou outro aparelho salvou depois) -> traz pro aparelho.
+        try{ if(localStr) localStorage.setItem('gd_backup_local', localStr); }catch(e){}
+        setLocal(cloudStr);
+        cloudStatus(''); reloadOnce();
+      } else {
+        // Aparelho esta na frente -> envia pra nuvem.
+        pushNow();
+      }
+    }).catch(function(){ pulling = false; cloudStatus(''); });
+  }
+
   if(!sb){
     showForm();
     setMsg('Nao consegui carregar o login (precisa de internet). Recarregue a pagina.', 'err');
@@ -99741,17 +99835,17 @@ if ('serviceWorker' in navigator) {
   }
 
   sb.auth.getSession().then(function(res){
-    if(res && res.data && res.data.session){ entrou(); } else { showForm(); }
+    if(res && res.data && res.data.session){ entrou(res.data.session); } else { showForm(); }
   }).catch(function(){ showForm(); });
 
-  sb.auth.onAuthStateChange(function(_evt, session){ if(session){ entrou(); } });
+  sb.auth.onAuthStateChange(function(_evt, session){ if(session){ entrou(session); } });
 
   function entrar(){
     var e = (email.value||'').trim(), p = pass.value||'';
     if(!e || !p){ setMsg('Preencha e-mail e senha.', 'err'); return; }
     setMsg('Entrando...');
     sb.auth.signInWithPassword({ email:e, password:p }).then(function(r){
-      if(r.error){ setMsg(traduz(r.error), 'err'); } else { entrou(); }
+      if(r.error){ setMsg(traduz(r.error), 'err'); } else { /* onAuthStateChange cuida */ }
     });
   }
 
@@ -99762,7 +99856,7 @@ if ('serviceWorker' in navigator) {
     setMsg('Criando conta...');
     sb.auth.signUp({ email:e, password:p }).then(function(r){
       if(r.error){ setMsg(traduz(r.error), 'err'); return; }
-      if(r.data && r.data.session){ entrou(); }
+      if(r.data && r.data.session){ /* onAuthStateChange cuida */ }
       else { setMsg('Conta criada! Confirme pelo link que enviamos no seu e-mail e depois entre.', 'ok'); }
     });
   }
