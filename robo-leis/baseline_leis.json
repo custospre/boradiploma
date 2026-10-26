@@ -1,0 +1,182 @@
+{
+"licit": {
+"fp": "265c3e28ddcd4a77cf452216aec95b29f924e95ed2346b54260b14e4c112c8c6",
+"n": 196,
+"len": 264946
+},
+"improb": {
+"fp": "e62363b1b181a34d3dd3ddc821d90f554d30865e58cd0db83918bfcaa560b40c",
+"n": 35,
+"len": 56345
+},
+"procadm": {
+"fp": "281501258cda0c29e4f7da8ea0ec8da8dff0927cba60580b0729ca8cc1ffff09",
+"n": 80,
+"len": 32335
+},
+"servpub": {
+"fp": "d42bb2413fe67666fb8fbc48e8c901192f4ebc74c422abd37f94b6a6c904d362",
+"n": 262,
+"len": 141738
+},
+"crimamb": {
+"fp": "38b64727a23829a121f8f1805a37b222e9f4b1c00833c75c50a8a9d01c09d235",
+"n": 87,
+"len": 43684
+},
+"pnma": {
+"fp": "5c997191e1d374bb705596ec7e87c3e43c0736cc7ea80e25741770dd1ff69bc3",
+"n": 55,
+"len": 35237
+},
+"flor": {
+"fp": "46b399ff845e0a695240095c5a32bbe2ff3b0cc576a102eb20dcfc89a7cce8f9",
+"n": 92,
+"len": 116167
+},
+"lindb": {
+"fp": "09777da5efd645a54fb4d124f5665e9a0c2c19476c2cf09d19b3d63bb2fcb1a9",
+"n": 30,
+"len": 16948
+},
+"inquil": {
+"fp": "cf912412a04f1e3ac7971dbbe36e238b754a0bc60be7d4f3370f87095f9562be",
+"n": 91,
+"len": 54559
+},
+"bemfam": {
+"fp": "4696376a4e891de47d1e9eb9dc0be0f6b7ada7bf974bcdafcf0e475bc3114595",
+"n": 8,
+"len": 3623
+},
+"regpub": {
+"fp": "63c6215a7c33798c878c3fc30f3bbb8886ba360be8ae71ca5b4512ec1a3f2e6d",
+"n": 321,
+"len": 226142
+},
+"alim": {
+"fp": "66f9bb8c5188e1762ca209e7e12f99cd40630ca7a78a2a9877f4ebc60e88181f",
+"n": 29,
+"len": 11407
+},
+"cheque": {
+"fp": "a1b8bcdf4f344bfc528d1a47f9ef98bf4b2dd40447c9d100b0976f4e1e26535e",
+"n": 71,
+"len": 26601
+},
+"dupl": {
+"fp": "00d95a97c191b06523ed4d3bb98600add6de9a785f4d1e8d98093284fec1a249",
+"n": 28,
+"len": 14181
+},
+"eleicoes": {
+"fp": "7d9c0f53257d44b1f8b2c46f97a22646f00433c6eb60a8d57d8f36bb68db99fa",
+"n": 151,
+"len": 170999
+},
+"inelegib": {
+"fp": "65db4ac6895853eecfd5c928cf0d853bd49f6e258875a3325c1406cda87287b5",
+"n": 33,
+"len": 38846
+},
+"partidos": {
+"fp": "5953921be2a733e58d68f07c7d8a48e23ef6cb43bda1f2c60094655deeadbea1",
+"n": 84,
+"len": 68668
+},
+"falen": {
+"fp": "93517ae3247727893c03426c1020dd0ded4644889103a8cf3b285a362452d728",
+"n": 261,
+"len": 236065
+},
+"sa": {
+"fp": "c3ea81caec3de81a98c7c21573441bcc283ee4bc66ed143402adbcbbc598a6cb",
+"n": 315,
+"len": 290755
+},
+"migra": {
+"fp": "8bc47bdfa170e66506a887de1a4d5a328d7eb51227f357923dfcd3d000f071be",
+"n": 125,
+"len": 66312
+},
+"contrav": {
+"fp": "863b35df06ee8dac2793e490f6530fa6a73ef4f44a20544922bdc19d52b82a2c",
+"n": 72,
+"len": 24754
+},
+"lep": {
+"fp": "58bc494a903d6035a97b6a1b436681c8e0d6293ca94693bba176b73690371451",
+"n": 219,
+"len": 107215
+},
+"hedi": {
+"fp": "8996c414481b2be48c1e81118a9bc5de050ba91c2e55c940e7968335d3e04a09",
+"n": 13,
+"len": 11079
+},
+"drogas": {
+"fp": "52de73a5b438b5522c52ef51cda1f3422012af3788e26fed19e173492b2a8525",
+"n": 102,
+"len": 78659
+},
+"mpenha": {
+"fp": "bb889edb3383169967d8602cc1cafa89bfe11b2b0b39c243409af0012b3c062a",
+"n": 57,
+"len": 43276
+},
+"abuso": {
+"fp": "902478726e7be4358e9648ee065963b24f91d6eac92efb0fc8825527eb8c2eeb",
+"n": 46,
+"len": 18823
+},
+"benef": {
+"fp": "c4dd8e4ceb597ae7919a39e607a994fdd93d110a3b23ecd8c195eece2f3935bb",
+"n": 183,
+"len": 168128
+},
+"custeio": {
+"fp": "94a4d9117833719e6c9b9c4d981f28b7b91d878a119f7129dc606ad71308f7a0",
+"n": 115,
+"len": 141158
+},
+"jesp": {
+"fp": "fabd6a53a22b60e1e01b039d9dd4b36221f896e3be4cab6dfb5b503caa69ceb2",
+"n": 99,
+"len": 38880
+},
+"ms": {
+"fp": "1ffb904b3cfb06c6a488a14dc8f63f5f8c8e53f9e0e154170ed26949c81b2cdf",
+"n": 29,
+"len": 15114
+},
+"arbit": {
+"fp": "3cf6844e8c6072a0fe26ba5f371a8f843d6edbfb654c377c64a1c10489cb31ef",
+"n": 47,
+"len": 26474
+},
+"tempor": {
+"fp": "6de6e7bb424aa84e057516ce102b9d3914bb5bd28a1d95231f42f91de49a965f",
+"n": 30,
+"len": 17432
+},
+"domest": {
+"fp": "009a50ac7b6ddae52d8ccbc2e0afb136e182cd8d1657ba0461ea74c912770bed",
+"n": 48,
+"len": 38378
+},
+"lef": {
+"fp": "b6963823173129a9499861c6743a18f06b0a001da49d400db85d013848ac0324",
+"n": 42,
+"len": 22962
+},
+"icms": {
+"fp": "66ca47ada8c307d705ff2b203c6939894eb808df830b2e9618a501daef007336",
+"n": 40,
+"len": 53229
+},
+"iss": {
+"fp": "a77c8b84b8116ca683233207ad3906322e228b0fa22f9084ca685bfe4165a756",
+"n": 12,
+"len": 17532
+}
+}
