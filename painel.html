@@ -1,0 +1,168 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do dono — BoraDiploma</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--bg:#f5f3ee;--surface:#fffdf8;--fg:#1f1b16;--muted:#6b6459;--line:#e2ddd2;--accent:#7a1f2b}
+  @media (prefers-color-scheme:dark){:root{--bg:#17150f;--surface:#211e17;--fg:#ece7dc;--muted:#a79f90;--line:#352f25;--accent:#e4a0a0;color-scheme:dark}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5;padding:18px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{color:var(--accent);font-size:22px;margin:4px 0 2px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input{width:100%;padding:11px 12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
+  button{padding:10px 14px;font-size:15px;border:0;border-radius:10px;cursor:pointer}
+  .primary{background:var(--accent);color:#fff;width:100%;margin-top:14px;padding:12px}
+  .msg{font-size:13px;color:#b42318;min-height:16px;margin-top:8px}
+  .count{font-size:14px;color:var(--muted);margin:6px 0 2px}
+  .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding:12px 0}
+  .row:first-child{border-top:0}
+  .nome{font-weight:700}
+  .meta{font-size:13px;color:var(--muted)}
+  .meta a{color:var(--accent)}
+  .grow{flex:1 1 220px;min-width:0}
+  .btn-lib{background:#1a7f37;color:#fff}
+  .btn-rev{background:none;color:var(--muted);border:1px solid var(--line)}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .sair{background:none;color:var(--muted);border:1px solid var(--line);font-size:13px;padding:6px 10px}
+  .empty{color:var(--muted);font-size:14px;padding:10px 0}
+</style>
+<div class="wrap">
+  <div class="topbar">
+    <div><h1>Painel do dono</h1><p class="sub">BoraDiploma — liberar acessos dos testadores</p></div>
+    <button class="sair" id="sair" hidden>Sair</button>
+  </div>
+
+  <div class="card" id="login-card">
+    <p class="sub" style="margin:0 0 8px">Entre com a sua conta de dono para ver os pedidos.</p>
+    <label for="e">E-mail</label>
+    <input id="e" type="email" placeholder="seu e-mail">
+    <label for="p">Senha</label>
+    <input id="p" type="password" placeholder="sua senha">
+    <button class="primary" id="btn-entrar">Entrar</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+
+  <div id="painel" hidden>
+    <div class="card">
+      <div class="count" id="contador">Carregando...</div>
+    </div>
+    <div class="card">
+      <h1 style="font-size:17px;margin:0 0 6px">Pedidos aguardando liberação</h1>
+      <div id="pendentes"><div class="empty">Carregando...</div></div>
+    </div>
+    <div class="card">
+      <h1 style="font-size:17px;margin:0 0 6px">Já liberados</h1>
+      <div id="liberados"><div class="empty">—</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SB_URL = 'https://epumhsiqdxvcboisurvu.supabase.co';
+  var SB_KEY = 'sb_publishable_JW7iq8Kayqkp3OL--TCccg_aTBKOs_S';
+  var OWNER = '3d501b85-058c-43d7-a5c2-a759460074db';
+  var sb; try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){}
+
+  var loginCard = document.getElementById('login-card');
+  var painel = document.getElementById('painel');
+  var loginMsg = document.getElementById('login-msg');
+  var sairBtn = document.getElementById('sair');
+  var user = null;
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function waLink(wa){ var d=String(wa||'').replace(/\D/g,''); if(!d) return null; if(d.length<=11) d='55'+d; return 'https://wa.me/'+d; }
+  function fmtData(s){ try{ return new Date(s).toLocaleDateString('pt-BR'); }catch(e){ return ''; } }
+
+  function mostrar(logado, ehDono){
+    loginCard.hidden = logado;
+    sairBtn.hidden = !logado;
+    painel.hidden = !(logado && ehDono);
+    if(logado && !ehDono){ loginCard.hidden = false; loginMsg.textContent = 'Esta conta nao e a de dono. Entre com a conta de dono do app.'; }
+  }
+
+  function entrar(){
+    var e=(document.getElementById('e').value||'').trim(), p=document.getElementById('p').value||'';
+    if(!e||!p){ loginMsg.textContent='Preencha e-mail e senha.'; return; }
+    loginMsg.textContent='Entrando...';
+    sb.auth.signInWithPassword({email:e,password:p}).then(function(r){
+      if(r.error){ loginMsg.textContent = /Invalid login/i.test(r.error.message)?'E-mail ou senha incorretos.':r.error.message; return; }
+      loginMsg.textContent='';
+    });
+  }
+
+  function carregar(){
+    Promise.all([
+      sb.from('perfis').select('user_id,nome,whatsapp,email,created_at'),
+      sb.from('billing').select('user_id,email,aprovado,active,status')
+    ]).then(function(res){
+      var perfis = (res[0].data)||[]; var bills = (res[1].data)||[];
+      var bmap = {}; bills.forEach(function(b){ bmap[b.user_id]=b; });
+      var pmap = {}; perfis.forEach(function(p){ pmap[p.user_id]=p; });
+      var ids = {}; bills.forEach(function(b){ ids[b.user_id]=1; }); perfis.forEach(function(p){ ids[p.user_id]=1; });
+      var pend=[], libr=[];
+      Object.keys(ids).forEach(function(uid){
+        if(uid===OWNER) return;
+        var b=bmap[uid]||{}, pf=pmap[uid]||{};
+        var liberado = (b.active===true)||(b.aprovado===true);
+        var item={uid:uid, nome:pf.nome||'(sem nome)', wa:pf.whatsapp||'', email:pf.email||b.email||'', data:pf.created_at};
+        (liberado?libr:pend).push(item);
+      });
+      document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + pend.length + ' aguardando';
+      render('pendentes', pend, true);
+      render('liberados', libr, false);
+    });
+  }
+
+  function render(elId, lista, pendente){
+    var el = document.getElementById(elId);
+    if(!lista.length){ el.innerHTML = '<div class="empty">'+(pendente?'Nenhum pedido aguardando. 🎉':'Ninguém liberado ainda.')+'</div>'; return; }
+    el.innerHTML = lista.map(function(it){
+      var wl = waLink(it.wa);
+      var contato = [];
+      if(it.wa) contato.push(wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa)));
+      if(it.email) contato.push('<a href="mailto:'+esc(it.email)+'">'+esc(it.email)+'</a>');
+      var botao = pendente
+        ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'">Liberar</button>'
+        : '<button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button>';
+      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div>'+
+             '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+botao+'</div>';
+    }).join('');
+    el.querySelectorAll('[data-lib]').forEach(function(b){ b.addEventListener('click', function(){ setAprovado(b.getAttribute('data-lib'), true, b); }); });
+    el.querySelectorAll('[data-rev]').forEach(function(b){ b.addEventListener('click', function(){ setAprovado(b.getAttribute('data-rev'), false, b); }); });
+  }
+
+  function setAprovado(uid, val, btn){
+    btn.disabled = true; btn.textContent = val?'Liberando...':'Revogando...';
+    sb.from('billing').update({aprovado:val}).eq('user_id', uid).then(function(r){
+      if(r && r.error){ alert('Erro: '+r.error.message); btn.disabled=false; return; }
+      carregar();
+    });
+  }
+
+  function init(){
+    if(!sb){ loginMsg.textContent='Erro ao carregar (precisa de internet).'; return; }
+    sb.auth.getSession().then(function(res){
+      var s = res && res.data && res.data.session;
+      user = s && s.user;
+      var ehDono = user && user.id === OWNER;
+      mostrar(!!user, ehDono);
+      if(ehDono) carregar();
+    });
+    sb.auth.onAuthStateChange(function(_e, s){
+      user = s && s.user;
+      var ehDono = user && user.id === OWNER;
+      mostrar(!!user, ehDono);
+      if(ehDono) carregar();
+    });
+    document.getElementById('btn-entrar').addEventListener('click', entrar);
+    document.getElementById('p').addEventListener('keydown', function(ev){ if(ev.key==='Enter') entrar(); });
+    sairBtn.addEventListener('click', function(){ sb.auth.signOut().then(function(){ location.reload(); }); });
+  }
+  init();
+})();
+</script>

@@ -99711,6 +99711,18 @@ if ('serviceWorker' in navigator) {
   border:1px solid var(--line,#e2ddd2);color:var(--fg,#1f1b16);border-radius:8px;padding:6px 10px;opacity:.92}
 #gd-trial[hidden]{display:none}
 #gd-trial a{color:var(--accent,#7a1f2b)}
+#gd-pend{position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;
+  background:var(--bg,#f5f3ee);padding:20px;overflow:auto;font-family:var(--font-head,system-ui,sans-serif)}
+#gd-pend[hidden]{display:none}
+#gd-pend .box{width:100%;max-width:380px;background:var(--surface,#fffdf8);border:1px solid var(--line,#e2ddd2);
+  border-radius:16px;padding:28px 24px;box-shadow:0 10px 40px rgba(0,0,0,.12);text-align:center;color:var(--fg,#1f1b16)}
+#gd-pend h1{font-size:22px;margin:0 0 6px;color:var(--accent,#7a1f2b)}
+#gd-pend .sub{margin:0 0 6px;font-size:14px;color:var(--muted,#6b6459)}
+#gd-pend .note{font-size:13px;color:var(--muted,#6b6459);margin:12px 0}
+#gd-pend button{width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:12px}
+#gd-pend .primary{background:#25D366;color:#fff}
+#gd-pend .link{background:none;color:var(--accent,#7a1f2b);text-decoration:underline;font-size:14px}
+#gd-pend .msg{font-size:13px;color:var(--muted,#6b6459);min-height:16px;margin-top:8px}
 </style>
 <div id="gd-auth">
   <div class="box">
@@ -99722,8 +99734,11 @@ if ('serviceWorker' in navigator) {
       <input id="gd-email" type="email" autocomplete="email" placeholder="voce@exemplo.com">
       <label for="gd-pass">Senha</label>
       <input id="gd-pass" type="password" autocomplete="current-password" placeholder="sua senha">
+      <label for="gd-nome" style="font-size:12px">Nome e WhatsApp <span style="font-weight:400">(so para pedir acesso)</span></label>
+      <input id="gd-nome" type="text" autocomplete="name" placeholder="seu nome completo">
+      <input id="gd-wa" type="tel" autocomplete="tel" placeholder="seu WhatsApp com DDD" style="margin-top:8px">
       <button class="primary" id="gd-btn-entrar">Entrar</button>
-      <button class="link" id="gd-btn-criar">Nao tenho conta - criar conta</button>
+      <button class="link" id="gd-btn-criar">Nao tenho conta - pedir acesso</button>
       <div class="msg" id="gd-msg"></div>
     </div>
   </div>
@@ -99743,6 +99758,18 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 <div id="gd-trial" hidden></div>
+<div id="gd-pend" hidden>
+  <div class="box">
+    <h1>Quase la!</h1>
+    <p class="sub">Seu pedido de acesso foi criado. Falta avisar o responsavel para liberar.</p>
+    <p class="note">Avise o responsavel por WhatsApp ou por e-mail para liberar seu acesso:</p>
+    <button class="primary" id="gd-pend-wa">Avisar pelo WhatsApp</button>
+    <button class="primary" id="gd-pend-email" style="background:var(--accent,#7a1f2b)">Avisar por e-mail</button>
+    <button class="link" id="gd-pend-refresh">Ja fui liberado - entrar</button>
+    <div class="msg" id="gd-pend-status"></div>
+    <button class="link" id="gd-pend-logout">Sair</button>
+  </div>
+</div>
 <script>
 (function(){
   var SB_URL = 'https://epumhsiqdxvcboisurvu.supabase.co';
@@ -99752,6 +99779,8 @@ if ('serviceWorker' in navigator) {
   var K_ACCOUNT = 'gd_account';
   var ATT_BUCKET = 'anexos';
   var CHECKOUT_URL = '';            // link de assinatura da Hotmart (preenchido depois)
+  var OWNER_WA = '5549999791136';   // WhatsApp do dono, para pedidos de acesso
+  var OWNER_EMAIL = 'aguicco@gmail.com'; // e-mail do dono, para pedidos de acesso
   var sb;
   try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
 
@@ -99760,6 +99789,9 @@ if ('serviceWorker' in navigator) {
   var form = document.getElementById('gd-auth-form');
   var email = document.getElementById('gd-email');
   var pass = document.getElementById('gd-pass');
+  var nomeEl = document.getElementById('gd-nome');
+  var waEl = document.getElementById('gd-wa');
+  var pendEl = document.getElementById('gd-pend');
   var msg = document.getElementById('gd-msg');
   var logoutBtn = document.getElementById('gd-logout');
   var cloudEl = document.getElementById('gd-cloud');
@@ -99772,6 +99804,7 @@ if ('serviceWorker' in navigator) {
 
   var currentUser = null, pushTimer = null, pulling = false, applyingRemote = false;
   var attTimer = null, attSyncing = false;
+  var pendingPerfil = null;
 
   function showForm(){ loading.hidden = true; form.hidden = false; }
   function setMsg(t, cls){ msg.textContent = t||''; msg.className = 'msg' + (cls?(' '+cls):''); }
@@ -99780,8 +99813,16 @@ if ('serviceWorker' in navigator) {
   function entrou(session){
     if(session && session.user) currentUser = session.user;
     overlay.hidden = true; logoutBtn.hidden = false;
+    salvarPerfil();
     startSync();
     checkAccess();
+  }
+  function salvarPerfil(){
+    if(!sb || !currentUser || !pendingPerfil) return;
+    var pp = pendingPerfil;
+    sb.from('perfis').upsert({ user_id: currentUser.id, nome: pp.nome, whatsapp: pp.whatsapp, email: pp.email }).then(function(r){
+      if(!(r && r.error)) pendingPerfil = null;
+    });
   }
   function saiu(){ currentUser = null; overlay.hidden = false; showForm(); logoutBtn.hidden = true; setMsg(''); cloudStatus(''); }
 
@@ -99968,6 +100009,8 @@ if ('serviceWorker' in navigator) {
   // --- assinatura / teste gratis ---
   function daysLeft(ts){ var d = Math.ceil((ts - Date.now()) / 86400000); return d < 0 ? 0 : d; }
   function hideSub(){ if(subEl) subEl.hidden = true; }
+  function hidePend(){ if(pendEl) pendEl.hidden = true; }
+  function showPend(){ if(overlay) overlay.hidden = true; if(subEl) subEl.hidden = true; if(trialEl) trialEl.hidden = true; if(pendEl) pendEl.hidden = false; }
   function showSub(trialOver){
     if(subEmail && currentUser) subEmail.textContent = currentUser.email || '';
     if(subMsg) subMsg.textContent = trialOver ? 'Seu teste gratis terminou.' : 'Continue com acesso completo ao app.';
@@ -99988,17 +100031,14 @@ if ('serviceWorker' in navigator) {
   }
   function checkAccess(){
     if(!sb || !currentUser) return;
-    sb.from('billing').select('active,trial_ends_at,status').eq('user_id', currentUser.id).maybeSingle().then(function(r){
-      if(r && r.error){ hideSub(); return; }        // falha de leitura -> nao bloqueia
+    sb.from('billing').select('active,aprovado,trial_ends_at,status').eq('user_id', currentUser.id).maybeSingle().then(function(r){
+      if(r && r.error){ hidePend(); hideSub(); return; }   // falha de leitura -> nao bloqueia
       var b = r && r.data;
-      if(!b){ hideSub(); return; }                    // sem linha -> nao bloqueia
-      var active = b.active === true;
-      var trialEnd = b.trial_ends_at ? (Date.parse(b.trial_ends_at) || 0) : 0;
-      var inTrial = trialEnd && Date.now() < trialEnd;
-      if(active){ hideSub(); if(trialEl) trialEl.hidden = true; return; }
-      if(inTrial){ hideSub(); showTrialBanner(daysLeft(trialEnd)); return; }
-      showSub(true);                                   // sem acesso -> tela de assinar
-    }).catch(function(){ hideSub(); });
+      if(!b){ hidePend(); hideSub(); return; }              // sem linha -> nao bloqueia
+      var allowed = (b.active === true) || (b.aprovado === true);
+      if(allowed){ hidePend(); hideSub(); if(trialEl) trialEl.hidden = true; return; }
+      showPend();                                           // ainda nao liberado
+    }).catch(function(){ hidePend(); hideSub(); });
   }
 
   if(!sb){
@@ -100024,12 +100064,17 @@ if ('serviceWorker' in navigator) {
 
   function criar(){
     var e = (email.value||'').trim(), p = pass.value||'';
-    if(!e || !p){ setMsg('Preencha e-mail e senha para criar a conta.', 'err'); return; }
+    var nome = ((nomeEl && nomeEl.value) || '').trim();
+    var wa = ((waEl && waEl.value) || '').trim();
+    if(!nome || !wa){ setMsg('Preencha seu nome e WhatsApp para pedir acesso.', 'err'); return; }
+    if(!e || !p){ setMsg('Preencha e-mail e senha.', 'err'); return; }
     if(p.length < 6){ setMsg('A senha precisa ter pelo menos 6 caracteres.', 'err'); return; }
-    setMsg('Criando conta...');
+    setMsg('Enviando pedido...');
     sb.auth.signUp({ email:e, password:p }).then(function(r){
       if(r.error){ setMsg(traduz(r.error), 'err'); return; }
-      if(!(r.data && r.data.session)){ setMsg('Conta criada! Confirme pelo link que enviamos no seu e-mail e depois entre.', 'ok'); }
+      pendingPerfil = { nome: nome, whatsapp: wa, email: e };
+      salvarPerfil();
+      // o onAuthStateChange mostra a tela de "aguardando liberacao"
     });
   }
 
@@ -100048,6 +100093,27 @@ if ('serviceWorker' in navigator) {
   }); }
   var subLogout = document.getElementById('gd-sub-logout');
   if(subLogout){ subLogout.addEventListener('click', function(){ sb.auth.signOut().then(function(){ hideSub(); saiu(); }); }); }
+
+  var pendWa = document.getElementById('gd-pend-wa');
+  if(pendWa){ pendWa.addEventListener('click', function(){
+    var eml = (currentUser && currentUser.email) || '';
+    var m = 'Ola! Quero testar o BoraDiploma. Meu e-mail: ' + eml + '. Pode liberar meu acesso?';
+    try{ window.open('https://wa.me/' + OWNER_WA + '?text=' + encodeURIComponent(m), '_blank'); }catch(_){}
+  }); }
+  var pendEmail = document.getElementById('gd-pend-email');
+  if(pendEmail){ pendEmail.addEventListener('click', function(){
+    var eml = (currentUser && currentUser.email) || '';
+    var corpo = 'Ola! Quero testar o BoraDiploma. Meu e-mail: ' + eml + '. Pode liberar meu acesso?';
+    try{ window.location.href = 'mailto:' + OWNER_EMAIL + '?subject=' + encodeURIComponent('Pedido de acesso - BoraDiploma') + '&body=' + encodeURIComponent(corpo); }catch(_){}
+  }); }
+  var pendRefresh = document.getElementById('gd-pend-refresh');
+  if(pendRefresh){ pendRefresh.addEventListener('click', function(){
+    var st = document.getElementById('gd-pend-status'); if(st) st.textContent = 'Verificando...';
+    checkAccess();
+    setTimeout(function(){ if(st && pendEl && !pendEl.hidden) st.textContent = 'Ainda nao liberado. Assim que liberarem, toque aqui de novo.'; }, 1800);
+  }); }
+  var pendLogout = document.getElementById('gd-pend-logout');
+  if(pendLogout){ pendLogout.addEventListener('click', function(){ sb.auth.signOut().then(function(){ hidePend(); saiu(); }); }); }
 })();
 </script>
 <!-- ===== fim login ===== -->
