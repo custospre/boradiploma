@@ -99761,6 +99761,14 @@ if ('serviceWorker' in navigator) {
         <button class="primary" id="gd-btn-entrar">Entrar</button>
         <button class="link" id="gd-btn-criar">Nao tenho conta - pedir acesso</button>
       </div>
+      <button class="link" id="gd-btn-pedir">Ainda nao tem acesso? Pedir aqui</button>
+      <div id="gd-pedir-area" hidden>
+        <label for="gd-pedir-nome">Seu nome</label>
+        <input id="gd-pedir-nome" type="text" autocomplete="name" placeholder="nome completo">
+        <label for="gd-pedir-wa">Seu WhatsApp (com DDD)</label>
+        <input id="gd-pedir-wa" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">
+        <button class="primary" id="gd-pedir-enviar">Enviar pedido pelo WhatsApp</button>
+      </div>
       <div class="msg" id="gd-msg"></div>
     </div>
   </div>
@@ -100163,6 +100171,21 @@ if ('serviceWorker' in navigator) {
     var area = document.getElementById('gd-email-area'); if(area) area.hidden = false;
     showEmailBtn.hidden = true;
     try{ email.focus(); }catch(e){}
+  }); }
+  var pedirBtn = document.getElementById('gd-btn-pedir');
+  if(pedirBtn){ pedirBtn.addEventListener('click', function(){
+    var area = document.getElementById('gd-pedir-area'); if(area) area.hidden = false;
+    pedirBtn.hidden = true;
+    try{ document.getElementById('gd-pedir-nome').focus(); }catch(e){}
+  }); }
+  var pedirEnviar = document.getElementById('gd-pedir-enviar');
+  if(pedirEnviar){ pedirEnviar.addEventListener('click', function(){
+    var nm = (document.getElementById('gd-pedir-nome').value||'').trim();
+    var wa = (document.getElementById('gd-pedir-wa').value||'').trim();
+    if(!nm || !wa){ setMsg('Preencha seu nome e WhatsApp.', 'err'); return; }
+    var m = 'Ola! Quero testar o BoraDiploma. Meu nome: ' + nm + '. Meu WhatsApp: ' + wa + '. Pode liberar meu acesso?';
+    try{ window.open('https://wa.me/' + OWNER_WA + '?text=' + encodeURIComponent(m), '_blank'); }catch(e){}
+    setMsg('Pedido pronto! Envie a mensagem no WhatsApp que abriu. \uD83D\uDE42', 'ok');
   }); }
   pass.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ if(modo) criar(); else entrar(); } });
   email.addEventListener('keydown', function(ev){ if(ev.key==='Enter') pass.focus(); });
