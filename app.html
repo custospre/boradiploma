@@ -99768,6 +99768,7 @@ if ('serviceWorker' in navigator) {
     <p class="note">Avise o responsavel por WhatsApp ou por e-mail para liberar seu acesso:</p>
     <button class="primary" id="gd-pend-wa">Avisar pelo WhatsApp</button>
     <button class="primary" id="gd-pend-email" style="background:var(--accent,#7a1f2b)">Avisar por e-mail</button>
+    <button class="primary" id="gd-pend-ig" style="background:#C13584">Avisar pelo Instagram</button>
     <button class="link" id="gd-pend-refresh">Ja fui liberado - entrar</button>
     <div class="msg" id="gd-pend-status"></div>
     <button class="link" id="gd-pend-logout">Sair</button>
@@ -99784,6 +99785,7 @@ if ('serviceWorker' in navigator) {
   var CHECKOUT_URL = '';            // link de assinatura da Hotmart (preenchido depois)
   var OWNER_WA = '5549999791136';   // WhatsApp do dono, para pedidos de acesso
   var OWNER_EMAIL = 'aguicco@gmail.com'; // e-mail do dono, para pedidos de acesso
+  var OWNER_IG = 'boradiploma';     // Instagram do dono, para pedidos de acesso
   var sb;
   try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
 
@@ -100119,6 +100121,8 @@ if ('serviceWorker' in navigator) {
     var corpo = 'Ola! Quero testar o BoraDiploma. Meu e-mail: ' + eml + '. Pode liberar meu acesso?';
     try{ window.location.href = 'mailto:' + OWNER_EMAIL + '?subject=' + encodeURIComponent('Pedido de acesso - BoraDiploma') + '&body=' + encodeURIComponent(corpo); }catch(_){}
   }); }
+  var pendIg = document.getElementById('gd-pend-ig');
+  if(pendIg){ pendIg.addEventListener('click', function(){ try{ window.open('https://instagram.com/' + OWNER_IG, '_blank'); }catch(_){} }); }
   var pendRefresh = document.getElementById('gd-pend-refresh');
   if(pendRefresh){ pendRefresh.addEventListener('click', function(){
     var st = document.getElementById('gd-pend-status'); if(st) st.textContent = 'Verificando...';
