@@ -99734,9 +99734,12 @@ if ('serviceWorker' in navigator) {
       <input id="gd-email" type="email" autocomplete="email" placeholder="voce@exemplo.com">
       <label for="gd-pass">Senha</label>
       <input id="gd-pass" type="password" autocomplete="current-password" placeholder="sua senha">
-      <label for="gd-nome" style="font-size:12px">Nome e WhatsApp <span style="font-weight:400">(so para pedir acesso)</span></label>
-      <input id="gd-nome" type="text" autocomplete="name" placeholder="seu nome completo">
-      <input id="gd-wa" type="tel" autocomplete="tel" placeholder="seu WhatsApp com DDD" style="margin-top:8px">
+      <div id="gd-signup-extra" hidden>
+        <label for="gd-nome">Seu nome</label>
+        <input id="gd-nome" type="text" autocomplete="name" placeholder="nome completo">
+        <label for="gd-wa">Seu WhatsApp (com DDD)</label>
+        <input id="gd-wa" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">
+      </div>
       <button class="primary" id="gd-btn-entrar">Entrar</button>
       <button class="link" id="gd-btn-criar">Nao tenho conta - pedir acesso</button>
       <div class="msg" id="gd-msg"></div>
@@ -99805,6 +99808,7 @@ if ('serviceWorker' in navigator) {
   var currentUser = null, pushTimer = null, pulling = false, applyingRemote = false;
   var attTimer = null, attSyncing = false;
   var pendingPerfil = null;
+  var modo = false;
 
   function showForm(){ loading.hidden = true; form.hidden = false; }
   function setMsg(t, cls){ msg.textContent = t||''; msg.className = 'msg' + (cls?(' '+cls):''); }
@@ -100078,9 +100082,18 @@ if ('serviceWorker' in navigator) {
     });
   }
 
-  document.getElementById('gd-btn-entrar').addEventListener('click', entrar);
-  document.getElementById('gd-btn-criar').addEventListener('click', criar);
-  pass.addEventListener('keydown', function(ev){ if(ev.key==='Enter') entrar(); });
+  function setModo(signup){
+    modo = signup;
+    var extra = document.getElementById('gd-signup-extra'); if(extra) extra.hidden = !signup;
+    var pb = document.getElementById('gd-btn-entrar'); if(pb) pb.textContent = signup ? 'Pedir acesso' : 'Entrar';
+    var lk = document.getElementById('gd-btn-criar'); if(lk) lk.textContent = signup ? 'Ja tenho conta - entrar' : 'Nao tenho conta - pedir acesso';
+    var st = document.querySelector('#gd-auth-form .sub'); if(st) st.textContent = signup ? 'Preencha seus dados para pedir acesso.' : 'Entre com seu e-mail para acessar.';
+    setMsg('');
+    if(signup && nomeEl){ try{ nomeEl.focus(); }catch(e){} }
+  }
+  document.getElementById('gd-btn-entrar').addEventListener('click', function(){ if(modo) criar(); else entrar(); });
+  document.getElementById('gd-btn-criar').addEventListener('click', function(){ setModo(!modo); });
+  pass.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ if(modo) criar(); else entrar(); } });
   email.addEventListener('keydown', function(ev){ if(ev.key==='Enter') pass.focus(); });
   logoutBtn.addEventListener('click', function(){ sb.auth.signOut().then(saiu); });
 
