@@ -100117,7 +100117,7 @@ if ('serviceWorker' in navigator) {
   document.getElementById('gd-btn-criar').addEventListener('click', function(){ setModo(!modo); });
   function entrarGoogle(){
     setMsg('Abrindo o Google...');
-    sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin + location.pathname } }).then(function(r){
+    sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } } }).then(function(r){
       if(r && r.error){ setMsg(traduz(r.error), 'err'); }
     }).catch(function(err){ setMsg(traduz(err), 'err'); });
   }

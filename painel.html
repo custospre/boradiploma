@@ -103,7 +103,7 @@
 
   function entrarGoogle(){
     loginMsg.textContent='Abrindo o Google...';
-    sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin + location.pathname } }).then(function(r){
+    sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } } }).then(function(r){
       if(r && r.error){ loginMsg.textContent = r.error.message; }
     }).catch(function(){ loginMsg.textContent='Erro ao abrir o Google.'; });
   }
