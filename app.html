@@ -99772,12 +99772,15 @@ if ('serviceWorker' in navigator) {
 <div id="gd-trial" hidden></div>
 <div id="gd-pend" hidden>
   <div class="box">
-    <h1>Quase la!</h1>
-    <p class="sub">Seu pedido de acesso foi criado. Falta avisar o responsavel para liberar.</p>
-    <p class="note">Avise o responsavel por WhatsApp, e-mail ou Instagram para liberar seu acesso:</p>
-    <button class="primary" id="gd-pend-wa">Avisar pelo WhatsApp</button>
-    <button class="primary" id="gd-pend-email" style="background:var(--accent,#7a1f2b)">Avisar por e-mail</button>
-    <button class="primary" id="gd-pend-ig" style="background:#C13584">Avisar pelo Instagram</button>
+    <h1>Quase la! 🎓</h1>
+    <p class="sub">Pra usar o BoraDiploma, peca a liberacao do responsavel.</p>
+    <button class="primary" id="gd-pend-toggle" style="background:var(--accent,#7a1f2b)">Solicitar acesso ▾</button>
+    <div id="gd-pend-opcoes" hidden>
+      <p class="note">Escolha por onde quer pedir seu acesso:</p>
+      <button class="primary" id="gd-pend-wa">🟢 Pelo WhatsApp</button>
+      <button class="primary" id="gd-pend-email" style="background:#555">✉️ Por e-mail</button>
+      <button class="primary" id="gd-pend-ig" style="background:#C13584">📸 Pelo Instagram</button>
+    </div>
     <button class="link" id="gd-pend-refresh">Ja fui liberado - entrar</button>
     <div class="msg" id="gd-pend-status"></div>
     <button class="link" id="gd-pend-logout">Sair</button>
@@ -100162,6 +100165,11 @@ if ('serviceWorker' in navigator) {
   }); }
   var pendLogout = document.getElementById('gd-pend-logout');
   if(pendLogout){ pendLogout.addEventListener('click', function(){ sb.auth.signOut().then(function(){ hidePend(); saiu(); }); }); }
+  var pendToggle = document.getElementById('gd-pend-toggle');
+  if(pendToggle){ pendToggle.addEventListener('click', function(){
+    var op = document.getElementById('gd-pend-opcoes');
+    if(op){ var show = op.hidden; op.hidden = !show; pendToggle.textContent = 'Solicitar acesso ' + (show ? '▴' : '▾'); }
+  }); }
 })();
 </script>
 <!-- ===== fim login ===== -->
