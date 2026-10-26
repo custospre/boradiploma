@@ -81,6 +81,11 @@
       <div id="pendentes"><div class="empty">Carregando...</div></div>
     </div>
     <div class="card">
+      <h1 style="font-size:17px;margin:0 0 6px">Testes acabando</h1>
+      <p class="hint">Quem está perto de acabar o teste. Toque pra mandar um lembrete no WhatsApp.</p>
+      <div id="acabando"><div class="empty">—</div></div>
+    </div>
+    <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Já liberados</h1>
       <div id="liberados"><div class="empty">—</div></div>
     </div>
@@ -92,6 +97,7 @@
   var SB_URL = 'https://epumhsiqdxvcboisurvu.supabase.co';
   var SB_KEY = 'sb_publishable_JW7iq8Kayqkp3OL--TCccg_aTBKOs_S';
   var OWNER = '3d501b85-058c-43d7-a5c2-a759460074db';
+  var APP_URL = 'https://custospre.github.io/boradiploma/app.html';
   var sb; try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){}
 
   var loginCard = document.getElementById('login-card');
@@ -147,16 +153,22 @@
       var bmap = {}; bills.forEach(function(b){ bmap[b.user_id]=b; });
       var pmap = {}; perfis.forEach(function(p){ pmap[p.user_id]=p; });
       var ids = {}; bills.forEach(function(b){ ids[b.user_id]=1; }); perfis.forEach(function(p){ ids[p.user_id]=1; });
-      var pend=[], libr=[];
+      var pend=[], libr=[], acab=[];
       Object.keys(ids).forEach(function(uid){
         if(uid===OWNER) return;
         var b=bmap[uid]||{}, pf=pmap[uid]||{};
         var liberado = (b.active===true)||(b.aprovado===true)||(!!b.trial_ends_at);
         var item={uid:uid, nome:pf.nome||'(sem nome)', wa:pf.whatsapp||'', email:pf.email||b.email||'', data:pf.created_at, est:estado(b)};
         (liberado?libr:pend).push(item);
+        if(!(b.active===true) && !(b.aprovado===true) && b.trial_ends_at){
+          var t=Date.parse(b.trial_ends_at)||0; var d=Math.ceil((t-Date.now())/86400000);
+          if(d>0){ var it2={}; for(var k in item){ it2[k]=item[k]; } it2.dias=d; acab.push(it2); }
+        }
       });
+      acab.sort(function(a,b){ return a.dias-b.dias; });
       document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + pend.length + ' aguardando';
       render('pendentes', pend, true);
+      renderAcab(acab);
       render('liberados', libr, false);
     });
   }
@@ -177,6 +189,26 @@
     }).join('');
     el.querySelectorAll('[data-lib]').forEach(function(b){ b.addEventListener('click', function(){ liberar(b); }); });
     el.querySelectorAll('[data-rev]').forEach(function(b){ b.addEventListener('click', function(){ revogar(b.getAttribute('data-rev'), b); }); });
+  }
+
+  function renderAcab(lista){
+    var el = document.getElementById('acabando');
+    if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum teste acabando. 🎉</div>'; return; }
+    el.innerHTML = lista.map(function(it){
+      var dtxt = it.dias===1?'falta 1 dia':('faltam '+it.dias+' dias');
+      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div><div class="meta"><span class="est">'+dtxt+'</span></div></div>'+
+             '<button class="btn-lib" data-lemb="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'" data-dias="'+it.dias+'">Lembrar no Whats</button></div>';
+    }).join('');
+    el.querySelectorAll('[data-lemb]').forEach(function(b){ b.addEventListener('click', function(){ lembrar(b); }); });
+  }
+
+  function lembrar(b){
+    var nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa'), dias=b.getAttribute('data-dias');
+    var dtxt = (dias==='1')?'termina amanha (falta 1 dia)':('termina em '+dias+' dias');
+    var msg = 'Oi'+(nome?(' '+nome):'')+'! Passando pra lembrar: seu teste do BoraDiploma '+dtxt+'. Pra continuar com seus estudos salvos, e so assinar quando abrir o app: '+APP_URL;
+    var d = waDigits(wa);
+    if(d){ window.open('https://wa.me/'+d+'?text='+encodeURIComponent(msg), '_blank'); }
+    else { try{ navigator.clipboard.writeText(msg); }catch(e){} alert('Sem WhatsApp cadastrado. Mensagem copiada:\n\n'+msg); }
   }
 
   function abrirWhats(wa, nome, link){

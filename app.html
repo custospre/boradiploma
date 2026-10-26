@@ -99711,6 +99711,16 @@ if ('serviceWorker' in navigator) {
   border:1px solid var(--line,#e2ddd2);color:var(--fg,#1f1b16);border-radius:8px;padding:6px 10px;opacity:.92}
 #gd-trial[hidden]{display:none}
 #gd-trial a{color:var(--accent,#7a1f2b)}
+#gd-trial.urgente{background:#b42318;color:#fff;border-color:#b42318}
+#gd-trial.urgente a{color:#fff}
+#gd-remind{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:20px;font-family:var(--font-head,system-ui,sans-serif)}
+#gd-remind[hidden]{display:none}
+#gd-remind .box{width:100%;max-width:360px;background:var(--surface,#fffdf8);border:1px solid var(--line,#e2ddd2);border-radius:16px;padding:26px 22px;box-shadow:0 10px 40px rgba(0,0,0,.25);text-align:center;color:var(--fg,#1f1b16)}
+#gd-remind h1{font-size:20px;margin:0 0 6px;color:var(--accent,#7a1f2b)}
+#gd-remind .sub{font-size:14px;color:var(--muted,#6b6459);margin:0 0 6px}
+#gd-remind button{width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:12px}
+#gd-remind .primary{background:var(--accent,#7a1f2b);color:#fff}
+#gd-remind .link{background:none;color:var(--muted,#6b6459);text-decoration:underline;font-size:14px}
 #gd-pend{position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;
   background:var(--bg,#f5f3ee);padding:20px;overflow:auto;font-family:var(--font-head,system-ui,sans-serif)}
 #gd-pend[hidden]{display:none}
@@ -99770,6 +99780,14 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 <div id="gd-trial" hidden></div>
+<div id="gd-remind" hidden>
+  <div class="box">
+    <h1>Seu teste esta acabando ⏳</h1>
+    <p class="sub" id="gd-remind-s"></p>
+    <button class="primary" id="gd-remind-sub">Assinar agora</button>
+    <button class="link" id="gd-remind-close">Continuar no teste</button>
+  </div>
+</div>
 <div id="gd-pend" hidden>
   <div class="box">
     <h1>Quase la! 🎓</h1>
@@ -100051,9 +100069,24 @@ if ('serviceWorker' in navigator) {
   function showTrialBanner(days){
     if(!trialEl) return;
     trialEl.hidden = false;
+    trialEl.classList.toggle('urgente', days <= 5);
     trialEl.innerHTML = 'Teste gratis: ' + (days === 1 ? 'falta 1 dia' : ('faltam ' + days + ' dias')) + ' &middot; <a href="#" id="gd-trial-a">Assinar</a>';
     var a = document.getElementById('gd-trial-a');
     if(a) a.addEventListener('click', function(ev){ ev.preventDefault(); showSub(false); });
+    maybeRemind(days);
+  }
+  function maybeRemind(days){
+    if(days > 7) return;
+    try{ var hoje = new Date().toDateString(); if(localStorage.getItem('gd_remind_day') === hoje) return; localStorage.setItem('gd_remind_day', hoje); }catch(e){}
+    showRemind(days);
+  }
+  function showRemind(days){
+    var el = document.getElementById('gd-remind'); if(!el) return;
+    var s = document.getElementById('gd-remind-s');
+    if(s) s.innerHTML = (days === 1 ? 'Falta <b>1 dia</b>' : ('Faltam <b>' + days + ' dias</b>')) + ' do seu teste gratis. Assine pra continuar com seus estudos salvos.';
+    el.hidden = false;
+    var sub = document.getElementById('gd-remind-sub'); if(sub) sub.onclick = function(){ el.hidden = true; showSub(false); };
+    var cl = document.getElementById('gd-remind-close'); if(cl) cl.onclick = function(){ el.hidden = true; };
   }
   function checkAccess(){
     if(!sb || !currentUser) return;
