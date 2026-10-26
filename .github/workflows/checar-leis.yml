@@ -1,0 +1,48 @@
+name: Checar atualizacao das leis
+
+on:
+  schedule:
+    - cron: '0 8 * * *'   # todo dia ~5h da manha (horario de Brasilia)
+  workflow_dispatch: {}    # permite rodar manualmente
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  checar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verificar leis no Planalto
+        run: python robo-leis/verifica_leis.py
+
+      - name: Salvar a foto atualizada (se mudou)
+        run: |
+          if [ -n "$(git status --porcelain -- robo-leis/baseline_leis.json)" ]; then
+            git config user.name "robo-leis"
+            git config user.email "actions@github.com"
+            git add robo-leis/baseline_leis.json
+            git commit -m "robo: atualiza foto das leis"
+            git push
+          else
+            echo "Sem alteracao na foto das leis."
+          fi
+
+      - name: Abrir aviso se alguma lei mudou
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -s robo-leis/mudancas.txt ]; then
+            gh issue create --title "Leis mudaram no Planalto ($(date +%d/%m/%Y))" --body-file robo-leis/mudancas.txt
+          else
+            echo "Nenhuma mudanca detectada hoje."
+          fi
