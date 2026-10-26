@@ -99723,25 +99723,34 @@ if ('serviceWorker' in navigator) {
 #gd-pend .primary{background:#25D366;color:#fff}
 #gd-pend .link{background:none;color:var(--accent,#7a1f2b);text-decoration:underline;font-size:14px}
 #gd-pend .msg{font-size:13px;color:var(--muted,#6b6459);min-height:16px;margin-top:8px}
+#gd-auth .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1b16;border:1px solid var(--line,#dadce0);font-weight:600}
+#gd-auth .gbtn svg{width:18px;height:18px;flex:0 0 auto}
+#gd-auth .orline{display:flex;align-items:center;gap:10px;color:var(--muted,#6b6459);font-size:13px;margin:16px 0 2px}
+#gd-auth .orline::before,#gd-auth .orline::after{content:"";flex:1;height:1px;background:var(--line,#e2ddd2)}
 </style>
 <div id="gd-auth">
   <div class="box">
     <div id="gd-auth-loading" class="spin">Carregando...</div>
     <div id="gd-auth-form" hidden>
       <h1>BoraDiploma</h1>
-      <p class="sub">Entre com seu e-mail para acessar.</p>
-      <label for="gd-email">E-mail</label>
-      <input id="gd-email" type="email" autocomplete="email" placeholder="voce@exemplo.com">
-      <label for="gd-pass">Senha</label>
-      <input id="gd-pass" type="password" autocomplete="current-password" placeholder="sua senha">
-      <div id="gd-signup-extra" hidden>
-        <label for="gd-nome">Seu nome</label>
-        <input id="gd-nome" type="text" autocomplete="name" placeholder="nome completo">
-        <label for="gd-wa">Seu WhatsApp (com DDD)</label>
-        <input id="gd-wa" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">
+      <p class="sub">Toque no botao abaixo para entrar. Simples assim.</p>
+      <button class="primary gbtn" id="gd-btn-google"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Entrar com Google</button>
+      <div class="orline">ou com e-mail</div>
+      <button class="link" id="gd-btn-show-email">Entrar com e-mail e senha</button>
+      <div id="gd-email-area" hidden>
+        <label for="gd-email">E-mail</label>
+        <input id="gd-email" type="email" autocomplete="email" placeholder="voce@exemplo.com">
+        <label for="gd-pass">Senha</label>
+        <input id="gd-pass" type="password" autocomplete="current-password" placeholder="sua senha">
+        <div id="gd-signup-extra" hidden>
+          <label for="gd-nome">Seu nome</label>
+          <input id="gd-nome" type="text" autocomplete="name" placeholder="nome completo">
+          <label for="gd-wa">Seu WhatsApp (com DDD)</label>
+          <input id="gd-wa" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">
+        </div>
+        <button class="primary" id="gd-btn-entrar">Entrar</button>
+        <button class="link" id="gd-btn-criar">Nao tenho conta - pedir acesso</button>
       </div>
-      <button class="primary" id="gd-btn-entrar">Entrar</button>
-      <button class="link" id="gd-btn-criar">Nao tenho conta - pedir acesso</button>
       <div class="msg" id="gd-msg"></div>
     </div>
   </div>
@@ -99824,9 +99833,17 @@ if ('serviceWorker' in navigator) {
     checkAccess();
   }
   function salvarPerfil(){
-    if(!sb || !currentUser || !pendingPerfil) return;
+    if(!sb || !currentUser) return;
     var pp = pendingPerfil;
-    sb.from('perfis').upsert({ user_id: currentUser.id, nome: pp.nome, whatsapp: pp.whatsapp, email: pp.email }).then(function(r){
+    if(!pp){
+      var md = currentUser.user_metadata || {};
+      var prov = (currentUser.app_metadata && currentUser.app_metadata.provider) || '';
+      if(prov === 'google'){
+        pp = { nome: md.full_name || md.name || ((currentUser.email||'').split('@')[0]), whatsapp: '', email: currentUser.email||'' };
+      }
+    }
+    if(!pp) return;
+    sb.from('perfis').upsert({ user_id: currentUser.id, nome: pp.nome, whatsapp: pp.whatsapp, email: pp.email }, { onConflict: 'user_id', ignoreDuplicates: true }).then(function(r){
       if(!(r && r.error)) pendingPerfil = null;
     });
   }
@@ -100095,6 +100112,20 @@ if ('serviceWorker' in navigator) {
   }
   document.getElementById('gd-btn-entrar').addEventListener('click', function(){ if(modo) criar(); else entrar(); });
   document.getElementById('gd-btn-criar').addEventListener('click', function(){ setModo(!modo); });
+  function entrarGoogle(){
+    setMsg('Abrindo o Google...');
+    sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: location.origin + location.pathname } }).then(function(r){
+      if(r && r.error){ setMsg(traduz(r.error), 'err'); }
+    }).catch(function(err){ setMsg(traduz(err), 'err'); });
+  }
+  var gBtn = document.getElementById('gd-btn-google');
+  if(gBtn){ gBtn.addEventListener('click', entrarGoogle); }
+  var showEmailBtn = document.getElementById('gd-btn-show-email');
+  if(showEmailBtn){ showEmailBtn.addEventListener('click', function(){
+    var area = document.getElementById('gd-email-area'); if(area) area.hidden = false;
+    showEmailBtn.hidden = true;
+    try{ email.focus(); }catch(e){}
+  }); }
   pass.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ if(modo) criar(); else entrar(); } });
   email.addEventListener('keydown', function(ev){ if(ev.key==='Enter') pass.focus(); });
   logoutBtn.addEventListener('click', function(){ sb.auth.signOut().then(saiu); });
