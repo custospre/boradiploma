@@ -99743,7 +99743,14 @@ if ('serviceWorker' in navigator) {
     <div id="gd-auth-loading" class="spin">Carregando...</div>
     <div id="gd-auth-form" hidden>
       <h1>BoraDiploma</h1>
-      <p class="sub">Toque no botao abaixo para entrar. Simples assim.</p>
+      <p class="sub">Peca seu acesso — gratis pra testar 15 dias.</p>
+      <label for="gd-pedir-nome">Seu nome</label>
+      <input id="gd-pedir-nome" type="text" autocomplete="name" placeholder="nome completo">
+      <label for="gd-pedir-wa">Seu WhatsApp (com DDD)</label>
+      <input id="gd-pedir-wa" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">
+      <button class="primary" id="gd-pedir-enviar">Pedir acesso pelo WhatsApp</button>
+      <button class="link" id="gd-btn-entrar-ja">Ja tenho acesso? Entrar</button>
+      <div id="gd-login-area" hidden>
       <button class="primary gbtn" id="gd-btn-google"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Entrar com Google</button>
       <div class="orline">ou com e-mail</div>
       <button class="link" id="gd-btn-show-email">Entrar com e-mail e senha</button>
@@ -99760,14 +99767,7 @@ if ('serviceWorker' in navigator) {
         </div>
         <button class="primary" id="gd-btn-entrar">Entrar</button>
         <button class="link" id="gd-btn-criar">Nao tenho conta - pedir acesso</button>
-      </div>
-      <button class="link" id="gd-btn-pedir">Ainda nao tem acesso? Pedir aqui</button>
-      <div id="gd-pedir-area" hidden>
-        <label for="gd-pedir-nome">Seu nome</label>
-        <input id="gd-pedir-nome" type="text" autocomplete="name" placeholder="nome completo">
-        <label for="gd-pedir-wa">Seu WhatsApp (com DDD)</label>
-        <input id="gd-pedir-wa" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">
-        <button class="primary" id="gd-pedir-enviar">Enviar pedido pelo WhatsApp</button>
+        </div>
       </div>
       <div class="msg" id="gd-msg"></div>
     </div>
@@ -100177,6 +100177,11 @@ if ('serviceWorker' in navigator) {
     var area = document.getElementById('gd-pedir-area'); if(area) area.hidden = false;
     pedirBtn.hidden = true;
     try{ document.getElementById('gd-pedir-nome').focus(); }catch(e){}
+  }); }
+  var entrarJaBtn = document.getElementById('gd-btn-entrar-ja');
+  if(entrarJaBtn){ entrarJaBtn.addEventListener('click', function(){
+    var la = document.getElementById('gd-login-area'); if(la) la.hidden = false;
+    entrarJaBtn.hidden = true;
   }); }
   var pedirEnviar = document.getElementById('gd-pedir-enviar');
   if(pedirEnviar){ pedirEnviar.addEventListener('click', function(){
