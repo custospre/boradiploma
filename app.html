@@ -100061,8 +100061,10 @@ if ('serviceWorker' in navigator) {
       if(r && r.error){ hidePend(); hideSub(); return; }   // falha de leitura -> nao bloqueia
       var b = r && r.data;
       if(!b){ hidePend(); hideSub(); return; }              // sem linha -> nao bloqueia
-      var allowed = (b.active === true) || (b.aprovado === true);
-      if(allowed){ hidePend(); hideSub(); if(trialEl) trialEl.hidden = true; return; }
+      if(b.active === true || b.aprovado === true){ hidePend(); hideSub(); if(trialEl) trialEl.hidden = true; return; }
+      var trialEnds = b.trial_ends_at ? (Date.parse(b.trial_ends_at) || 0) : 0;
+      if(trialEnds && trialEnds > Date.now()){ hidePend(); hideSub(); showTrialBanner(daysLeft(trialEnds)); return; } // em teste
+      if(trialEnds){ hidePend(); showSub(true); return; }   // teste acabou -> assinar
       showPend();                                           // ainda nao liberado
     }).catch(function(){ hidePend(); hideSub(); });
   }

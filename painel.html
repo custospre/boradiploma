@@ -20,6 +20,10 @@
   input{width:100%;padding:11px 12px;font-size:16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg)}
   button{padding:10px 14px;font-size:15px;border:0;border-radius:10px;cursor:pointer}
   .primary{background:var(--accent);color:#fff;width:100%;margin-top:14px;padding:12px}
+  .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1b16;border:1px solid var(--line);font-weight:600}
+  .gbtn svg{width:18px;height:18px;flex:0 0 auto}
+  .orline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:14px 0 2px}
+  .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line)}
   .msg{font-size:13px;color:#b42318;min-height:16px;margin-top:8px}
   .count{font-size:14px;color:var(--muted);margin:6px 0 2px}
   .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding:12px 0}
@@ -28,19 +32,17 @@
   .meta{font-size:13px;color:var(--muted)}
   .meta a{color:var(--accent)}
   .grow{flex:1 1 220px;min-width:0}
+  .est{font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
   .btn-lib{background:#1a7f37;color:#fff}
   .btn-rev{background:none;color:var(--muted);border:1px solid var(--line)}
   .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .sair{background:none;color:var(--muted);border:1px solid var(--line);font-size:13px;padding:6px 10px}
   .empty{color:var(--muted);font-size:14px;padding:10px 0}
-  .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1f1b16;border:1px solid var(--line);font-weight:600}
-  .gbtn svg{width:18px;height:18px;flex:0 0 auto}
-  .orline{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:14px 0 2px}
-  .orline::before,.orline::after{content:"";flex:1;height:1px;background:var(--line)}
+  .hint{font-size:12px;color:var(--muted);margin:2px 0 0}
 </style>
 <div class="wrap">
   <div class="topbar">
-    <div><h1>Painel do dono</h1><p class="sub">BoraDiploma — liberar acessos dos testadores</p></div>
+    <div><h1>Painel do dono</h1><p class="sub">BoraDiploma — liberar acessos (15 dias de teste)</p></div>
     <button class="sair" id="sair" hidden>Sair</button>
   </div>
 
@@ -60,6 +62,20 @@
     <div class="card">
       <div class="count" id="contador">Carregando...</div>
     </div>
+
+    <div class="card">
+      <h1 style="font-size:17px;margin:0 0 6px">Criar acesso</h1>
+      <p class="hint">Pra quem te chamou direto (WhatsApp, Instagram). Gera o link de 15 dias e abre o WhatsApp pra voce enviar.</p>
+      <label for="novo-nome">Nome</label>
+      <input id="novo-nome" type="text" placeholder="nome da pessoa">
+      <label for="novo-wa">WhatsApp (com DDD)</label>
+      <input id="novo-wa" type="tel" placeholder="(00) 00000-0000">
+      <label for="novo-email">E-mail (opcional)</label>
+      <input id="novo-email" type="email" placeholder="deixe em branco se nao tiver">
+      <button class="primary btn-lib" id="novo-gerar" style="background:#1a7f37">Gerar acesso e enviar no WhatsApp</button>
+      <div class="msg" id="novo-msg" style="color:var(--muted)"></div>
+    </div>
+
     <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Pedidos aguardando liberação</h1>
       <div id="pendentes"><div class="empty">Carregando...</div></div>
@@ -85,8 +101,18 @@
   var user = null;
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-  function waLink(wa){ var d=String(wa||'').replace(/\D/g,''); if(!d) return null; if(d.length<=11) d='55'+d; return 'https://wa.me/'+d; }
+  function waDigits(wa){ var d=String(wa||'').replace(/\D/g,''); if(!d) return ''; if(d.length<=11) d='55'+d; return d; }
+  function waLink(wa){ var d=waDigits(wa); return d?('https://wa.me/'+d):null; }
   function fmtData(s){ try{ return new Date(s).toLocaleDateString('pt-BR'); }catch(e){ return ''; } }
+  function val(id){ var el=document.getElementById(id); return el?(el.value||'').trim():''; }
+
+  function estado(b){
+    b = b || {};
+    if(b.active===true) return 'assinante';
+    if(b.aprovado===true) return 'liberado';
+    if(b.trial_ends_at){ var t=Date.parse(b.trial_ends_at)||0; var d=Math.ceil((t-Date.now())/86400000); return d>0?('teste · faltam '+d+' dias'):'teste expirado'; }
+    return '';
+  }
 
   function mostrar(logado, ehDono){
     loginCard.hidden = logado;
@@ -96,7 +122,7 @@
   }
 
   function entrar(){
-    var e=(document.getElementById('e').value||'').trim(), p=document.getElementById('p').value||'';
+    var e=val('e'), p=document.getElementById('p').value||'';
     if(!e||!p){ loginMsg.textContent='Preencha e-mail e senha.'; return; }
     loginMsg.textContent='Entrando...';
     sb.auth.signInWithPassword({email:e,password:p}).then(function(r){
@@ -115,7 +141,7 @@
   function carregar(){
     Promise.all([
       sb.from('perfis').select('user_id,nome,whatsapp,email,created_at'),
-      sb.from('billing').select('user_id,email,aprovado,active,status')
+      sb.from('billing').select('user_id,email,aprovado,active,trial_ends_at')
     ]).then(function(res){
       var perfis = (res[0].data)||[]; var bills = (res[1].data)||[];
       var bmap = {}; bills.forEach(function(b){ bmap[b.user_id]=b; });
@@ -125,8 +151,8 @@
       Object.keys(ids).forEach(function(uid){
         if(uid===OWNER) return;
         var b=bmap[uid]||{}, pf=pmap[uid]||{};
-        var liberado = (b.active===true)||(b.aprovado===true);
-        var item={uid:uid, nome:pf.nome||'(sem nome)', wa:pf.whatsapp||'', email:pf.email||b.email||'', data:pf.created_at};
+        var liberado = (b.active===true)||(b.aprovado===true)||(!!b.trial_ends_at);
+        var item={uid:uid, nome:pf.nome||'(sem nome)', wa:pf.whatsapp||'', email:pf.email||b.email||'', data:pf.created_at, est:estado(b)};
         (liberado?libr:pend).push(item);
       });
       document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + pend.length + ' aguardando';
@@ -142,21 +168,67 @@
       var wl = waLink(it.wa);
       var contato = [];
       if(it.wa) contato.push(wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa)));
-      if(it.email) contato.push('<a href="mailto:'+esc(it.email)+'">'+esc(it.email)+'</a>');
-      var botao = pendente
-        ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'">Liberar</button>'
-        : '<button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button>';
+      if(it.email && !/@boradiploma\.app$/.test(it.email)) contato.push('<a href="mailto:'+esc(it.email)+'">'+esc(it.email)+'</a>');
+      var right = pendente
+        ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button>'
+        : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button>';
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div>'+
-             '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+botao+'</div>';
+             '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+right+'</div>';
     }).join('');
-    el.querySelectorAll('[data-lib]').forEach(function(b){ b.addEventListener('click', function(){ setAprovado(b.getAttribute('data-lib'), true, b); }); });
-    el.querySelectorAll('[data-rev]').forEach(function(b){ b.addEventListener('click', function(){ setAprovado(b.getAttribute('data-rev'), false, b); }); });
+    el.querySelectorAll('[data-lib]').forEach(function(b){ b.addEventListener('click', function(){ liberar(b); }); });
+    el.querySelectorAll('[data-rev]').forEach(function(b){ b.addEventListener('click', function(){ revogar(b.getAttribute('data-rev'), b); }); });
   }
 
-  function setAprovado(uid, val, btn){
-    btn.disabled = true; btn.textContent = val?'Liberando...':'Revogando...';
-    sb.from('billing').update({aprovado:val}).eq('user_id', uid).then(function(r){
-      if(r && r.error){ alert('Erro: '+r.error.message); btn.disabled=false; return; }
+  function abrirWhats(wa, nome, link){
+    var ola = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
+    var d = waDigits(wa);
+    if(d){ window.open('https://wa.me/'+d+'?text='+encodeURIComponent(ola), '_blank'); }
+    else {
+      try{ navigator.clipboard.writeText(link); }catch(e){}
+      alert('Link gerado e copiado! Cole no WhatsApp/onde quiser:\n\n'+link);
+    }
+  }
+
+  function gerar(payload, onok, onerr){
+    sb.functions.invoke('gerar-acesso', { body: payload }).then(function(r){
+      if(r.error || !(r.data && r.data.ok)){
+        onerr(((r.error&&r.error.message)) || ((r.data&&r.data.error)) || 'Erro ao gerar o acesso.');
+        return;
+      }
+      onok(r.data.link);
+    }).catch(function(e){ onerr(String(e)); });
+  }
+
+  function liberar(b){
+    var uid=b.getAttribute('data-lib'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
+    b.disabled=true; b.textContent='Gerando...';
+    gerar({ user_id: uid, nome: nome, whatsapp: wa }, function(link){
+      abrirWhats(wa, nome, link);
+      carregar();
+    }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
+  }
+
+  function criarAcesso(){
+    var nome=val('novo-nome'), wa=val('novo-wa'), email=val('novo-email');
+    var msg=document.getElementById('novo-msg');
+    if(!nome){ msg.textContent='Preencha o nome.'; return; }
+    if(!wa && !email){ msg.textContent='Preencha o WhatsApp (ou um e-mail).'; return; }
+    var btn=document.getElementById('novo-gerar'); btn.disabled=true; btn.textContent='Gerando...';
+    msg.textContent='';
+    gerar({ nome: nome, whatsapp: wa, email: email }, function(link){
+      btn.disabled=false; btn.textContent='Gerar acesso e enviar no WhatsApp';
+      msg.textContent='Acesso criado! Abrindo o WhatsApp...';
+      abrirWhats(wa, nome, link);
+      document.getElementById('novo-nome').value=''; document.getElementById('novo-wa').value=''; document.getElementById('novo-email').value='';
+      carregar();
+    }, function(m){ btn.disabled=false; btn.textContent='Gerar acesso e enviar no WhatsApp'; msg.textContent='Erro: '+m; });
+  }
+
+  function revogar(uid, btn){
+    if(!confirm('Tirar o acesso desta pessoa?')) return;
+    btn.disabled = true; btn.textContent = 'Revogando...';
+    sb.from('billing').update({aprovado:false, trial_ends_at:null, active:false}).eq('user_id', uid).then(function(r){
+      if(r && r.error){ alert('Erro: '+r.error.message); btn.disabled=false; btn.textContent='Revogar'; return; }
       carregar();
     });
   }
@@ -178,6 +250,7 @@
     });
     document.getElementById('btn-entrar').addEventListener('click', entrar);
     var gbtn = document.getElementById('btn-google'); if(gbtn) gbtn.addEventListener('click', entrarGoogle);
+    document.getElementById('novo-gerar').addEventListener('click', criarAcesso);
     document.getElementById('p').addEventListener('keydown', function(ev){ if(ev.key==='Enter') entrar(); });
     sairBtn.addEventListener('click', function(){ sb.auth.signOut().then(function(){ location.reload(); }); });
   }
