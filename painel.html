@@ -5,7 +5,7 @@
 <link rel="icon" href="icons/icon-painel-192.png">
 <link rel="apple-touch-icon" href="icons/icon-painel-192.png">
 <link rel="manifest" href="painel.webmanifest">
-<title>Painel do dono — BoraDiploma</title>
+<title>Painel do BoraDiploma</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{--bg:#f5f3ee;--surface:#fffdf8;--fg:#1f1b16;--muted:#6b6459;--line:#e2ddd2;--accent:#7a1f2b}
@@ -29,6 +29,10 @@
   .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border-top:1px solid var(--line);padding:12px 0}
   .row:first-child{border-top:0}
   .nome{font-weight:700}
+  .num{display:inline-block;min-width:26px;color:var(--muted);font-weight:600}
+  .total{border-top:1px solid var(--line);padding:10px 0 0;font-size:14px;font-weight:700;color:var(--accent);text-align:right}
+  .ordem{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;color:var(--muted)}
+  .ordem select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font-size:14px}
   .meta{font-size:13px;color:var(--muted)}
   .meta a{color:var(--accent)}
   .grow{flex:1 1 220px;min-width:0}
@@ -51,7 +55,7 @@
 </style>
 <div class="wrap">
   <div class="topbar">
-    <div><h1>Painel do dono</h1><p class="sub">BoraDiploma — liberar acessos (15 dias de teste)</p></div>
+    <div><h1>Painel do BoraDiploma</h1><p class="sub">BoraDiploma — liberar acessos (15 dias de teste)</p></div>
     <button class="sair" id="sair" hidden>Sair</button>
   </div>
 
@@ -70,6 +74,7 @@
   <div id="painel" hidden>
     <div class="card">
       <div class="count" id="contador">Carregando...</div>
+      <div class="ordem"><label for="ordem">Ordenar por:</label><select id="ordem"><option value="nome">Nome (A a Z)</option><option value="prazo">Prazo</option></select></div>
     </div>
 
     <div class="card" hidden style="display:none"><!-- Criar acesso: escondido (27/10), os pedidos ja chegam no painel -->
@@ -93,20 +98,24 @@
       <h1 style="font-size:17px;margin:0 0 6px">Pedidos aguardando liberação</h1>
       <div id="pedidos"></div>
       <div id="pendentes"><div class="empty">Carregando...</div></div>
+      <div class="total" id="tot-aguard"></div>
     </div>
     <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Testes acabando</h1>
       <p class="hint">Quem tem 5 dias ou menos de teste. Toque pra mandar um lembrete no WhatsApp.</p>
       <div id="acabando"><div class="empty">—</div></div>
+      <div class="total" id="tot-acab"></div>
     </div>
     <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Já liberados</h1>
       <div id="liberados"><div class="empty">—</div></div>
+      <div class="total" id="tot-libr"></div>
     </div>
     <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Acessos revogados</h1>
       <p class="hint">Quem teve o acesso removido. Chame no WhatsApp pra renegociar; se fechar, toque em Liberar de novo (a pessoa volta com o conteúdo dela e o mesmo link).</p>
       <div id="revogados"><div class="empty">—</div></div>
+      <div class="total" id="tot-revg"></div>
     </div>
   </div>
 </div>
@@ -143,6 +152,21 @@
   function waDigits(wa){ var d=String(wa||'').replace(/\D/g,''); if(!d) return ''; if(d.length<=11) d='55'+d; return d; }
   function waLink(wa){ var d=waDigits(wa); return d?('https://wa.me/'+d):null; }
   function fmtData(s){ try{ return new Date(s).toLocaleDateString('pt-BR'); }catch(e){ return ''; } }
+  // ordem das listas: por nome (A a Z) ou por prazo (quem acaba primeiro / quem pediu primeiro)
+  var ordemSel = document.getElementById('ordem');
+  try{ var o0 = localStorage.getItem('painel_ordem'); if(o0) ordemSel.value = o0; }catch(e){}
+  ordemSel.addEventListener('change', function(){ try{ localStorage.setItem('painel_ordem', ordemSel.value); }catch(e){} carregar(); });
+  function porNome(a, b){ return String(a.nome||'').localeCompare(String(b.nome||''), 'pt-BR', {sensitivity:'base'}); }
+  function ordenar(lista, prazo){
+    return lista.sort(function(a, b){
+      if(ordemSel.value === 'prazo'){ var x = prazo(a), y = prazo(b); if(x !== y) return x - y; }
+      return porNome(a, b);
+    });
+  }
+  function porData(it){ return Date.parse(it.data || it.created_at) || 0; }
+  function porDias(it){ return it.dias == null ? 1e9 : it.dias; }
+  function numero(i){ return '<span class="num">'+(i+1)+'.</span>'; }
+  function total(id, n){ var el = document.getElementById(id); if(el) el.textContent = 'Total: ' + n; }
   function val(id){ var el=document.getElementById(id); return el?(el.value||'').trim():''; }
 
   function estado(b){
@@ -185,7 +209,6 @@
     ]).then(function(res){
       var perfis = (res[0].data)||[]; var bills = (res[1].data)||[];
       var peds = (res[2] && res[2].data) || [];
-      renderPedidos(peds);
       var bmap = {}; bills.forEach(function(b){ bmap[b.user_id]=b; });
       var pmap = {}; perfis.forEach(function(p){ pmap[p.user_id]=p; });
       var ids = {}; bills.forEach(function(b){ ids[b.user_id]=1; }); perfis.forEach(function(p){ ids[p.user_id]=1; });
@@ -195,13 +218,17 @@
         var b=bmap[uid]||{}, pf=pmap[uid]||{};
         var liberado = (b.active===true)||(b.aprovado===true)||(!!b.trial_ends_at);
         var item={uid:uid, nome:pf.nome||'(sem nome)', wa:pf.whatsapp||'', email:pf.email||b.email||'', data:pf.created_at, est:estado(b)};
+        if(!(b.active===true) && !(b.aprovado===true) && b.trial_ends_at) item.dias = Math.ceil(((Date.parse(b.trial_ends_at)||0)-Date.now())/86400000);
         if(liberado) libr.push(item); else if(b.status==='revogado') revg.push(item); else pend.push(item);
         if(!(b.active===true) && !(b.aprovado===true) && b.trial_ends_at){
           var t=Date.parse(b.trial_ends_at)||0; var d=Math.ceil((t-Date.now())/86400000);
           if(d>0 && d<=5){ var it2={}; for(var k in item){ it2[k]=item[k]; } it2.dias=d; acab.push(it2); }
         }
       });
-      acab.sort(function(a,b){ return a.dias-b.dias; });
+      ordenar(peds, porData); ordenar(pend, porData); ordenar(acab, porDias); ordenar(libr, porDias); ordenar(revg, porData);
+      renderPedidos(peds);
+      _ini = peds.length;
+      total('tot-aguard', peds.length + pend.length); total('tot-acab', acab.length); total('tot-libr', libr.length); total('tot-revg', revg.length);
       document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + (pend.length + peds.length) + ' aguardando · ' + revg.length + ' revogados';
       render('pendentes', pend, true);
       if(!pend.length && peds.length) document.getElementById('pendentes').innerHTML = '';
@@ -211,10 +238,12 @@
     });
   }
 
+  var _ini = 0; // numeracao dos pendentes continua depois dos pedidos
   function render(elId, lista, pendente){
     var el = document.getElementById(elId);
+    var ini = pendente ? _ini : 0;
     if(!lista.length){ el.innerHTML = '<div class="empty">'+(pendente?'Nenhum pedido aguardando. 🎉':'Ninguém liberado ainda.')+'</div>'; return; }
-    el.innerHTML = lista.map(function(it){
+    el.innerHTML = lista.map(function(it, i){
       var wl = waLink(it.wa);
       var contato = [];
       if(it.wa) contato.push(wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa)));
@@ -222,7 +251,7 @@
       var right = pendente
         ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button> <button class="btn-rev" data-mvrev="'+esc(it.uid)+'">Mover p/ revogados</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button>'
         : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-lib" data-relink="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Reenviar link</button> <button class="btn-lib" data-exe="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Mandar exemplo atualizado</button> <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button>';
-      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div>'+
+      return '<div class="row"><div class="grow"><div class="nome">'+numero(ini+i)+esc(it.nome)+'</div>'+
              '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+right+'</div>';
     }).join('');
     el.querySelectorAll('[data-lib]').forEach(function(b){ b.addEventListener('click', function(){ liberar(b); }); });
@@ -259,10 +288,10 @@
   function renderRev(lista){
     var el = document.getElementById('revogados'); if(!el) return;
     if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum acesso revogado.</div>'; return; }
-    el.innerHTML = lista.map(function(it){
+    el.innerHTML = lista.map(function(it, i){
       var wl = waLink(it.wa);
       var contato = it.wa ? (wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa))) : '';
-      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div><div class="meta">'+contato+'</div></div>'+
+      return '<div class="row"><div class="grow"><div class="nome">'+numero(i)+esc(it.nome)+'</div><div class="meta">'+contato+'</div></div>'+
              (it.wa?('<button class="btn-lib" data-reneg="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Chamar no Whats</button> '):'')+
              '<button class="btn-lib" data-relib="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'" style="background:#1a7f37">Liberar de novo</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button></div>';
     }).join('');
@@ -284,9 +313,9 @@
   function renderAcab(lista){
     var el = document.getElementById('acabando');
     if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum teste acabando. 🎉</div>'; return; }
-    el.innerHTML = lista.map(function(it){
+    el.innerHTML = lista.map(function(it, i){
       var dtxt = it.dias===1?'falta 1 dia':('faltam '+it.dias+' dias');
-      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div><div class="meta"><span class="est">'+dtxt+'</span></div></div>'+
+      return '<div class="row"><div class="grow"><div class="nome">'+numero(i)+esc(it.nome)+'</div><div class="meta"><span class="est">'+dtxt+'</span></div></div>'+
              '<button class="btn-lib" data-lemb="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'" data-dias="'+it.dias+'">Lembrar no Whats</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button></div>';
     }).join('');
     el.querySelectorAll('[data-lemb]').forEach(function(b){ b.addEventListener('click', function(){ lembrar(b); }); });
@@ -304,10 +333,10 @@
   function renderPedidos(lista){
     var el = document.getElementById('pedidos'); if(!el) return;
     if(!lista.length){ el.innerHTML = ''; return; }
-    el.innerHTML = lista.map(function(it){
+    el.innerHTML = lista.map(function(it, i){
       var wl = waLink(it.whatsapp);
       var contato = it.whatsapp ? (wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.whatsapp)+'</a>'):('WhatsApp: '+esc(it.whatsapp))) : '';
-      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome||'(sem nome)')+'</div>'+
+      return '<div class="row"><div class="grow"><div class="nome">'+numero(i)+esc(it.nome||'(sem nome)')+'</div>'+
              '<div class="meta">'+contato+(it.created_at?(' · '+fmtData(it.created_at)):'')+'</div></div>'+
              '<button class="btn-lib" data-ped="'+esc(it.id)+'" data-wa="'+esc(it.whatsapp||'')+'" data-nome="'+esc(it.nome||'')+'">Liberar</button> <button class="btn-rev" data-delped="'+esc(it.id)+'">Excluir</button></div>';
     }).join('');
