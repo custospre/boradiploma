@@ -96,7 +96,7 @@
     </div>
     <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Testes acabando</h1>
-      <p class="hint">Quem está perto de acabar o teste. Toque pra mandar um lembrete no WhatsApp.</p>
+      <p class="hint">Quem tem 5 dias ou menos de teste. Toque pra mandar um lembrete no WhatsApp.</p>
       <div id="acabando"><div class="empty">—</div></div>
     </div>
     <div class="card">
@@ -198,7 +198,7 @@
         if(liberado) libr.push(item); else if(b.status==='revogado') revg.push(item); else pend.push(item);
         if(!(b.active===true) && !(b.aprovado===true) && b.trial_ends_at){
           var t=Date.parse(b.trial_ends_at)||0; var d=Math.ceil((t-Date.now())/86400000);
-          if(d>0){ var it2={}; for(var k in item){ it2[k]=item[k]; } it2.dias=d; acab.push(it2); }
+          if(d>0 && d<=5){ var it2={}; for(var k in item){ it2[k]=item[k]; } it2.dias=d; acab.push(it2); }
         }
       });
       acab.sort(function(a,b){ return a.dias-b.dias; });
@@ -221,7 +221,7 @@
       if(it.email && !/@boradiploma\.app$/.test(it.email)) contato.push('<a href="mailto:'+esc(it.email)+'">'+esc(it.email)+'</a>');
       var right = pendente
         ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button> <button class="btn-rev" data-mvrev="'+esc(it.uid)+'">Mover p/ revogados</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button>'
-        : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-lib" data-exe="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Mandar exemplo atualizado</button> <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button>';
+        : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-lib" data-relink="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Reenviar link</button> <button class="btn-lib" data-exe="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Mandar exemplo atualizado</button> <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button>';
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div>'+
              '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+right+'</div>';
     }).join('');
@@ -235,6 +235,7 @@
       });
     }); });
     el.querySelectorAll('[data-exe]').forEach(function(b){ b.addEventListener('click', function(){ mandarExemploBtn(b); }); });
+    el.querySelectorAll('[data-relink]').forEach(function(b){ b.addEventListener('click', function(){ reenviarLink(b); }); });
   }
 
   // copia o conteudo ATUAL do dono para a conta da pessoa (o banco nunca mexe em assinante nem no dono)
@@ -405,6 +406,16 @@
     }).catch(function(e){ onerr(String(e)); });
   }
 
+  // manda de novo o link de quem ja esta liberado (mesmo link; o teste volta a contar 15 dias)
+  function reenviarLink(b){
+    if(b._go){ var g=b._go; b._go=null; g(); return; }
+    var uid=b.getAttribute('data-relink'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
+    b.disabled=true; b.textContent='Gerando...';
+    gerar({ user_id: uid, nome: nome, whatsapp: wa }, function(link){
+      prontoWhats(b, wa, nome, link, carregar);
+    }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Reenviar link'; });
+  }
+
   function liberar(b){
     if(b._go){ var g=b._go; b._go=null; g(); return; }
     var uid=b.getAttribute('data-lib'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
@@ -481,7 +492,8 @@
       user = s && s.user;
       var ehDono = user && user.id === OWNER;
       mostrar(!!user, ehDono);
-      if(ehDono) carregar();
+      // renovar o login (TOKEN_REFRESHED) nao recarrega as listas: apagaria o botao "Enviar no WhatsApp"
+      if(ehDono && _e !== 'TOKEN_REFRESHED') autoAtualizar();
     });
     document.getElementById('btn-entrar').addEventListener('click', entrar);
     var gbtn = document.getElementById('btn-google'); if(gbtn) gbtn.addEventListener('click', entrarGoogle);
