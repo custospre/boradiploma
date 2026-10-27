@@ -213,12 +213,31 @@
       if(it.email && !/@boradiploma\.app$/.test(it.email)) contato.push('<a href="mailto:'+esc(it.email)+'">'+esc(it.email)+'</a>');
       var right = pendente
         ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button>'
-        : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button>';
+        : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-lib" data-exe="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Mandar exemplo atualizado</button> <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button>';
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div>'+
              '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+right+'</div>';
     }).join('');
     el.querySelectorAll('[data-lib]').forEach(function(b){ b.addEventListener('click', function(){ liberar(b); }); });
     el.querySelectorAll('[data-rev]').forEach(function(b){ b.addEventListener('click', function(){ revogar(b.getAttribute('data-rev'), b); }); });
+    el.querySelectorAll('[data-exe]').forEach(function(b){ b.addEventListener('click', function(){ mandarExemploBtn(b); }); });
+  }
+
+  // copia o conteudo ATUAL do dono para a conta da pessoa (o banco nunca mexe em assinante nem no dono)
+  function mandarExemplo(args, cb){
+    sb.rpc('mandar_exemplo', args).then(function(r){
+      cb((r && r.error) ? ('erro: '+r.error.message) : (r && r.data));
+    }, function(e){ cb('erro: '+e); });
+  }
+  function mandarExemploBtn(b){
+    var nome=b.getAttribute('data-nome')||'esta pessoa';
+    if(!confirm('Trocar o conteudo de '+nome+' pelo seu conteudo atual?\n\nO que '+nome+' anotou no app sera substituido.')) return;
+    b.disabled=true; b.textContent='Mandando...';
+    mandarExemplo({ alvo: b.getAttribute('data-exe') }, function(res){
+      b.disabled=false; b.textContent='Mandar exemplo atualizado';
+      if(res==='ok') alert('Pronto! '+nome+' vai ver seu conteudo atual na proxima vez que abrir o app.');
+      else if(res==='assinante') alert(nome+' e assinante: o conteudo dele nao foi mexido.');
+      else alert('Nao deu certo ('+res+').');
+    });
   }
 
   function renderAcab(lista){
@@ -257,6 +276,7 @@
     var id=b.getAttribute('data-ped'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
     b.disabled=true; b.textContent='Gerando...';
     gerar({ nome: nome, whatsapp: wa }, function(link){
+      mandarExemplo({ wa: wa }, function(){});
       abrirWhats(wa, nome, link);
       sb.from('pedidos').delete().eq('id', id).then(function(){ carregar(); }, function(){ carregar(); });
     }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Criar acesso e enviar'; });
@@ -292,6 +312,7 @@
     var uid=b.getAttribute('data-lib'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
     b.disabled=true; b.textContent='Gerando...';
     gerar({ user_id: uid, nome: nome, whatsapp: wa }, function(link){
+      mandarExemplo({ alvo: uid }, function(){});
       abrirWhats(wa, nome, link);
       carregar();
     }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
@@ -307,6 +328,7 @@
     gerar({ nome: nome, whatsapp: wa, email: email }, function(link){
       btn.disabled=false; btn.textContent='Gerar acesso e enviar no WhatsApp';
       msg.textContent='Acesso criado! Abrindo o WhatsApp...';
+      mandarExemplo({ wa: wa, mail: email }, function(){});
       abrirWhats(wa, nome, link);
       document.getElementById('novo-nome').value=''; document.getElementById('novo-wa').value=''; document.getElementById('novo-email').value='';
       carregar();
