@@ -409,20 +409,19 @@
     clearTimeout(aviso._t); aviso._t=setTimeout(function(){ el.style.display='none'; }, 7000);
   }
   // Abre a conversa no WhatsApp. No celular usa o wa.me (abre o app do celular).
-  // No computador abre direto o APLICATIVO do WhatsApp: o WhatsApp Web numa janela
-  // nova ficava parado na tela de carregamento. Se o aplicativo nao abrir, o aviso
-  // traz um link para o WhatsApp Web.
+  // No computador vai direto ao WhatsApp Web (o aplicativo do Windows travava ao ser
+  // aberto por link), sempre na mesma aba.
   var NO_CELULAR = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   function abrirConversa(d, msg){
     d = String(d||'').replace(/\D/g,''); msg = msg||'';
     if(NO_CELULAR){ window.open('https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):''), '_blank'); return; }
     var q = (d?('phone='+d+'&'):'') + 'text=' + encodeURIComponent(msg);
     if(msg){ try{ navigator.clipboard.writeText(msg); }catch(e){} }
-    location.href = 'whatsapp://send?' + q;
+    // sempre na mesma aba do WhatsApp Web (nao abre uma aba nova a cada envio)
+    window.open('https://web.whatsapp.com/send?' + q, 'bd_whatsapp');
     var el=document.getElementById('gd-aviso-wa');
     if(!el){ el=document.createElement('div'); el.id='gd-aviso-wa'; el.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:600;background:#1a7f37;color:#fff;padding:12px 16px;border-radius:12px;font:15px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center'; document.body.appendChild(el); }
-    el.innerHTML='Abrindo o WhatsApp do computador&hellip;'+(msg?' A mensagem tamb&eacute;m foi <b>copiada</b>: se o WhatsApp travar, abra a conversa da pessoa e cole (Ctrl+V).':'')+' <br><a href="#" style="color:#fff;font-weight:700">N&atilde;o abriu? Usar o WhatsApp Web</a>';
-    el.querySelector('a').onclick=function(e){ e.preventDefault(); el.style.display='none'; window.open('https://web.whatsapp.com/send?'+q, '_blank'); };
+    el.innerHTML='Abrindo o WhatsApp Web na conversa&hellip;'+(msg?' A mensagem tamb&eacute;m foi <b>copiada</b> (Ctrl+V), se precisar.':'')+' Se aparecer &ldquo;WhatsApp aberto em outra janela&rdquo;, clique em <b>Usar aqui</b>.';
     el.style.display='block'; clearTimeout(abrirConversa._t); abrirConversa._t=setTimeout(function(){ el.style.display='none'; }, 12000);
   }
   // os links "WhatsApp: numero" das listas tambem abrem pelo mesmo caminho
