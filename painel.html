@@ -273,6 +273,9 @@
     var tEl=document.getElementById('pl-link'); if(tEl) tEl.value = link;
     var waBtn=document.getElementById('pl-wa'); if(waBtn) waBtn.style.display = _plWa ? '' : 'none';
     el.hidden=false;
+    // Ja abre o WhatsApp sozinho com a mensagem + link prontos (so tocar em enviar).
+    // A caixinha continua aberta atras como seguranca, caso o WhatsApp nao abra.
+    if(_plWa){ try{ window.open('https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg), '_blank'); }catch(e){} }
   }
 
   function gerar(payload, onok, onerr){
