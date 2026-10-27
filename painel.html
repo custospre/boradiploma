@@ -218,8 +218,8 @@
       if(it.wa) contato.push(wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa)));
       if(it.email && !/@boradiploma\.app$/.test(it.email)) contato.push('<a href="mailto:'+esc(it.email)+'">'+esc(it.email)+'</a>');
       var right = pendente
-        ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button> <button class="btn-rev" data-mvrev="'+esc(it.uid)+'">Mover p/ revogados</button>'
-        : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-lib" data-exe="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Mandar exemplo atualizado</button> <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button>';
+        ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button> <button class="btn-rev" data-mvrev="'+esc(it.uid)+'">Mover p/ revogados</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button>'
+        : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-lib" data-exe="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Mandar exemplo atualizado</button> <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button>';
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div>'+
              '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+right+'</div>';
     }).join('');
@@ -261,7 +261,7 @@
       var contato = it.wa ? (wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa))) : '';
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div><div class="meta">'+contato+'</div></div>'+
              (it.wa?('<button class="btn-lib" data-reneg="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Chamar no Whats</button> '):'')+
-             '<button class="btn-lib" data-relib="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'" style="background:#1a7f37">Liberar de novo</button></div>';
+             '<button class="btn-lib" data-relib="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'" style="background:#1a7f37">Liberar de novo</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button></div>';
     }).join('');
     el.querySelectorAll('[data-reneg]').forEach(function(b){ b.addEventListener('click', function(){
       var nome=b.getAttribute('data-nome');
@@ -284,7 +284,7 @@
     el.innerHTML = lista.map(function(it){
       var dtxt = it.dias===1?'falta 1 dia':('faltam '+it.dias+' dias');
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div><div class="meta"><span class="est">'+dtxt+'</span></div></div>'+
-             '<button class="btn-lib" data-lemb="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'" data-dias="'+it.dias+'">Lembrar no Whats</button></div>';
+             '<button class="btn-lib" data-lemb="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'" data-dias="'+it.dias+'">Lembrar no Whats</button> <button class="btn-rev" data-del="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Excluir</button></div>';
     }).join('');
     el.querySelectorAll('[data-lemb]').forEach(function(b){ b.addEventListener('click', function(){ lembrar(b); }); });
   }
@@ -394,7 +394,22 @@
     });
   }
 
+  // apaga a pessoa de vez (conta, conteudo, perfil, link). O banco recusa se for assinante ou o dono.
+  function excluir(b){
+    var nome=b.getAttribute('data-nome')||'esta pessoa';
+    if(!confirm('EXCLUIR '+nome+' de vez?\n\nApaga a conta, o conteudo e o link dela. Nao da pra desfazer.')) return;
+    b.disabled=true; b.textContent='Excluindo...';
+    sb.rpc('excluir_usuario', { alvo: b.getAttribute('data-del') }).then(function(r){
+      var res = (r && r.error) ? ('erro: '+r.error.message) : (r && r.data);
+      if(res==='ok'){ carregar(); return; }
+      b.disabled=false; b.textContent='Excluir';
+      if(res==='assinante') alert(nome+' e assinante: nao exclui. Revogue antes, se for o caso.');
+      else alert('Nao deu certo ('+res+').');
+    }, function(e){ b.disabled=false; b.textContent='Excluir'; alert('Erro: '+e); });
+  }
+
   function init(){
+    document.addEventListener('click', function(ev){ var b = ev.target.closest && ev.target.closest('[data-del]'); if(b) excluir(b); });
     if(!sb){ loginMsg.textContent='Erro ao carregar (precisa de internet).'; return; }
     sb.auth.getSession().then(function(res){
       var s = res && res.data && res.data.session;
