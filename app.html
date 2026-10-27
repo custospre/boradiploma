@@ -165364,6 +165364,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
         if(it.code){ o.act='code:'+it.code; } else { o.act='soon'; o.extra='<span class="tsoon">em breve</span>'; } return o; });
       idx.children.push({label:f.name, okind:'folder', oid:f.id, children:kids});
     });
+    idx.children.push({label:'🚫 O que não está no app', act:'fora'});
     t.push(idx);
     var subs=sortSubs(getSubs()), matKids=[];
     subs.forEach(function(s){
@@ -165384,7 +165385,6 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     t.push({label:'Painel de prazos', children:pk});
     t.push({label:'🛟 Backup', act:'backup'});
     t.push({label:'📖 Manual do app', act:'manual'});
-    t.push({label:'🚫 O que não está no app', act:'fora'});
     return t;
   }
   function renderTree(){ if(!tree)return; tree.innerHTML=buildTree().map(function(n){return nodeHTML(n,1);}).join(''); }
