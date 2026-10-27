@@ -63,3 +63,10 @@ LAWS = [
   ('iss',    'ISS (LC 116/2003)', 'Lei Complementar nº 116, de 31 de julho de 2003', B+'leis/lcp/lcp116.htm', 10),
  ]),
 ]
+
+# leis acrescentadas em 27/10/2026 (lista em laws_novas.py): entram nas areas, em ordem alfabetica
+import unicodedata as _u
+from laws_novas import NOVAS as _NOVAS
+_d = {a: list(it) for a, it in LAWS}
+for _a, _it in _NOVAS: _d.setdefault(_a, []).extend(_it)
+LAWS = sorted(_d.items(), key=lambda x: ''.join(c for c in _u.normalize('NFD', x[0]) if _u.category(c) != 'Mn'))
