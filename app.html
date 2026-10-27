@@ -99729,6 +99729,13 @@ if ('serviceWorker' in navigator) {
 #gd-install .gi-btn{flex:1;padding:10px;font-size:15px;border:0;border-radius:10px;background:var(--accent,#7a1f2b);color:#fff;cursor:pointer}
 #gd-install .gi-x{padding:10px 12px;font-size:14px;border:1px solid var(--line,#e2ddd2);border-radius:10px;background:none;color:var(--muted,#6b6459);cursor:pointer}
 #gd-install .gi-ios{font-size:13px;color:var(--muted,#6b6459);margin-top:10px}
+#gd-demo{position:fixed;left:0;right:0;top:0;z-index:99995;display:flex;justify-content:center;padding:10px;font-family:var(--font-head,system-ui,sans-serif)}
+#gd-demo[hidden]{display:none}
+#gd-demo .gd-box{width:100%;max-width:520px;background:#fff6e5;border:1px solid #e9c46a;border-radius:14px;padding:12px 15px;box-shadow:0 8px 30px rgba(0,0,0,.15);color:#5a4a12}
+#gd-demo .gd-t{font-size:14px;line-height:1.4}
+#gd-demo .gd-a{display:flex;gap:8px;margin-top:10px}
+#gd-demo .gd-btn{flex:1;padding:10px;font-size:14.5px;border:0;border-radius:10px;background:#b42318;color:#fff;cursor:pointer}
+#gd-demo .gd-x{padding:10px 12px;font-size:14px;border:1px solid #e9c46a;border-radius:10px;background:none;color:#5a4a12;cursor:pointer}
 #gd-pend{position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;
   background:var(--bg,#f5f3ee);padding:20px;overflow:auto;font-family:var(--font-head,system-ui,sans-serif)}
 #gd-pend[hidden]{display:none}
@@ -99802,6 +99809,15 @@ if ('serviceWorker' in navigator) {
     <p class="sub" id="gd-remind-s"></p>
     <button class="primary" id="gd-remind-sub">Assinar agora</button>
     <button class="link" id="gd-remind-close">Continuar no teste</button>
+  </div>
+</div>
+<div id="gd-demo" hidden>
+  <div class="gd-box">
+    <div class="gd-t">📋 <b>Este e um conteudo de exemplo</b> pra voce explorar o app. Quando quiser, apague tudo e comece a inserir o seu.</div>
+    <div class="gd-a">
+      <button class="gd-btn" id="gd-demo-apagar">Apagar tudo e comecar do zero</button>
+      <button class="gd-x" id="gd-demo-ok">Explorar</button>
+    </div>
   </div>
 </div>
 <div id="gd-install" hidden>
@@ -99879,6 +99895,7 @@ if ('serviceWorker' in navigator) {
     startSync();
     checkAccess();
     setTimeout(maybeInstall, 2500);
+    setTimeout(showDemoBanner, 1500);
   }
   var deferredPrompt = null;
   try{
@@ -99889,6 +99906,7 @@ if ('serviceWorker' in navigator) {
   function isiOS(){ try{ return /iphone|ipad|ipod/i.test(navigator.userAgent); }catch(e){ return false; } }
   function maybeInstall(){
     if(!currentUser) return;
+    try{ if(localStorage.getItem('gd_is_demo')) return; }catch(e){}
     if(pendEl && !pendEl.hidden) return;
     if(subEl && !subEl.hidden) return;
     if(isStandalone()) return;
@@ -99903,6 +99921,27 @@ if ('serviceWorker' in navigator) {
     if(okB){ okB.addEventListener('click', function(){ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(function(){ deferredPrompt=null; var el=document.getElementById('gd-install'); if(el) el.hidden=true; }); } }); }
     var noB=document.getElementById('gd-install-no');
     if(noB){ noB.addEventListener('click', function(){ var el=document.getElementById('gd-install'); if(el) el.hidden=true; try{ localStorage.setItem('gd_install_dismiss', String(Date.now())); }catch(e){} }); }
+  })();
+  function showDemoBanner(){
+    var el = document.getElementById('gd-demo'); if(!el) return;
+    var isDemo = false; try{ isDemo = !!localStorage.getItem('gd_is_demo'); }catch(e){}
+    if(!isDemo){ el.hidden = true; return; }
+    if(pendEl && !pendEl.hidden){ el.hidden = true; return; }
+    if(subEl && !subEl.hidden){ el.hidden = true; return; }
+    el.hidden = false;
+  }
+  function apagarTudo(){
+    if(!confirm('Apagar TODO o conteudo de exemplo e comecar do zero? Isso nao da pra desfazer.')) return;
+    try{ indexedDB.deleteDatabase('boradiploma_arquivos'); }catch(e){}
+    try{ localStorage.removeItem('gd_is_demo'); }catch(e){}
+    setLocal('[]');
+    pushNow();
+    var el = document.getElementById('gd-demo'); if(el) el.hidden = true;
+    setTimeout(function(){ location.reload(); }, 600);
+  }
+  (function(){
+    var ap = document.getElementById('gd-demo-apagar'); if(ap){ ap.addEventListener('click', apagarTudo); }
+    var okd = document.getElementById('gd-demo-ok'); if(okd){ okd.addEventListener('click', function(){ var el=document.getElementById('gd-demo'); if(el) el.hidden=true; }); }
   })();
   function salvarPerfil(){
     if(!sb || !currentUser) return;
@@ -99966,6 +100005,17 @@ if ('serviceWorker' in navigator) {
     location.reload();
   }
 
+  function seedDemo(){
+    cloudStatus('carregando exemplo...');
+    sb.from('demo').select('subjects').eq('id', 1).maybeSingle().then(function(r){
+      if(r && r.data && r.data.subjects != null){
+        try{ localStorage.setItem('gd_is_demo', '1'); }catch(e){}
+        setLocal(JSON.stringify(r.data.subjects));
+        pushNow();
+        cloudStatus(''); reloadOnce();
+      } else { cloudStatus(''); }
+    }).catch(function(){ cloudStatus(''); });
+  }
   function startSync(){
     if(!sb || !currentUser || pulling) return;
     pulling = true; cloudStatus('sincronizando...');
@@ -99982,8 +100032,8 @@ if ('serviceWorker' in navigator) {
           cloudStatus(''); reloadOnce(); return;
         }
         try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){}
-        if(localStr){ pushNow(); } else { cloudStatus(''); }
-        scheduleAttSync();
+        if(localStr && localStr !== '[]'){ pushNow(); scheduleAttSync(); return; }
+        seedDemo();
         return;
       }
 
