@@ -39,6 +39,15 @@
   .sair{background:none;color:var(--muted);border:1px solid var(--line);font-size:13px;padding:6px 10px}
   .empty{color:var(--muted);font-size:14px;padding:10px 0}
   .hint{font-size:12px;color:var(--muted);margin:2px 0 0}
+  #pedlink{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:18px}
+  #pedlink[hidden]{display:none}
+  #pedlink .pl-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;max-width:430px;width:100%;padding:22px;box-shadow:0 12px 40px rgba(0,0,0,.3);color:var(--fg)}
+  #pedlink h2{color:var(--accent);font-size:19px;margin:0 0 6px}
+  #pedlink p{font-size:14px;color:var(--muted);margin:4px 0}
+  #pedlink textarea{width:100%;box-sizing:border-box;height:66px;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--fg);margin-top:8px;resize:none}
+  #pedlink .pl-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  #pedlink .pl-acts button{flex:1;min-width:130px;padding:12px;border:0;border-radius:10px;color:#fff;font-size:15px;cursor:pointer}
+  #pedlink .pl-close{width:100%;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:none;color:var(--muted);cursor:pointer}
 </style>
 <div class="wrap">
   <div class="topbar">
@@ -94,6 +103,20 @@
       <h1 style="font-size:17px;margin:0 0 6px">Já liberados</h1>
       <div id="liberados"><div class="empty">—</div></div>
     </div>
+  </div>
+</div>
+
+<div id="pedlink" hidden>
+  <div class="pl-box">
+    <h2>Acesso criado! ✅</h2>
+    <p id="pl-nome"></p>
+    <p>Envie este link pra pessoa (ela abre e entra, 15 dias grátis):</p>
+    <textarea id="pl-link" readonly></textarea>
+    <div class="pl-acts">
+      <button id="pl-copy" style="background:#1a7f37">📋 Copiar link</button>
+      <button id="pl-wa" style="background:#25D366">🟢 Abrir WhatsApp</button>
+    </div>
+    <button class="pl-close" id="pl-close">Fechar</button>
   </div>
 </div>
 
@@ -239,14 +262,17 @@
     }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Criar acesso e enviar'; });
   }
 
+  var _plWa='', _plMsg='';
   function abrirWhats(wa, nome, link){
-    var ola = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
-    var d = waDigits(wa);
-    if(d){ window.open('https://wa.me/'+d+'?text='+encodeURIComponent(ola), '_blank'); }
-    else {
-      try{ navigator.clipboard.writeText(link); }catch(e){}
-      alert('Link gerado e copiado! Cole no WhatsApp/onde quiser:\n\n'+link);
-    }
+    _plWa = waDigits(wa);
+    _plMsg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
+    try{ navigator.clipboard.writeText(link); }catch(e){}
+    var el=document.getElementById('pedlink');
+    if(!el){ alert('Link de entrada (copie e envie):\n\n'+link); return; }
+    var nEl=document.getElementById('pl-nome'); if(nEl) nEl.textContent = nome?('Para: '+nome):'';
+    var tEl=document.getElementById('pl-link'); if(tEl) tEl.value = link;
+    var waBtn=document.getElementById('pl-wa'); if(waBtn) waBtn.style.display = _plWa ? '' : 'none';
+    el.hidden=false;
   }
 
   function gerar(payload, onok, onerr){
@@ -313,6 +339,12 @@
     document.getElementById('novo-gerar').addEventListener('click', criarAcesso);
     document.getElementById('p').addEventListener('keydown', function(ev){ if(ev.key==='Enter') entrar(); });
     sairBtn.addEventListener('click', function(){ sb.auth.signOut().then(function(){ location.reload(); }); });
+    var plCopy=document.getElementById('pl-copy');
+    if(plCopy){ plCopy.addEventListener('click', function(){ var t=document.getElementById('pl-link'); try{ t.select(); }catch(e){} try{ navigator.clipboard.writeText(t.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} } var self=this; self.textContent='Copiado! ✓'; setTimeout(function(){ self.textContent='📋 Copiar link'; },1600); }); }
+    var plWa=document.getElementById('pl-wa');
+    if(plWa){ plWa.addEventListener('click', function(){ if(_plWa) window.open('https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg), '_blank'); }); }
+    var plClose=document.getElementById('pl-close');
+    if(plClose){ plClose.addEventListener('click', function(){ var el=document.getElementById('pedlink'); if(el) el.hidden=true; carregar(); }); }
   }
   init();
 })();
