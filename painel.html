@@ -316,18 +316,29 @@
       b.disabled=true; sb.from('pedidos').delete().eq('id', b.getAttribute('data-delped')).then(function(){ carregar(); }, function(){ carregar(); });
     }); });
   }
+  // depois de gerar o link, o proprio botao vira "Enviar no WhatsApp" (o clique abre a conversa da pessoa)
+  function prontoWhats(b, wa, nome, link, depois){
+    if(!waDigits(wa)){ abrirWhats(wa, nome, link); depois(); return; }   // sem numero: copia a mensagem
+    var msg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
+    var url = 'https://wa.me/' + waDigits(wa) + '?text=' + encodeURIComponent(msg);
+    try{ navigator.clipboard.writeText(link); }catch(e){}
+    b.disabled = false; b.classList.add('pronto'); b.style.background = '#25D366';
+    b.textContent = '📲 Enviar no WhatsApp';
+    b._go = function(){ window.open(url, '_blank'); b.classList.remove('pronto'); depois(); };
+  }
+
   function criarDoPedido(b){
+    if(b._go){ var g=b._go; b._go=null; g(); return; }
     var id=b.getAttribute('data-ped'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
     b.disabled=true; b.textContent='Gerando...';
-    var win = preAbrir(wa);
     // pedido sem numero (a pessoa pediu pelo proprio WhatsApp): cria a conta com um e-mail interno
     // e mostra o link pra voce copiar e colar na conversa dela
     var pay = waDigits(wa) ? { nome: nome, whatsapp: wa } : { nome: nome, whatsapp: '', email: 'pedido' + String(id).replace(/[^0-9a-zA-Z]/g,'') + '@boradiploma.app' };
     gerar(pay, function(link, uid){
       mandarExemplo(uid ? { alvo: uid } : { wa: wa }, function(){});
-      abrirWhats(wa, nome, link, win);
-      sb.from('pedidos').delete().eq('id', id).then(function(){ carregar(); }, function(){ carregar(); });
-    }, function(msg){ fecharPre(win); alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
+      sb.from('pedidos').delete().eq('id', id).then(function(){}, function(){});
+      prontoWhats(b, wa, nome, link, carregar);
+    }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
   }
 
   var _plWa='', _plMsg='';
@@ -387,14 +398,13 @@
   }
 
   function liberar(b){
+    if(b._go){ var g=b._go; b._go=null; g(); return; }
     var uid=b.getAttribute('data-lib'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
     b.disabled=true; b.textContent='Gerando...';
-    var win = preAbrir(wa);
     gerar({ user_id: uid, nome: nome, whatsapp: wa }, function(link){
       mandarExemplo({ alvo: uid }, function(){});
-      abrirWhats(wa, nome, link, win);
-      carregar();
-    }, function(msg){ fecharPre(win); alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
+      prontoWhats(b, wa, nome, link, carregar);
+    }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
   }
 
   function criarAcesso(){
@@ -441,7 +451,7 @@
   // mas nunca no meio de uma acao (botao "Gerando..." ou caixinha do link aberta)
   function autoAtualizar(){
     if(!user || user.id !== OWNER || document.visibilityState !== 'visible') return;
-    if(document.querySelector('#painel button:disabled')) return;
+    if(document.querySelector('#painel button:disabled, #painel .pronto')) return;
     var pl=document.getElementById('pedlink'); if(pl && !pl.hidden) return;
     carregar();
   }
