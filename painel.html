@@ -408,28 +408,13 @@
     el.textContent=t; el.style.display='block';
     clearTimeout(aviso._t); aviso._t=setTimeout(function(){ el.style.display='none'; }, 7000);
   }
-  // Abre a conversa no WhatsApp. No celular usa o wa.me (abre o app do celular).
-  // No computador vai direto ao WhatsApp Web (o aplicativo do Windows travava ao ser
-  // aberto por link), sempre na mesma aba.
-  var NO_CELULAR = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Abre a conversa no WhatsApp pelo link wa.me (o mesmo jeito que sempre funcionou).
+  // A mensagem tambem vai para a area de transferencia, como reserva.
   function abrirConversa(d, msg){
     d = String(d||'').replace(/\D/g,''); msg = msg||'';
-    if(NO_CELULAR){ window.open('https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):''), '_blank'); return; }
-    var q = (d?('phone='+d+'&'):'') + 'text=' + encodeURIComponent(msg);
     if(msg){ try{ navigator.clipboard.writeText(msg); }catch(e){} }
-    // sempre na mesma aba do WhatsApp Web (nao abre uma aba nova a cada envio)
-    window.open('https://web.whatsapp.com/send?' + q, 'bd_whatsapp');
-    var el=document.getElementById('gd-aviso-wa');
-    if(!el){ el=document.createElement('div'); el.id='gd-aviso-wa'; el.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:600;background:#1a7f37;color:#fff;padding:12px 16px;border-radius:12px;font:15px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center'; document.body.appendChild(el); }
-    el.innerHTML='Abrindo o WhatsApp Web na conversa&hellip;'+(msg?' A mensagem tamb&eacute;m foi <b>copiada</b> (Ctrl+V), se precisar.':'')+' Se aparecer &ldquo;WhatsApp aberto em outra janela&rdquo;, clique em <b>Usar aqui</b>.';
-    el.style.display='block'; clearTimeout(abrirConversa._t); abrirConversa._t=setTimeout(function(){ el.style.display='none'; }, 12000);
+    window.open('https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):''), '_blank');
   }
-  // os links "WhatsApp: numero" das listas tambem abrem pelo mesmo caminho
-  document.addEventListener('click', function(e){
-    var a = e.target.closest && e.target.closest('a[href^="https://wa.me/"]');
-    if(!a || NO_CELULAR) return;
-    e.preventDefault(); abrirConversa(a.getAttribute('href').replace('https://wa.me/','').split('?')[0], '');
-  });
   function abrirCaixa(nome, link){
     var el=document.getElementById('pedlink');
     if(!el){ alert('Link de entrada (copie e envie):\n\n'+link); return; }
