@@ -334,7 +334,6 @@
   // Abre a aba do WhatsApp JA no clique (senao o navegador bloqueia, porque o link demora a ser gerado).
   // Depois que o link fica pronto, a aba vai pro WhatsApp da pessoa com a mensagem pronta.
   function preAbrir(wa){
-    if(!waDigits(wa)) return null;
     try{ var w = window.open('', '_blank'); if(w){ try{ w.document.write('<p style="font:16px sans-serif;padding:20px">Abrindo o WhatsApp...</p>'); }catch(e){} } return w; }catch(e){ return null; }
   }
   function fecharPre(w){ try{ if(w) w.close(); }catch(e){} }
@@ -342,14 +341,15 @@
     _plWa = waDigits(wa);
     _plMsg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
     try{ navigator.clipboard.writeText(_plWa ? link : _plMsg); }catch(e){}
-    if(_plWa && win && !win.closed){
-      try{ win.location.href = 'https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg); return; }catch(e){}
+    if(win && !win.closed){
+      // com numero: abre a conversa da pessoa; sem numero: abre o WhatsApp com a mensagem pronta e voce escolhe a conversa
+      try{ win.location.href = 'https://wa.me/'+(_plWa||'')+'?text='+encodeURIComponent(_plMsg); return; }catch(e){}
     }
     var el=document.getElementById('pedlink');
     if(!el){ alert('Link de entrada (copie e envie):\n\n'+link); return; }
     var nEl=document.getElementById('pl-nome'); if(nEl) nEl.textContent = nome?('Para: '+nome):'';
     var tEl=document.getElementById('pl-link'); if(tEl) tEl.value = _plWa ? link : _plMsg;
-    var waBtn=document.getElementById('pl-wa'); if(waBtn) waBtn.style.display = _plWa ? '' : 'none';
+    var waBtn=document.getElementById('pl-wa'); if(waBtn) waBtn.style.display = '';
     el.hidden=false;
     // Ja abre o WhatsApp sozinho com a mensagem + link prontos (so tocar em enviar).
     // A caixinha continua aberta atras como seguranca, caso o WhatsApp nao abra.
@@ -441,7 +441,7 @@
     var plCopy=document.getElementById('pl-copy');
     if(plCopy){ plCopy.addEventListener('click', function(){ var t=document.getElementById('pl-link'); try{ t.select(); }catch(e){} try{ navigator.clipboard.writeText(t.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} } var self=this; self.textContent='Copiado! ✓'; setTimeout(function(){ self.textContent='📋 Copiar link'; },1600); }); }
     var plWa=document.getElementById('pl-wa');
-    if(plWa){ plWa.addEventListener('click', function(){ if(_plWa) window.open('https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg), '_blank'); }); }
+    if(plWa){ plWa.addEventListener('click', function(){ window.open('https://wa.me/'+(_plWa||'')+'?text='+encodeURIComponent(_plMsg), '_blank'); }); }
     var plClose=document.getElementById('pl-close');
     if(plClose){ plClose.addEventListener('click', function(){ var el=document.getElementById('pedlink'); if(el) el.hidden=true; carregar(); }); }
   }
