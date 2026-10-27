@@ -432,6 +432,18 @@
     }, function(e){ b.disabled=false; b.textContent='Excluir'; alert('Erro: '+e); });
   }
 
+  // atualiza sozinho enquanto o painel esta aberto (a cada 20s e ao voltar pra ele),
+  // mas nunca no meio de uma acao (botao "Gerando..." ou caixinha do link aberta)
+  function autoAtualizar(){
+    if(!user || user.id !== OWNER || document.visibilityState !== 'visible') return;
+    if(document.querySelector('#painel button:disabled')) return;
+    var pl=document.getElementById('pedlink'); if(pl && !pl.hidden) return;
+    carregar();
+  }
+  setInterval(autoAtualizar, 20000);
+  document.addEventListener('visibilitychange', autoAtualizar);
+  window.addEventListener('focus', autoAtualizar);
+
   function init(){
     document.addEventListener('click', function(ev){ var b = ev.target.closest && ev.target.closest('[data-del]'); if(b) excluir(b); });
     if(!sb){ loginMsg.textContent='Erro ao carregar (precisa de internet).'; return; }
