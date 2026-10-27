@@ -99842,8 +99842,9 @@ if ('serviceWorker' in navigator) {
 </div>
 <div id="gd-pend" hidden>
   <div class="box">
-    <h1>Quase la! 🎓</h1>
-    <p class="sub">Pra usar o BoraDiploma, peca a liberacao do responsavel.</p>
+    <h1 id="gd-pend-h">Quase la! 🎓</h1>
+    <p class="sub" id="gd-pend-sub">Pra usar o BoraDiploma, peca a liberacao do responsavel.</p>
+    <button class="primary" id="gd-pend-rev" style="background:var(--accent,#7a1f2b)" hidden>Solicitar novamente — clique aqui</button>
     <button class="primary" id="gd-pend-toggle" style="background:var(--accent,#7a1f2b)">Solicitar acesso ▾</button>
     <div id="gd-pend-opcoes" hidden>
       <p class="note">Escolha por onde quer pedir seu acesso:</p>
@@ -100238,7 +100239,38 @@ if ('serviceWorker' in navigator) {
   function daysLeft(ts){ var d = Math.ceil((ts - Date.now()) / 86400000); return d < 0 ? 0 : d; }
   function hideSub(){ if(subEl) subEl.hidden = true; }
   function hidePend(){ if(pendEl) pendEl.hidden = true; }
-  function showPend(){ if(overlay) overlay.hidden = true; if(subEl) subEl.hidden = true; if(trialEl) trialEl.hidden = true; if(pendEl) pendEl.hidden = false; }
+  function showPend(revogado){
+    if(overlay) overlay.hidden = true; if(subEl) subEl.hidden = true; if(trialEl) trialEl.hidden = true;
+    // acesso revogado: mensagem propria + botao que leva ao pedido normal
+    var q = function(id){ return document.getElementById(id); };
+    if(q('gd-pend-h')) q('gd-pend-h').textContent = revogado ? 'Seu acesso foi revogado' : 'Quase la! 🎓';
+    if(q('gd-pend-sub')) q('gd-pend-sub').textContent = revogado ? 'Para voltar a usar o BoraDiploma, solicite o acesso novamente.' : 'Pra usar o BoraDiploma, peca a liberacao do responsavel.';
+    if(q('gd-pend-rev')) q('gd-pend-rev').hidden = !revogado;
+    ['gd-pend-toggle', 'gd-pend-refresh'].forEach(function(id){ if(q(id)) q(id).hidden = !!revogado; });
+    if(revogado && q('gd-pend-opcoes')) q('gd-pend-opcoes').hidden = true;
+    if(pendEl) pendEl.hidden = false;
+  }
+  // "Solicitar novamente": sai da conta e abre o pedido normal, ja com nome e WhatsApp preenchidos
+  (function(){
+    var b = document.getElementById('gd-pend-rev'); if(!b) return;
+    b.addEventListener('click', function(){
+      var nome = '', wa = '';
+      var fim = function(){
+        sb.auth.signOut().catch(function(){}).then(function(){
+          if(pendEl) pendEl.hidden = true;
+          saiu();
+          var n = document.getElementById('gd-pedir-nome'), w = document.getElementById('gd-pedir-wa');
+          if(n && nome) n.value = nome; if(w && wa) w.value = wa;
+          try{ (n && !nome ? n : w).focus(); }catch(e){}
+        });
+      };
+      if(!sb || !currentUser){ fim(); return; }
+      sb.from('perfis').select('nome,whatsapp').eq('user_id', currentUser.id).maybeSingle().then(function(r){
+        if(r && r.data){ nome = r.data.nome || ''; wa = r.data.whatsapp || ''; }
+        fim();
+      }, fim);
+    });
+  })();
   function showSub(trialOver){
     if(subEmail && currentUser) subEmail.textContent = currentUser.email || '';
     if(subMsg) subMsg.textContent = trialOver ? 'Seu teste gratis terminou.' : 'Continue com acesso completo ao app.';
@@ -100292,7 +100324,7 @@ if ('serviceWorker' in navigator) {
       var trialEnds = b.trial_ends_at ? (Date.parse(b.trial_ends_at) || 0) : 0;
       if(trialEnds && trialEnds > Date.now()){ hidePend(); hideSub(); showTrialBanner(daysLeft(trialEnds)); return; } // em teste
       if(trialEnds){ hidePend(); showSub(true); return; }   // teste acabou -> assinar
-      showPend();                                           // ainda nao liberado
+      showPend(b.status === 'revogado');                    // ainda nao liberado (ou revogado)
     }).catch(function(){ hidePend(); hideSub(); });
   }
 
