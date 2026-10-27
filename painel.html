@@ -383,7 +383,15 @@
   }
 
   function gerar(payload, onok, onerr){
-    sb.functions.invoke('gerar-acesso', { body: payload }).then(function(r){
+    // renova o login antes (painel aberto muito tempo = credencial vencida -> "nao autorizado")
+    sb.auth.refreshSession().catch(function(){ return {}; }).then(function(rs){
+      var tok = rs && rs.data && rs.data.session && rs.data.session.access_token;
+      if(!tok){ onerr('Seu login no painel expirou. Clique em Sair e entre de novo com o Google.'); return; }
+      gerar2(payload, tok, onok, onerr);
+    });
+  }
+  function gerar2(payload, tok, onok, onerr){
+    sb.functions.invoke('gerar-acesso', { body: payload, headers: { Authorization: 'Bearer ' + tok } }).then(function(r){
       if(r.error || !(r.data && r.data.ok)){
         var base = ((r.error&&r.error.message)) || ((r.data&&r.data.error)) || 'Erro ao gerar o acesso.';
         // mostra o motivo que a funcao devolveu (nao so "non-2xx")
