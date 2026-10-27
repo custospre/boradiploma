@@ -99721,14 +99721,15 @@ if ('serviceWorker' in navigator) {
 #gd-remind button{width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:12px}
 #gd-remind .primary{background:var(--accent,#7a1f2b);color:#fff}
 #gd-remind .link{background:none;color:var(--muted,#6b6459);text-decoration:underline;font-size:14px}
-#gd-install{position:fixed;left:0;right:0;top:0;z-index:99996;display:flex;justify-content:center;padding:10px;font-family:var(--font-head,system-ui,sans-serif)}
+#gd-install{position:fixed;inset:0;z-index:99996;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:20px;font-family:var(--font-head,system-ui,sans-serif)}
 #gd-install[hidden]{display:none}
-#gd-install .gi-box{width:100%;max-width:470px;background:var(--surface,#fffdf8);border:1px solid var(--line,#e2ddd2);border-radius:14px;padding:13px 15px;box-shadow:0 8px 30px rgba(0,0,0,.18);color:var(--fg,#1f1b16)}
-#gd-install .gi-txt{font-size:14px;line-height:1.4}
-#gd-install .gi-acts{display:flex;gap:8px;margin-top:10px}
-#gd-install .gi-btn{flex:1;padding:10px;font-size:15px;border:0;border-radius:10px;background:var(--accent,#7a1f2b);color:#fff;cursor:pointer}
-#gd-install .gi-x{padding:10px 12px;font-size:14px;border:1px solid var(--line,#e2ddd2);border-radius:10px;background:none;color:var(--muted,#6b6459);cursor:pointer}
-#gd-install .gi-ios{font-size:13px;color:var(--muted,#6b6459);margin-top:10px}
+#gd-install .gi-box{width:100%;max-width:360px;background:var(--surface,#fffdf8);border:1px solid var(--line,#e2ddd2);border-radius:18px;padding:28px 24px;text-align:center;box-shadow:0 12px 44px rgba(0,0,0,.28);color:var(--fg,#1f1b16)}
+#gd-install .gi-logo{width:96px;height:96px;border-radius:20px;margin:0 auto 14px;display:block;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+#gd-install .gi-h{font-size:21px;font-weight:700;color:var(--accent,#7a1f2b);margin:0 0 6px}
+#gd-install .gi-txt{font-size:14.5px;color:var(--muted,#6b6459);line-height:1.5;margin:0}
+#gd-install .gi-btn{display:block;width:100%;padding:13px;font-size:16px;border:0;border-radius:12px;background:var(--accent,#7a1f2b);color:#fff;cursor:pointer;margin-top:18px;font-weight:600}
+#gd-install .gi-x{display:block;width:100%;padding:10px;font-size:14px;border:0;border-radius:10px;background:none;color:var(--muted,#6b6459);cursor:pointer;margin-top:4px;text-decoration:underline}
+#gd-install .gi-ios{font-size:13px;color:var(--muted,#6b6459);margin-top:14px;background:var(--bg,#f5f3ee);border-radius:10px;padding:10px;line-height:1.45}
 #gd-demo{position:fixed;left:0;right:0;top:0;z-index:99995;display:flex;justify-content:center;padding:10px;font-family:var(--font-head,system-ui,sans-serif)}
 #gd-demo[hidden]{display:none}
 #gd-demo .gd-box{width:100%;max-width:520px;background:#fff6e5;border:1px solid #e9c46a;border-radius:14px;padding:12px 15px;box-shadow:0 8px 30px rgba(0,0,0,.15);color:#5a4a12}
@@ -99822,11 +99823,11 @@ if ('serviceWorker' in navigator) {
 </div>
 <div id="gd-install" hidden>
   <div class="gi-box">
-    <div class="gi-txt">📲 <b>Deixe o BoraDiploma na sua tela</b> (celular ou computador) pra voltar com 1 toque, sem link.</div>
-    <div class="gi-acts">
-      <button class="gi-btn" id="gd-install-ok">Instalar o app (criar icone)</button>
-      <button class="gi-x" id="gd-install-no">Agora nao</button>
-    </div>
+    <img class="gi-logo" src="icons/icon-192.png" alt="BoraDiploma">
+    <div class="gi-h">Bem-vindo ao BoraDiploma! 🎓</div>
+    <div class="gi-txt">Instale na sua tela pra abrir com <b>1 toque</b>, como um app de verdade.</div>
+    <button class="gi-btn" id="gd-install-ok">📲 Instalar agora</button>
+    <button class="gi-x" id="gd-install-no">Agora nao</button>
     <div class="gi-ios" id="gd-install-ios" hidden>No iPhone: toque em <b>Compartilhar</b> ↑ embaixo e depois em <b>"Adicionar a Tela de Inicio"</b>.</div>
   </div>
 </div>
@@ -99906,7 +99907,6 @@ if ('serviceWorker' in navigator) {
   function isiOS(){ try{ return /iphone|ipad|ipod/i.test(navigator.userAgent); }catch(e){ return false; } }
   function maybeInstall(){
     if(!currentUser) return;
-    try{ if(localStorage.getItem('gd_is_demo')) return; }catch(e){}
     if(pendEl && !pendEl.hidden) return;
     if(subEl && !subEl.hidden) return;
     if(isStandalone()) return;
