@@ -100290,6 +100290,7 @@ if ('serviceWorker' in navigator) {
     var nm = (document.getElementById('gd-pedir-nome').value||'').trim();
     var wa = (document.getElementById('gd-pedir-wa').value||'').trim();
     if(!nm || !wa){ setMsg('Preencha seu nome e WhatsApp.', 'err'); return; }
+    if(sb){ try{ sb.from('pedidos').insert({ nome: nm, whatsapp: wa }).then(function(){},function(){}); }catch(e){} }
     var m = 'Ola! Quero testar o BoraDiploma. Meu nome: ' + nm + '. Meu WhatsApp: ' + wa + '. Pode liberar meu acesso?';
     try{ window.open('https://wa.me/' + OWNER_WA + '?text=' + encodeURIComponent(m), '_blank'); }catch(e){}
     setMsg('Pedido pronto! Envie a mensagem no WhatsApp que abriu. \uD83D\uDE42', 'ok');

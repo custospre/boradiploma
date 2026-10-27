@@ -77,6 +77,11 @@
     </div>
 
     <div class="card">
+      <h1 style="font-size:17px;margin:0 0 6px">Pedidos pelo WhatsApp</h1>
+      <p class="hint">Pedidos feitos pelo app (nome + WhatsApp). Toque pra criar o acesso e enviar o link.</p>
+      <div id="pedidos"><div class="empty">—</div></div>
+    </div>
+    <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Pedidos aguardando liberação</h1>
       <div id="pendentes"><div class="empty">Carregando...</div></div>
     </div>
@@ -147,9 +152,11 @@
   function carregar(){
     Promise.all([
       sb.from('perfis').select('user_id,nome,whatsapp,email,created_at'),
-      sb.from('billing').select('user_id,email,aprovado,active,trial_ends_at')
+      sb.from('billing').select('user_id,email,aprovado,active,trial_ends_at'),
+      sb.from('pedidos').select('id,nome,whatsapp,created_at').order('created_at')
     ]).then(function(res){
       var perfis = (res[0].data)||[]; var bills = (res[1].data)||[];
+      renderPedidos((res[2] && res[2].data) || []);
       var bmap = {}; bills.forEach(function(b){ bmap[b.user_id]=b; });
       var pmap = {}; perfis.forEach(function(p){ pmap[p.user_id]=p; });
       var ids = {}; bills.forEach(function(b){ ids[b.user_id]=1; }); perfis.forEach(function(p){ ids[p.user_id]=1; });
@@ -209,6 +216,27 @@
     var d = waDigits(wa);
     if(d){ window.open('https://wa.me/'+d+'?text='+encodeURIComponent(msg), '_blank'); }
     else { try{ navigator.clipboard.writeText(msg); }catch(e){} alert('Sem WhatsApp cadastrado. Mensagem copiada:\n\n'+msg); }
+  }
+
+  function renderPedidos(lista){
+    var el = document.getElementById('pedidos'); if(!el) return;
+    if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum pedido novo. 🎉</div>'; return; }
+    el.innerHTML = lista.map(function(it){
+      var wl = waLink(it.whatsapp);
+      var contato = it.whatsapp ? (wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.whatsapp)+'</a>'):('WhatsApp: '+esc(it.whatsapp))) : '';
+      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome||'(sem nome)')+'</div>'+
+             '<div class="meta">'+contato+(it.created_at?(' · '+fmtData(it.created_at)):'')+'</div></div>'+
+             '<button class="btn-lib" data-ped="'+esc(it.id)+'" data-wa="'+esc(it.whatsapp||'')+'" data-nome="'+esc(it.nome||'')+'">Criar acesso e enviar</button></div>';
+    }).join('');
+    el.querySelectorAll('[data-ped]').forEach(function(b){ b.addEventListener('click', function(){ criarDoPedido(b); }); });
+  }
+  function criarDoPedido(b){
+    var id=b.getAttribute('data-ped'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
+    b.disabled=true; b.textContent='Gerando...';
+    gerar({ nome: nome, whatsapp: wa }, function(link){
+      abrirWhats(wa, nome, link);
+      sb.from('pedidos').delete().eq('id', id).then(function(){ carregar(); }, function(){ carregar(); });
+    }, function(msg){ alert('Erro: '+msg); b.disabled=false; b.textContent='Criar acesso e enviar'; });
   }
 
   function abrirWhats(wa, nome, link){
