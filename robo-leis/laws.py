@@ -70,3 +70,10 @@ from laws_novas import NOVAS as _NOVAS
 _d = {a: list(it) for a, it in LAWS}
 for _a, _it in _NOVAS: _d.setdefault(_a, []).extend(_it)
 LAWS = sorted(_d.items(), key=lambda x: ''.join(c for c in _u.normalize('NFD', x[0]) if _u.category(c) != 'Mn'))
+
+# 2a leva (27/10/2026, lista em laws_novas2.py): codigos, estatutos, leis e tratados.
+# Para o robo, codigos e estatutos ficam numa "area" com o nome da pasta.
+from laws_novas2 import NOVAS2 as _N2
+_d = {a: list(it) for a, it in LAWS}
+for _a, _it in _N2: _d.setdefault({'codigos': 'Códigos', 'estatutos': 'Estatutos'}.get(_a, _a), []).extend(_it)
+LAWS = sorted(_d.items(), key=lambda x: ''.join(c for c in _u.normalize('NFD', x[0]) if _u.category(c) != 'Mn'))
