@@ -99721,6 +99721,14 @@ if ('serviceWorker' in navigator) {
 #gd-remind button{width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:12px}
 #gd-remind .primary{background:var(--accent,#7a1f2b);color:#fff}
 #gd-remind .link{background:none;color:var(--muted,#6b6459);text-decoration:underline;font-size:14px}
+#gd-install{position:fixed;left:0;right:0;top:0;z-index:99996;display:flex;justify-content:center;padding:10px;font-family:var(--font-head,system-ui,sans-serif)}
+#gd-install[hidden]{display:none}
+#gd-install .gi-box{width:100%;max-width:470px;background:var(--surface,#fffdf8);border:1px solid var(--line,#e2ddd2);border-radius:14px;padding:13px 15px;box-shadow:0 8px 30px rgba(0,0,0,.18);color:var(--fg,#1f1b16)}
+#gd-install .gi-txt{font-size:14px;line-height:1.4}
+#gd-install .gi-acts{display:flex;gap:8px;margin-top:10px}
+#gd-install .gi-btn{flex:1;padding:10px;font-size:15px;border:0;border-radius:10px;background:var(--accent,#7a1f2b);color:#fff;cursor:pointer}
+#gd-install .gi-x{padding:10px 12px;font-size:14px;border:1px solid var(--line,#e2ddd2);border-radius:10px;background:none;color:var(--muted,#6b6459);cursor:pointer}
+#gd-install .gi-ios{font-size:13px;color:var(--muted,#6b6459);margin-top:10px}
 #gd-pend{position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;
   background:var(--bg,#f5f3ee);padding:20px;overflow:auto;font-family:var(--font-head,system-ui,sans-serif)}
 #gd-pend[hidden]{display:none}
@@ -99796,6 +99804,16 @@ if ('serviceWorker' in navigator) {
     <button class="link" id="gd-remind-close">Continuar no teste</button>
   </div>
 </div>
+<div id="gd-install" hidden>
+  <div class="gi-box">
+    <div class="gi-txt">📲 <b>Deixe o BoraDiploma na sua tela</b> (celular ou computador) pra voltar com 1 toque, sem link.</div>
+    <div class="gi-acts">
+      <button class="gi-btn" id="gd-install-ok">Instalar o app (criar icone)</button>
+      <button class="gi-x" id="gd-install-no">Agora nao</button>
+    </div>
+    <div class="gi-ios" id="gd-install-ios" hidden>No iPhone: toque em <b>Compartilhar</b> ↑ embaixo e depois em <b>"Adicionar a Tela de Inicio"</b>.</div>
+  </div>
+</div>
 <div id="gd-pend" hidden>
   <div class="box">
     <h1>Quase la! 🎓</h1>
@@ -99860,7 +99878,32 @@ if ('serviceWorker' in navigator) {
     salvarPerfil();
     startSync();
     checkAccess();
+    setTimeout(maybeInstall, 2500);
   }
+  var deferredPrompt = null;
+  try{
+    window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferredPrompt = e; maybeInstall(); });
+    window.addEventListener('appinstalled', function(){ var el=document.getElementById('gd-install'); if(el) el.hidden=true; try{ localStorage.setItem('gd_install_dismiss', String(Date.now())); }catch(_){} });
+  }catch(e){}
+  function isStandalone(){ try{ return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }catch(e){ return false; } }
+  function isiOS(){ try{ return /iphone|ipad|ipod/i.test(navigator.userAgent); }catch(e){ return false; } }
+  function maybeInstall(){
+    if(!currentUser) return;
+    if(pendEl && !pendEl.hidden) return;
+    if(subEl && !subEl.hidden) return;
+    if(isStandalone()) return;
+    try{ var d = Number(localStorage.getItem('gd_install_dismiss') || '0'); if(d && (Date.now()-d) < 7*86400000) return; }catch(e){}
+    if(!deferredPrompt && !isiOS()) return;
+    var el = document.getElementById('gd-install'); if(!el) return;
+    if(isiOS() && !deferredPrompt){ var iosEl=document.getElementById('gd-install-ios'); if(iosEl) iosEl.hidden=false; var okB=document.getElementById('gd-install-ok'); if(okB) okB.style.display='none'; }
+    el.hidden = false;
+  }
+  (function(){
+    var okB=document.getElementById('gd-install-ok');
+    if(okB){ okB.addEventListener('click', function(){ if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(function(){ deferredPrompt=null; var el=document.getElementById('gd-install'); if(el) el.hidden=true; }); } }); }
+    var noB=document.getElementById('gd-install-no');
+    if(noB){ noB.addEventListener('click', function(){ var el=document.getElementById('gd-install'); if(el) el.hidden=true; try{ localStorage.setItem('gd_install_dismiss', String(Date.now())); }catch(e){} }); }
+  })();
   function salvarPerfil(){
     if(!sb || !currentUser) return;
     var pp = pendingPerfil;
