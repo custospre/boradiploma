@@ -374,7 +374,12 @@
   function gerar(payload, onok, onerr){
     sb.functions.invoke('gerar-acesso', { body: payload }).then(function(r){
       if(r.error || !(r.data && r.data.ok)){
-        onerr(((r.error&&r.error.message)) || ((r.data&&r.data.error)) || 'Erro ao gerar o acesso.');
+        var base = ((r.error&&r.error.message)) || ((r.data&&r.data.error)) || 'Erro ao gerar o acesso.';
+        // mostra o motivo que a funcao devolveu (nao so "non-2xx")
+        var ctx = r.error && r.error.context;
+        if(ctx && typeof ctx.text === 'function'){
+          ctx.text().then(function(t){ var m=t; try{ var j=JSON.parse(t); m=j.error||j.message||t; }catch(e){} onerr(base+' — '+m); }, function(){ onerr(base); });
+        } else onerr(base);
         return;
       }
       onok(r.data.link, r.data.user_id);
