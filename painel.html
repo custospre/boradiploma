@@ -103,6 +103,11 @@
       <h1 style="font-size:17px;margin:0 0 6px">Já liberados</h1>
       <div id="liberados"><div class="empty">—</div></div>
     </div>
+    <div class="card">
+      <h1 style="font-size:17px;margin:0 0 6px">Acessos revogados</h1>
+      <p class="hint">Quem teve o acesso removido. Chame no WhatsApp pra renegociar; se fechar, toque em Liberar de novo (a pessoa volta com o conteúdo dela e o mesmo link).</p>
+      <div id="revogados"><div class="empty">—</div></div>
+    </div>
   </div>
 </div>
 
@@ -175,7 +180,7 @@
   function carregar(){
     Promise.all([
       sb.from('perfis').select('user_id,nome,whatsapp,email,created_at'),
-      sb.from('billing').select('user_id,email,aprovado,active,trial_ends_at'),
+      sb.from('billing').select('user_id,email,aprovado,active,trial_ends_at,status'),
       sb.from('pedidos').select('id,nome,whatsapp,created_at').order('created_at')
     ]).then(function(res){
       var perfis = (res[0].data)||[]; var bills = (res[1].data)||[];
@@ -183,23 +188,24 @@
       var bmap = {}; bills.forEach(function(b){ bmap[b.user_id]=b; });
       var pmap = {}; perfis.forEach(function(p){ pmap[p.user_id]=p; });
       var ids = {}; bills.forEach(function(b){ ids[b.user_id]=1; }); perfis.forEach(function(p){ ids[p.user_id]=1; });
-      var pend=[], libr=[], acab=[];
+      var pend=[], libr=[], acab=[], revg=[];
       Object.keys(ids).forEach(function(uid){
         if(uid===OWNER) return;
         var b=bmap[uid]||{}, pf=pmap[uid]||{};
         var liberado = (b.active===true)||(b.aprovado===true)||(!!b.trial_ends_at);
         var item={uid:uid, nome:pf.nome||'(sem nome)', wa:pf.whatsapp||'', email:pf.email||b.email||'', data:pf.created_at, est:estado(b)};
-        (liberado?libr:pend).push(item);
+        if(liberado) libr.push(item); else if(b.status==='revogado') revg.push(item); else pend.push(item);
         if(!(b.active===true) && !(b.aprovado===true) && b.trial_ends_at){
           var t=Date.parse(b.trial_ends_at)||0; var d=Math.ceil((t-Date.now())/86400000);
           if(d>0){ var it2={}; for(var k in item){ it2[k]=item[k]; } it2.dias=d; acab.push(it2); }
         }
       });
       acab.sort(function(a,b){ return a.dias-b.dias; });
-      document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + pend.length + ' aguardando';
+      document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + pend.length + ' aguardando · ' + revg.length + ' revogados';
       render('pendentes', pend, true);
       renderAcab(acab);
       render('liberados', libr, false);
+      renderRev(revg);
     });
   }
 
@@ -238,6 +244,31 @@
       else if(res==='assinante') alert(nome+' e assinante: o conteudo dele nao foi mexido.');
       else alert('Nao deu certo ('+res+').');
     });
+  }
+
+  function renderRev(lista){
+    var el = document.getElementById('revogados'); if(!el) return;
+    if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum acesso revogado.</div>'; return; }
+    el.innerHTML = lista.map(function(it){
+      var wl = waLink(it.wa);
+      var contato = it.wa ? (wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa))) : '';
+      return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div><div class="meta">'+contato+'</div></div>'+
+             (it.wa?('<button class="btn-lib" data-reneg="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Chamar no Whats</button> '):'')+
+             '<button class="btn-lib" data-relib="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'" style="background:#1a7f37">Liberar de novo</button></div>';
+    }).join('');
+    el.querySelectorAll('[data-reneg]').forEach(function(b){ b.addEventListener('click', function(){
+      var nome=b.getAttribute('data-nome');
+      var msg='Oi'+(nome?(' '+nome):'')+'! Aqui e do BoraDiploma. Seu acesso ao app foi pausado, mas seus estudos continuam guardados. Quer conversar pra voltar a usar?';
+      window.open('https://wa.me/'+waDigits(b.getAttribute('data-wa'))+'?text='+encodeURIComponent(msg), '_blank');
+    }); });
+    el.querySelectorAll('[data-relib]').forEach(function(b){ b.addEventListener('click', function(){
+      if(!confirm('Liberar de novo o acesso de '+(b.getAttribute('data-nome')||'esta pessoa')+'?')) return;
+      b.disabled=true; b.textContent='Liberando...';
+      sb.from('billing').update({aprovado:true, status:null}).eq('user_id', b.getAttribute('data-relib')).then(function(r){
+        if(r && r.error){ alert('Erro: '+r.error.message); b.disabled=false; b.textContent='Liberar de novo'; return; }
+        carregar();
+      });
+    }); });
   }
 
   function renderAcab(lista){
@@ -350,7 +381,7 @@
   function revogar(uid, btn){
     if(!confirm('Tirar o acesso desta pessoa?')) return;
     btn.disabled = true; btn.textContent = 'Revogando...';
-    sb.from('billing').update({aprovado:false, trial_ends_at:null, active:false}).eq('user_id', uid).then(function(r){
+    sb.from('billing').update({aprovado:false, trial_ends_at:null, active:false, status:'revogado'}).eq('user_id', uid).then(function(r){
       if(r && r.error){ alert('Erro: '+r.error.message); btn.disabled=false; btn.textContent='Revogar'; return; }
       carregar();
     });
