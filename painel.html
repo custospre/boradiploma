@@ -88,10 +88,10 @@
     <div class="card" hidden style="display:none"><!-- Pedidos pelo WhatsApp: escondido (27/10), aparecem em Pedidos aguardando liberacao -->
       <h1 style="font-size:17px;margin:0 0 6px">Pedidos pelo WhatsApp</h1>
       <p class="hint">Pedidos feitos pelo app (nome + WhatsApp). Toque pra criar o acesso e enviar o link.</p>
-      <div id="pedidos"><div class="empty">—</div></div>
     </div>
     <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Pedidos aguardando liberação</h1>
+      <div id="pedidos"></div>
       <div id="pendentes"><div class="empty">Carregando...</div></div>
     </div>
     <div class="card">
@@ -184,7 +184,8 @@
       sb.from('pedidos').select('id,nome,whatsapp,created_at').order('created_at')
     ]).then(function(res){
       var perfis = (res[0].data)||[]; var bills = (res[1].data)||[];
-      renderPedidos((res[2] && res[2].data) || []);
+      var peds = (res[2] && res[2].data) || [];
+      renderPedidos(peds);
       var bmap = {}; bills.forEach(function(b){ bmap[b.user_id]=b; });
       var pmap = {}; perfis.forEach(function(p){ pmap[p.user_id]=p; });
       var ids = {}; bills.forEach(function(b){ ids[b.user_id]=1; }); perfis.forEach(function(p){ ids[p.user_id]=1; });
@@ -201,8 +202,9 @@
         }
       });
       acab.sort(function(a,b){ return a.dias-b.dias; });
-      document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + pend.length + ' aguardando · ' + revg.length + ' revogados';
+      document.getElementById('contador').textContent = 'Testadores: ' + libr.length + ' liberados · ' + (pend.length + peds.length) + ' aguardando · ' + revg.length + ' revogados';
       render('pendentes', pend, true);
+      if(!pend.length && peds.length) document.getElementById('pendentes').innerHTML = '';
       renderAcab(acab);
       render('liberados', libr, false);
       renderRev(revg);
@@ -300,15 +302,19 @@
 
   function renderPedidos(lista){
     var el = document.getElementById('pedidos'); if(!el) return;
-    if(!lista.length){ el.innerHTML = '<div class="empty">Nenhum pedido novo. 🎉</div>'; return; }
+    if(!lista.length){ el.innerHTML = ''; return; }
     el.innerHTML = lista.map(function(it){
       var wl = waLink(it.whatsapp);
       var contato = it.whatsapp ? (wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.whatsapp)+'</a>'):('WhatsApp: '+esc(it.whatsapp))) : '';
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome||'(sem nome)')+'</div>'+
              '<div class="meta">'+contato+(it.created_at?(' · '+fmtData(it.created_at)):'')+'</div></div>'+
-             '<button class="btn-lib" data-ped="'+esc(it.id)+'" data-wa="'+esc(it.whatsapp||'')+'" data-nome="'+esc(it.nome||'')+'">Criar acesso e enviar</button></div>';
+             '<button class="btn-lib" data-ped="'+esc(it.id)+'" data-wa="'+esc(it.whatsapp||'')+'" data-nome="'+esc(it.nome||'')+'">Liberar</button> <button class="btn-rev" data-delped="'+esc(it.id)+'">Excluir</button></div>';
     }).join('');
     el.querySelectorAll('[data-ped]').forEach(function(b){ b.addEventListener('click', function(){ criarDoPedido(b); }); });
+    el.querySelectorAll('[data-delped]').forEach(function(b){ b.addEventListener('click', function(){
+      if(!confirm('Excluir este pedido?')) return;
+      b.disabled=true; sb.from('pedidos').delete().eq('id', b.getAttribute('data-delped')).then(function(){ carregar(); }, function(){ carregar(); });
+    }); });
   }
   function criarDoPedido(b){
     var id=b.getAttribute('data-ped'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
@@ -318,7 +324,7 @@
       mandarExemplo({ wa: wa }, function(){});
       abrirWhats(wa, nome, link, win);
       sb.from('pedidos').delete().eq('id', id).then(function(){ carregar(); }, function(){ carregar(); });
-    }, function(msg){ fecharPre(win); alert('Erro: '+msg); b.disabled=false; b.textContent='Criar acesso e enviar'; });
+    }, function(msg){ fecharPre(win); alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
   }
 
   var _plWa='', _plMsg='';
