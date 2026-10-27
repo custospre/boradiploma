@@ -235,8 +235,8 @@ mark.on{background:var(--mark-on);outline:1px solid var(--accent)}
 main:has(> #view-index:not([hidden])){margin-left:0;margin-right:auto;max-width:none}
 /* a logomarca comeca na mesma altura da palavra INDICE, e nao no meio da tela.
    Precisa de peso maior: a regra original de .homecenter vem depois no arquivo. */
-#view-index .homecenter{justify-content:flex-start !important;min-height:0 !important;padding-top:0}
-#view-index .homecenter>.brandcard{margin-top:0}
+#view-index .homecenter{justify-content:flex-start !important;min-height:0 !important;padding-top:0;pointer-events:none}
+#view-index .homecenter>.brandcard{margin-top:0;pointer-events:auto}
 #view-index .homewrap2{align-items:start}
 /* Botões do índice mais estreitos e logo no meio da TELA (e nao no meio da
    sobra do lado direito): a margem negativa desconta metade da coluna dos
