@@ -99868,6 +99868,7 @@ if ('serviceWorker' in navigator) {
   var OWNER_WA = '5549999791136';   // WhatsApp do dono, para pedidos de acesso
   var OWNER_EMAIL = 'aguicco@gmail.com'; // e-mail do dono, para pedidos de acesso
   var OWNER_IG = 'boradiploma';     // Instagram do dono, para pedidos de acesso
+  var OWNER_UID = '3d501b85-058c-43d7-a5c2-a759460074db'; // conta do dono: o conteudo dele vira o exemplo dos novos usuarios
   var sb;
   try { sb = window.supabase.createClient(SB_URL, SB_KEY); } catch(e){}
 
@@ -100049,10 +100050,24 @@ if ('serviceWorker' in navigator) {
       if(r && r.error){ cloudStatus('sem salvar na nuvem (tentarei de novo)'); setTimeout(schedulePush, 30000); return cb(); }
       markSynced(r && r.data && r.data.updated_at, h);
       cloudStatus('na nuvem'); setTimeout(function(){ cloudStatus(''); }, 2500); scheduleAttSync();
+      updateDemo(subj);
       cb();
     }).catch(function(){ cloudStatus('sem salvar na nuvem (tentarei de novo)'); setTimeout(schedulePush, 30000); cb(); });
   }
 
+  // o exemplo que os usuarios novos recebem acompanha o conteudo do dono (no maximo a cada 5 min)
+  var demoTimer = null, demoPending = null;
+  function updateDemo(subj){
+    if(!currentUser || currentUser.id !== OWNER_UID || lsGet('gd_is_demo')) return;
+    demoPending = subj;
+    if(demoTimer) return;
+    var last = Number(lsGet('gd_demo_upd') || '0') || 0;
+    var wait = Math.max(0, 5*60000 - (Date.now() - last));
+    demoTimer = setTimeout(function(){
+      demoTimer = null; var d = demoPending; demoPending = null; if(!d) return;
+      sb.from('demo').upsert({ id: 1, subjects: d }, { onConflict: 'id' }).then(function(r){ if(!(r && r.error)) lsSet('gd_demo_upd', String(Date.now())); });
+    }, wait);
+  }
   function seedDemo(cb){
     cloudStatus('carregando exemplo...');
     sb.from('demo').select('subjects').eq('id', 1).maybeSingle().then(function(r){
