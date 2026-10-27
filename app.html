@@ -97379,6 +97379,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
       else if(curSubjectId && !viewSubject.hidden) persistSubject(); }
     if(curNoteId && !viewNote.hidden) saveCaret();
   }
+  window.gdFlushAll = flushAll;
   function hideViews(){ viewIndex.hidden=true; viewFolder.hidden=true; viewNotes.hidden=true; viewSubject.hidden=true; viewNote.hidden=true; if(viewPrazos)viewPrazos.hidden=true; var vm=document.getElementById('view-manual'); if(vm) vm.hidden=true; var vb=document.getElementById('view-backup'); if(vb) vb.hidden=true; hideAllCodes(); }
   function hideControls(){ controls.hidden=true; noteControls.hidden=true; updateAulaBtn(); updateTopNew(); }
   var newAulaTop=document.getElementById('newAulaTop'), newEstTop=document.getElementById('newEstTop'), saveBtn=document.getElementById('saveBtn');
@@ -99996,73 +99997,132 @@ if ('serviceWorker' in navigator) {
     }catch(e){}
   })();
 
-  function schedulePush(){ if(!sb || !currentUser) return; clearTimeout(pushTimer); cloudStatus('salvando na nuvem...'); pushTimer = setTimeout(pushNow, 2500); }
-
-  function pushNow(){
-    if(!sb || !currentUser) return;
-    var str = getLocal(); if(str == null) return;
-    var subj; try{ subj = JSON.parse(str); }catch(e){ return; }
-    sb.from('user_data').upsert({ user_id: currentUser.id, subjects: subj, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).then(function(r){
-      if(r && r.error){ cloudStatus('sem salvar na nuvem (tentarei de novo)'); }
-      else { try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){} cloudStatus('na nuvem'); setTimeout(function(){ cloudStatus(''); }, 2500); scheduleAttSync(); }
-    });
-  }
-
-  function reloadOnce(){
-    try{ if(sessionStorage.getItem('gd_pulled_reload')) return; sessionStorage.setItem('gd_pulled_reload','1'); }catch(e){}
+  // Como funciona: guardamos a data (updated_at) da versao da nuvem que este aparelho ja tem
+  // e um "carimbo" (hash) do conteudo local nesse momento. Assim sabemos quem mudou:
+  // so a nuvem -> baixa; so o aparelho -> envia; os dois -> junta item a item (vale o mais novo).
+  var K_SYNC_AT = 'gd_synced_at', K_SYNC_H = 'gd_synced_hash';
+  var syncing = false, syncAgain = false;
+  function hashStr(s){ s = s || ''; var h = 2166136261; for(var i=0;i<s.length;i++){ h = Math.imul(h ^ s.charCodeAt(i), 16777619); } return (h>>>0).toString(36) + '.' + s.length; }
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  function markSynced(at, h){ lsSet(K_SYNC_AT, at || ''); lsSet(K_SYNC_H, h || ''); lsSet(K_ACCOUNT, currentUser.id); }
+  function flushEditor(){ try{ if(typeof window.gdFlushAll === 'function') window.gdFlushAll(); }catch(e){} }
+  function editing(){ var a = document.activeElement; return !!(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))); }
+  // mostra o conteudo novo (recarrega a tela), mas nunca no meio de uma digitacao
+  function refreshView(force){
+    if(!force && editing()){ cloudStatus('atualizado de outro aparelho'); setTimeout(function(){ cloudStatus(''); }, 4000); return; }
+    var t = 0; try{ t = Number(sessionStorage.getItem('gd_reload_t') || '0'); sessionStorage.setItem('gd_reload_t', String(Date.now())); }catch(e){}
+    if(!force && Date.now() - t < 8000) return;
     location.reload();
   }
 
-  function seedDemo(){
+  // junta duas listas por id; em empate fica a da "base"
+  function newest(x){ return Number(x && (x.updated || x.created)) || 0; }
+  function mergeList(base, other){
+    var io = {}, seen = {}, out = [];
+    (other || []).forEach(function(x){ if(x && x.id != null) io[x.id] = x; });
+    (base || []).forEach(function(x){ if(!x) return; var o = (x.id != null) ? io[x.id] : null; out.push(o && newest(o) > newest(x) ? o : x); if(x.id != null) seen[x.id] = 1; });
+    (other || []).forEach(function(x){ if(x && x.id != null && !seen[x.id]) out.push(x); });
+    return out;
+  }
+  function mergeSubs(local, cloud){
+    var ic = {}, seen = {}, out = [];
+    (cloud || []).forEach(function(s){ if(s && s.id != null) ic[s.id] = s; });
+    (local || []).forEach(function(l){ if(!l) return; var c = (l.id != null) ? ic[l.id] : null; if(l.id != null) seen[l.id] = 1;
+      if(!c){ out.push(l); return; }
+      var m = {}; Object.keys(c).forEach(function(k){ m[k] = c[k]; }); Object.keys(l).forEach(function(k){ m[k] = l[k]; });
+      ['aulas', 'estudos', 'avals', 'trabalhos'].forEach(function(k){ if(Array.isArray(l[k]) || Array.isArray(c[k])) m[k] = mergeList(l[k], c[k]); });
+      out.push(m);
+    });
+    (cloud || []).forEach(function(c){ if(c && c.id != null && !seen[c.id]) out.push(c); });
+    return out;
+  }
+
+  function schedulePush(){ if(!sb || !currentUser) return; clearTimeout(pushTimer); cloudStatus('salvando na nuvem...'); pushTimer = setTimeout(sync, 2500); }
+  function pushNow(){ clearTimeout(pushTimer); pushTimer = null; sync(); }
+  function startSync(){ sync(); }
+
+  function upload(str, h, cb){
+    var subj; try{ subj = JSON.parse(str || '[]'); }catch(e){ return cb(); }
+    cloudStatus('salvando na nuvem...');
+    sb.from('user_data').upsert({ user_id: currentUser.id, subjects: subj, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('updated_at').maybeSingle().then(function(r){
+      if(r && r.error){ cloudStatus('sem salvar na nuvem (tentarei de novo)'); setTimeout(schedulePush, 30000); return cb(); }
+      markSynced(r && r.data && r.data.updated_at, h);
+      cloudStatus('na nuvem'); setTimeout(function(){ cloudStatus(''); }, 2500); scheduleAttSync();
+      cb();
+    }).catch(function(){ cloudStatus('sem salvar na nuvem (tentarei de novo)'); setTimeout(schedulePush, 30000); cb(); });
+  }
+
+  function seedDemo(cb){
     cloudStatus('carregando exemplo...');
     sb.from('demo').select('subjects').eq('id', 1).maybeSingle().then(function(r){
       if(r && r.data && r.data.subjects != null){
-        try{ localStorage.setItem('gd_is_demo', '1'); }catch(e){}
-        setLocal(JSON.stringify(r.data.subjects));
-        pushNow();
-        cloudStatus(''); setTimeout(reloadOnce, 600);
-      } else { cloudStatus(''); }
-    }).catch(function(){ cloudStatus(''); });
+        lsSet('gd_is_demo', '1');
+        var str = JSON.stringify(r.data.subjects);
+        setLocal(str);
+        upload(str, hashStr(str), function(){ cb(); refreshView(true); });
+      } else { cloudStatus(''); cb(); }
+    }).catch(function(){ cloudStatus(''); cb(); });
   }
-  function startSync(){
-    if(!sb || !currentUser || pulling) return;
-    pulling = true; cloudStatus('sincronizando...');
-    sb.from('user_data').select('subjects,updated_at').eq('user_id', currentUser.id).maybeSingle().then(function(r){
-      pulling = false;
-      if(r && r.error){ cloudStatus(''); return; }
+
+  function sync(){
+    if(!sb || !currentUser) return;
+    if(syncing){ syncAgain = true; return; }
+    syncing = true; syncAgain = false;
+    clearTimeout(pushTimer); pushTimer = null;
+    flushEditor();
+    var uid = currentUser.id;
+    function end(){ syncing = false; if(syncAgain) setTimeout(sync, 300); }
+    function firstTime(localStr){
+      var storedAcc = lsGet(K_ACCOUNT);
+      if(storedAcc && storedAcc !== uid){ setLocal('[]'); lsSet(K_ACCOUNT, uid); lsSet(K_SYNC_AT, ''); lsSet(K_SYNC_H, ''); cloudStatus(''); end(); refreshView(true); return; }
+      lsSet(K_ACCOUNT, uid);
+      if(localStr && localStr !== '[]'){ upload(localStr, hashStr(localStr), end); return; }
+      seedDemo(end);
+    }
+    sb.from('user_data').select('updated_at').eq('user_id', uid).maybeSingle().then(function(r){
+      if(r && r.error){ cloudStatus(''); return end(); }
       var row = r && r.data;
       var localStr = getLocal();
-      var storedAcc = null; try{ storedAcc = localStorage.getItem(K_ACCOUNT); }catch(e){}
-
-      if(!row || row.subjects == null){
-        if(storedAcc && storedAcc !== currentUser.id){
-          setLocal('[]'); try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){}
-          cloudStatus(''); reloadOnce(); return;
+      if(!row){ return firstTime(localStr); }
+      var localH = hashStr(localStr || '');
+      var storedAcc = lsGet(K_ACCOUNT);
+      var accountSwitched = !!(storedAcc && storedAcc !== uid);
+      var localChanged = !accountSwitched && localH !== lsGet(K_SYNC_H);
+      var cloudChanged = accountSwitched || row.updated_at !== lsGet(K_SYNC_AT);
+      if(!cloudChanged){
+        if(localChanged) return upload(localStr, localH, end);
+        return end();
+      }
+      cloudStatus('sincronizando...');
+      sb.from('user_data').select('subjects,updated_at').eq('user_id', uid).maybeSingle().then(function(r2){
+        var row2 = r2 && r2.data;
+        if(!row2 || (r2 && r2.error)){ cloudStatus(''); return end(); }
+        if(row2.subjects == null){ return firstTime(localStr); }
+        var cloudStr = JSON.stringify(row2.subjects);
+        var cloudH = hashStr(cloudStr);
+        if(!localChanged || localH === cloudH){
+          // so a nuvem mudou: traz para este aparelho
+          if(accountSwitched && localStr) lsSet('gd_backup_local', localStr);
+          setLocal(cloudStr); markSynced(row2.updated_at, cloudH);
+          cloudStatus(''); end(); scheduleAttSync();
+          refreshView(accountSwitched);
+          return;
         }
-        try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){}
-        if(localStr && localStr !== '[]'){ pushNow(); scheduleAttSync(); return; }
-        seedDemo();
-        return;
-      }
-
-      var cloudStr = JSON.stringify(row.subjects);
-      try{ localStorage.setItem(K_ACCOUNT, currentUser.id); }catch(e){}
-      if(cloudStr === localStr){ cloudStatus('na nuvem'); setTimeout(function(){ cloudStatus(''); }, 2000); scheduleAttSync(); return; }
-
-      var accountSwitched = (storedAcc && storedAcc !== currentUser.id);
-      var cloudTime = Date.parse((row && row.updated_at) || '') || 0;
-      var localChg = 0; try{ localChg = Number(localStorage.getItem(K_LOCALCHG) || '0') || 0; }catch(e){}
-
-      if(accountSwitched || cloudTime > localChg + 3000){
-        try{ if(localStr) localStorage.setItem('gd_backup_local', localStr); }catch(e){}
-        setLocal(cloudStr);
-        cloudStatus(''); reloadOnce();
-      } else {
-        pushNow();
-        scheduleAttSync();
-      }
-    }).catch(function(){ pulling = false; cloudStatus(''); });
+        // os dois mudaram: junta (cada aula/material fica com a versao mais nova)
+        var merged = localStr;
+        try{ merged = JSON.stringify(mergeSubs(JSON.parse(localStr || '[]'), row2.subjects)); }catch(e){}
+        if(localStr) lsSet('gd_backup_local', localStr);
+        setLocal(merged);
+        upload(merged, hashStr(merged), function(){ end(); refreshView(false); });
+      }).catch(function(){ cloudStatus(''); end(); });
+    }).catch(function(){ cloudStatus(''); end(); });
   }
+
+  // confere a nuvem quando o app volta para a frente, e de minuto em minuto enquanto esta aberto
+  document.addEventListener('visibilitychange', function(){ if(currentUser) sync(); });
+  window.addEventListener('focus', function(){ if(currentUser) sync(); });
+  setInterval(function(){ if(currentUser && document.visibilityState === 'visible') sync(); }, 60000);
 
   // --- anexos (PDF / Word) na nuvem ---
   function idbOpen(cb){
