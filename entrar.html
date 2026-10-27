@@ -14,15 +14,17 @@
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px}
   .box{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:30px 24px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.12)}
   h1{color:var(--accent);font-size:24px;margin:0 0 8px}
-  .logo{display:block;width:84px;height:84px;margin:0 auto 10px;background:#fffdf8;border-radius:16px;padding:7px;box-shadow:0 3px 10px rgba(0,0,0,.10)}
+  .bd-marca{display:flex;flex-direction:column;align-items:center;gap:4px;width:max-content;background:#fffdf8;border-radius:16px;padding:8px 12px 7px;box-shadow:0 3px 10px rgba(0,0,0,.10);box-sizing:border-box}
+  .bd-marca img{width:70px;height:70px;display:block}
+  .bd-nome{font-family:"Libre Franklin",system-ui,-apple-system,"Segoe UI",sans-serif;font-weight:800;font-size:17px;letter-spacing:-.3px;line-height:1;color:#1f1b16;white-space:nowrap}
+  .bd-nome b{color:#c9a24a;font-weight:800}
   p{color:var(--muted);font-size:15px;line-height:1.5;margin:8px 0}
   .spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:16px auto;animation:g 1s linear infinite}
   @keyframes g{to{transform:rotate(360deg)}}
   a.btn{display:inline-block;width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:14px;background:var(--accent);color:#fff;text-decoration:none}
 </style>
 <div class="box">
-  <img class="logo" src="icons/logo.png" alt="">
-  <h1>BoraDiploma</h1>
+  <div class="bd-marca" style="margin:0 auto 14px"><img src="icons/logo.png" alt=""><div class="bd-nome">Bora<b>Diploma</b></div></div>
   <div id="spin" class="spin"></div>
   <p id="msg">Entrando…</p>
   <div id="acts"></div>
