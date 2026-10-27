@@ -100135,7 +100135,7 @@ if ('serviceWorker' in navigator) {
   }
 
   // confere a nuvem quando o app volta para a frente, e de minuto em minuto enquanto esta aberto
-  document.addEventListener('visibilitychange', function(){ if(currentUser) sync(); });
+  document.addEventListener('visibilitychange', function(){ if(currentUser){ sync(); if(document.visibilityState === 'visible') checkAccess(); } });
   window.addEventListener('focus', function(){ if(currentUser) sync(); });
   setInterval(function(){ if(currentUser && document.visibilityState === 'visible') sync(); }, 60000);
 
@@ -100272,12 +100272,22 @@ if ('serviceWorker' in navigator) {
     var sub = document.getElementById('gd-remind-sub'); if(sub) sub.onclick = function(){ el.hidden = true; showSub(false); };
     var cl = document.getElementById('gd-remind-close'); if(cl) cl.onclick = function(){ el.hidden = true; };
   }
+  // conta excluida no painel: o aparelho ainda guarda o login antigo -> desconecta
+  function contaExiste(){
+    if(!sb || !currentUser) return;
+    sb.auth.getUser().then(function(r){
+      var e = r && r.error;
+      if(e && (e.status === 401 || e.status === 403 || e.status === 404 || /exist|not found/i.test(e.message || ''))){
+        sb.auth.signOut().catch(function(){}).then(function(){ try{ localStorage.removeItem(K_SYNC_AT); localStorage.removeItem(K_SYNC_H); }catch(_){} saiu(); });
+      }
+    }).catch(function(){});
+  }
   function checkAccess(){
     if(!sb || !currentUser) return;
     sb.from('billing').select('active,aprovado,trial_ends_at,status').eq('user_id', currentUser.id).maybeSingle().then(function(r){
       if(r && r.error){ hidePend(); hideSub(); return; }   // falha de leitura -> nao bloqueia
       var b = r && r.data;
-      if(!b){ hidePend(); hideSub(); return; }              // sem linha -> nao bloqueia
+      if(!b){ hidePend(); hideSub(); contaExiste(); return; } // sem linha -> nao bloqueia, mas confere se a conta foi excluida
       if(b.active === true || b.aprovado === true){ hidePend(); hideSub(); if(trialEl) trialEl.hidden = true; return; }
       var trialEnds = b.trial_ends_at ? (Date.parse(b.trial_ends_at) || 0) : 0;
       if(trialEnds && trialEnds > Date.now()){ hidePend(); hideSub(); showTrialBanner(daysLeft(trialEnds)); return; } // em teste
