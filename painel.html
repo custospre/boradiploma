@@ -306,7 +306,7 @@
     el.querySelectorAll('[data-reneg]').forEach(function(b){ b.addEventListener('click', function(){
       var nome=b.getAttribute('data-nome');
       var msg='Oi'+(nome?(' '+nome):'')+'! Aqui e do BoraDiploma. Seu acesso ao app foi pausado, mas seus estudos continuam guardados. Quer conversar pra voltar a usar?';
-      window.open('https://wa.me/'+waDigits(b.getAttribute('data-wa'))+'?text='+encodeURIComponent(msg), '_blank');
+      abrirConversa(waDigits(b.getAttribute('data-wa')), msg);
     }); });
     el.querySelectorAll('[data-relib]').forEach(function(b){ b.addEventListener('click', function(){
       if(!confirm('Liberar de novo o acesso de '+(b.getAttribute('data-nome')||'esta pessoa')+'?')) return;
@@ -334,7 +334,7 @@
     var dtxt = (dias==='1')?'termina amanha (falta 1 dia)':('termina em '+dias+' dias');
     var msg = 'Oi'+(nome?(' '+nome):'')+'! Passando pra lembrar: seu teste do BoraDiploma '+dtxt+'. Pra continuar com seus estudos salvos, e so assinar quando abrir o app: '+APP_URL;
     var d = waDigits(wa);
-    if(d){ window.open('https://wa.me/'+d+'?text='+encodeURIComponent(msg), '_blank'); }
+    if(d){ abrirConversa(d, msg); }
     else { try{ navigator.clipboard.writeText(msg); }catch(e){} alert('Sem WhatsApp cadastrado. Mensagem copiada:\n\n'+msg); }
   }
 
@@ -362,7 +362,7 @@
     try{ navigator.clipboard.writeText(link); }catch(e){}
     b.disabled = false; b.classList.add('pronto'); b.style.background = '#25D366';
     b.textContent = '📲 Enviar no WhatsApp';
-    b._go = function(){ window.open(url, '_blank'); b.classList.remove('pronto'); depois(); };
+    b._go = function(){ abrirConversa(waDigits(wa), msg); b.classList.remove('pronto'); depois(); };
   }
 
   function criarDoPedido(b){
@@ -408,6 +408,28 @@
     el.textContent=t; el.style.display='block';
     clearTimeout(aviso._t); aviso._t=setTimeout(function(){ el.style.display='none'; }, 7000);
   }
+  // Abre a conversa no WhatsApp. No celular usa o wa.me (abre o app do celular).
+  // No computador abre direto o APLICATIVO do WhatsApp: o WhatsApp Web numa janela
+  // nova ficava parado na tela de carregamento. Se o aplicativo nao abrir, o aviso
+  // traz um link para o WhatsApp Web.
+  var NO_CELULAR = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  function abrirConversa(d, msg){
+    d = String(d||'').replace(/\D/g,''); msg = msg||'';
+    if(NO_CELULAR){ window.open('https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):''), '_blank'); return; }
+    var q = (d?('phone='+d+'&'):'') + 'text=' + encodeURIComponent(msg);
+    location.href = 'whatsapp://send?' + q;
+    var el=document.getElementById('gd-aviso-wa');
+    if(!el){ el=document.createElement('div'); el.id='gd-aviso-wa'; el.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:600;background:#1a7f37;color:#fff;padding:12px 16px;border-radius:12px;font:15px system-ui,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:92vw;text-align:center'; document.body.appendChild(el); }
+    el.innerHTML='Abrindo o WhatsApp do computador&hellip; <a href="#" style="color:#fff;font-weight:700;margin-left:6px">Não abriu? Usar o WhatsApp Web</a>';
+    el.querySelector('a').onclick=function(e){ e.preventDefault(); el.style.display='none'; window.open('https://web.whatsapp.com/send?'+q, '_blank'); };
+    el.style.display='block'; clearTimeout(abrirConversa._t); abrirConversa._t=setTimeout(function(){ el.style.display='none'; }, 12000);
+  }
+  // os links "WhatsApp: numero" das listas tambem abrem pelo mesmo caminho
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href^="https://wa.me/"]');
+    if(!a || NO_CELULAR) return;
+    e.preventDefault(); abrirConversa(a.getAttribute('href').replace('https://wa.me/','').split('?')[0], '');
+  });
   function abrirCaixa(nome, link){
     var el=document.getElementById('pedlink');
     if(!el){ alert('Link de entrada (copie e envie):\n\n'+link); return; }
@@ -417,7 +439,7 @@
     el.hidden=false;
     // Ja abre o WhatsApp sozinho com a mensagem + link prontos (so tocar em enviar).
     // A caixinha continua aberta atras como seguranca, caso o WhatsApp nao abra.
-    if(_plWa){ try{ window.open('https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg), '_blank'); }catch(e){} }
+    if(_plWa){ try{ abrirConversa(_plWa, _plMsg); }catch(e){} }
   }
 
   function gerar(payload, onok, onerr){
@@ -540,7 +562,7 @@
     var plCopy=document.getElementById('pl-copy');
     if(plCopy){ plCopy.addEventListener('click', function(){ var t=document.getElementById('pl-link'); try{ t.select(); }catch(e){} try{ navigator.clipboard.writeText(t.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} } var self=this; self.textContent='Copiado! ✓'; setTimeout(function(){ self.textContent='📋 Copiar link'; },1600); }); }
     var plWa=document.getElementById('pl-wa');
-    if(plWa){ plWa.addEventListener('click', function(){ window.open('https://wa.me/'+(_plWa||'')+'?text='+encodeURIComponent(_plMsg), '_blank'); }); }
+    if(plWa){ plWa.addEventListener('click', function(){ abrirConversa(_plWa||'', _plMsg); }); }
     var plClose=document.getElementById('pl-close');
     if(plClose){ plClose.addEventListener('click', function(){ var el=document.getElementById('pedlink'); if(el) el.hidden=true; carregar(); }); }
   }
