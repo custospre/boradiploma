@@ -218,13 +218,20 @@
       if(it.wa) contato.push(wl?('<a href="'+wl+'" target="_blank">WhatsApp: '+esc(it.wa)+'</a>'):('WhatsApp: '+esc(it.wa)));
       if(it.email && !/@boradiploma\.app$/.test(it.email)) contato.push('<a href="mailto:'+esc(it.email)+'">'+esc(it.email)+'</a>');
       var right = pendente
-        ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button>'
+        ? '<button class="btn-lib" data-lib="'+esc(it.uid)+'" data-wa="'+esc(it.wa)+'" data-nome="'+esc(it.nome)+'">Liberar</button> <button class="btn-rev" data-mvrev="'+esc(it.uid)+'">Mover p/ revogados</button>'
         : (it.est?('<span class="est">'+esc(it.est)+'</span>'):'') + ' <button class="btn-lib" data-exe="'+esc(it.uid)+'" data-nome="'+esc(it.nome)+'">Mandar exemplo atualizado</button> <button class="btn-rev" data-rev="'+esc(it.uid)+'">Revogar</button>';
       return '<div class="row"><div class="grow"><div class="nome">'+esc(it.nome)+'</div>'+
              '<div class="meta">'+contato.join(' · ')+(it.data?(' · '+fmtData(it.data)):'')+'</div></div>'+right+'</div>';
     }).join('');
     el.querySelectorAll('[data-lib]').forEach(function(b){ b.addEventListener('click', function(){ liberar(b); }); });
     el.querySelectorAll('[data-rev]').forEach(function(b){ b.addEventListener('click', function(){ revogar(b.getAttribute('data-rev'), b); }); });
+    el.querySelectorAll('[data-mvrev]').forEach(function(b){ b.addEventListener('click', function(){
+      b.disabled=true; b.textContent='Movendo...';
+      sb.from('billing').update({status:'revogado'}).eq('user_id', b.getAttribute('data-mvrev')).then(function(r){
+        if(r && r.error){ alert('Erro: '+r.error.message); b.disabled=false; b.textContent='Mover p/ revogados'; return; }
+        carregar();
+      });
+    }); });
     el.querySelectorAll('[data-exe]').forEach(function(b){ b.addEventListener('click', function(){ mandarExemploBtn(b); }); });
   }
 
