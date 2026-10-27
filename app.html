@@ -99772,8 +99772,8 @@ if ('serviceWorker' in navigator) {
       <p class="sub">Peca seu acesso — gratis pra testar 15 dias.</p>
       <label for="gd-pedir-nome">Seu nome</label>
       <input id="gd-pedir-nome" type="text" autocomplete="name" placeholder="nome completo">
-      <!-- numero nao e mais pedido (27/10): o pedido sai do WhatsApp da propria pessoa -->
-      <input id="gd-pedir-wa" type="hidden" value="">
+      <label for="gd-pedir-wa">Seu WhatsApp (com DDD)</label>
+      <input id="gd-pedir-wa" type="tel" autocomplete="tel" placeholder="(00) 00000-0000">
       <button class="primary" id="gd-pedir-enviar">Pedir acesso pelo WhatsApp</button>
       <button class="link" id="gd-btn-entrar-ja">Ja tenho acesso? Entrar</button>
       <div id="gd-login-area" hidden>
@@ -100373,10 +100373,10 @@ if ('serviceWorker' in navigator) {
   if(pedirEnviar){ pedirEnviar.addEventListener('click', function(){
     var nm = (document.getElementById('gd-pedir-nome').value||'').trim();
     var wa = (document.getElementById('gd-pedir-wa').value||'').trim();
-    if(!nm){ setMsg('Preencha seu nome.', 'err'); return; }
+    if(!nm || !wa){ setMsg('Preencha seu nome e WhatsApp.', 'err'); return; }
     // pedido sempre como visitante (sem login guardado), senao um login velho/excluido faz o banco recusar
     try{ var sbAnon = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false, autoRefreshToken: false, storageKey: 'gd-anon' } }); sbAnon.from('pedidos').insert({ nome: nm, whatsapp: wa }).then(function(){},function(){}); }catch(e){}
-    var m = 'Ola! Quero testar o BoraDiploma. Meu nome: ' + nm + '. Pode liberar meu acesso?';
+    var m = 'Ola! Quero testar o BoraDiploma. Meu nome: ' + nm + '. Meu WhatsApp: ' + wa + '. Pode liberar meu acesso?';
     try{ window.open('https://wa.me/' + OWNER_WA + '?text=' + encodeURIComponent(m), '_blank'); }catch(e){}
     setMsg('Pedido pronto! Envie a mensagem no WhatsApp que abriu. \uD83D\uDE42', 'ok');
   }); }

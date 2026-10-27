@@ -334,17 +334,32 @@
   // Abre a aba do WhatsApp JA no clique (senao o navegador bloqueia, porque o link demora a ser gerado).
   // Depois que o link fica pronto, a aba vai pro WhatsApp da pessoa com a mensagem pronta.
   function preAbrir(wa){
+    if(!waDigits(wa)) return null;   // sem numero: nao abre nada, so copia a mensagem
     try{ var w = window.open('', '_blank'); if(w){ try{ w.document.write('<p style="font:16px sans-serif;padding:20px">Abrindo o WhatsApp...</p>'); }catch(e){} } return w; }catch(e){ return null; }
   }
   function fecharPre(w){ try{ if(w) w.close(); }catch(e){} }
   function abrirWhats(wa, nome, link, win){
     _plWa = waDigits(wa);
     _plMsg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
-    try{ navigator.clipboard.writeText(_plWa ? link : _plMsg); }catch(e){}
-    if(win && !win.closed){
-      // com numero: abre a conversa da pessoa; sem numero: abre o WhatsApp com a mensagem pronta e voce escolhe a conversa
-      try{ win.location.href = 'https://wa.me/'+(_plWa||'')+'?text='+encodeURIComponent(_plMsg); return; }catch(e){}
+    if(!_plWa){
+      // sem numero (pediu pelo proprio WhatsApp): so copia a mensagem; voce cola na conversa dela que ja esta aberta
+      var mostrar = function(){ abrirCaixa(nome, link); };
+      try{ navigator.clipboard.writeText(_plMsg).then(function(){ aviso('Mensagem com o link COPIADA! Abra a conversa da pessoa no WhatsApp, aperte Ctrl+V e envie.'); }, mostrar); }catch(e){ mostrar(); }
+      return;
     }
+    try{ navigator.clipboard.writeText(link); }catch(e){}
+    if(win && !win.closed){
+      try{ win.location.href = 'https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg); return; }catch(e){}
+    }
+    abrirCaixa(nome, link);
+  }
+  function aviso(t){
+    var el=document.getElementById('gd-aviso');
+    if(!el){ el=document.createElement('div'); el.id='gd-aviso'; el.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:600;background:#1a7f37;color:#fff;padding:14px 18px;border-radius:12px;font:15px system-ui,sans-serif;max-width:92vw;box-shadow:0 8px 30px rgba(0,0,0,.3);text-align:center'; document.body.appendChild(el); }
+    el.textContent=t; el.style.display='block';
+    clearTimeout(aviso._t); aviso._t=setTimeout(function(){ el.style.display='none'; }, 7000);
+  }
+  function abrirCaixa(nome, link){
     var el=document.getElementById('pedlink');
     if(!el){ alert('Link de entrada (copie e envie):\n\n'+link); return; }
     var nEl=document.getElementById('pl-nome'); if(nEl) nEl.textContent = nome?('Para: '+nome):'';
