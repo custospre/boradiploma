@@ -320,8 +320,11 @@
     var id=b.getAttribute('data-ped'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa');
     b.disabled=true; b.textContent='Gerando...';
     var win = preAbrir(wa);
-    gerar({ nome: nome, whatsapp: wa }, function(link){
-      mandarExemplo({ wa: wa }, function(){});
+    // pedido sem numero (a pessoa pediu pelo proprio WhatsApp): cria a conta com um e-mail interno
+    // e mostra o link pra voce copiar e colar na conversa dela
+    var pay = waDigits(wa) ? { nome: nome, whatsapp: wa } : { nome: nome, whatsapp: '', email: 'pedido' + String(id).replace(/[^0-9a-zA-Z]/g,'') + '@boradiploma.app' };
+    gerar(pay, function(link, uid){
+      mandarExemplo(uid ? { alvo: uid } : { wa: wa }, function(){});
       abrirWhats(wa, nome, link, win);
       sb.from('pedidos').delete().eq('id', id).then(function(){ carregar(); }, function(){ carregar(); });
     }, function(msg){ fecharPre(win); alert('Erro: '+msg); b.disabled=false; b.textContent='Liberar'; });
@@ -338,14 +341,14 @@
   function abrirWhats(wa, nome, link, win){
     _plWa = waDigits(wa);
     _plMsg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
-    try{ navigator.clipboard.writeText(link); }catch(e){}
+    try{ navigator.clipboard.writeText(_plWa ? link : _plMsg); }catch(e){}
     if(_plWa && win && !win.closed){
       try{ win.location.href = 'https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg); return; }catch(e){}
     }
     var el=document.getElementById('pedlink');
     if(!el){ alert('Link de entrada (copie e envie):\n\n'+link); return; }
     var nEl=document.getElementById('pl-nome'); if(nEl) nEl.textContent = nome?('Para: '+nome):'';
-    var tEl=document.getElementById('pl-link'); if(tEl) tEl.value = link;
+    var tEl=document.getElementById('pl-link'); if(tEl) tEl.value = _plWa ? link : _plMsg;
     var waBtn=document.getElementById('pl-wa'); if(waBtn) waBtn.style.display = _plWa ? '' : 'none';
     el.hidden=false;
     // Ja abre o WhatsApp sozinho com a mensagem + link prontos (so tocar em enviar).
@@ -359,7 +362,7 @@
         onerr(((r.error&&r.error.message)) || ((r.data&&r.data.error)) || 'Erro ao gerar o acesso.');
         return;
       }
-      onok(r.data.link);
+      onok(r.data.link, r.data.user_id);
     }).catch(function(e){ onerr(String(e)); });
   }
 
