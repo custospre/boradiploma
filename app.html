@@ -100012,7 +100012,7 @@ if ('serviceWorker' in navigator) {
         try{ localStorage.setItem('gd_is_demo', '1'); }catch(e){}
         setLocal(JSON.stringify(r.data.subjects));
         pushNow();
-        cloudStatus(''); reloadOnce();
+        cloudStatus(''); setTimeout(reloadOnce, 600);
       } else { cloudStatus(''); }
     }).catch(function(){ cloudStatus(''); });
   }
