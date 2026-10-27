@@ -17,7 +17,7 @@
   p{color:var(--muted);font-size:15px;line-height:1.5;margin:8px 0}
   .spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:16px auto;animation:g 1s linear infinite}
   @keyframes g{to{transform:rotate(360deg)}}
-  button,a.btn{display:inline-block;width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:14px;background:var(--accent);color:#fff;text-decoration:none}
+  a.btn{display:inline-block;width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:14px;background:var(--accent);color:#fff;text-decoration:none}
 </style>
 <div class="box">
   <h1>BoraDiploma</h1>
@@ -35,20 +35,35 @@
   function stop(){ if(spin) spin.style.display='none'; }
   function erro(txt){ stop(); msg.innerHTML = txt; acts.innerHTML = '<a class="btn" href="app.html">Ir para o app</a>'; }
 
-  var t = new URLSearchParams(location.search).get('t');
-  if(!t){ erro('Link invalido. Peca um novo acesso ao responsavel. 🙏'); return; }
+  var qs = new URLSearchParams(location.search);
+  var k = qs.get('k');   // link reutilizavel
+  var t = qs.get('t');   // link antigo (uso unico)
+  if(!k && !t){ erro('Link invalido. Peca um novo acesso ao responsavel. 🙏'); return; }
+
   var sb; try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){}
   if(!sb){ erro('Voce precisa de internet. Recarregue a pagina.'); return; }
 
   function go(){ msg.textContent = 'Pronto! Abrindo o app…'; location.replace('app.html'); }
-  function tryType(types, i){
-    if(i >= types.length){ erro('Esse link expirou ou ja foi usado. Peca um novo acesso ao responsavel. 🙏'); return; }
-    sb.auth.verifyOtp({ token_hash: t, type: types[i] }).then(function(r){
+  function verifyAndGo(hash, types, i){
+    if(i >= types.length){ erro('Esse link nao esta valido agora. Peca um novo acesso ao responsavel. 🙏'); return; }
+    sb.auth.verifyOtp({ token_hash: hash, type: types[i] }).then(function(r){
       if(r && !r.error && r.data && (r.data.session || r.data.user)){ go(); }
-      else { tryType(types, i+1); }
-    }).catch(function(){ tryType(types, i+1); });
+      else { verifyAndGo(hash, types, i+1); }
+    }).catch(function(){ verifyAndGo(hash, types, i+1); });
   }
-  tryType(['magiclink','email'], 0);
+
+  if(k){
+    // troca o token reutilizavel por um login fresco (feito no servidor)
+    sb.functions.invoke('entrar', { body: { k: k } }).then(function(r){
+      if(r && !r.error && r.data && r.data.ok && r.data.token_hash){
+        verifyAndGo(r.data.token_hash, ['magiclink','email'], 0);
+      } else {
+        erro('Esse link nao esta valido. Peca um novo acesso ao responsavel. 🙏');
+      }
+    }).catch(function(){ erro('Nao consegui entrar. Verifique a internet e tente de novo.'); });
+  } else {
+    verifyAndGo(t, ['magiclink','email'], 0);
+  }
 })();
 </script>
 </html>
