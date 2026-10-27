@@ -530,8 +530,11 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
 /* contador de páginas */
 .pgc{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(54px + env(safe-area-inset-bottom,0px));z-index:50;
   background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 12px;
-  font-family:var(--font-head);font-size:.76rem;font-variant-numeric:tabular-nums;box-shadow:0 4px 14px rgba(0,0,0,.12);pointer-events:none}
+  font-family:var(--font-head);font-size:.76rem;font-variant-numeric:tabular-nums;box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:pointer}
 .pgc b{color:var(--accent)}
+.pgc:hover{border-color:var(--accent)}
+.pgc.pgc-ir{border-color:var(--accent);color:var(--fg)}
+.pgc input{width:3.4em;margin:0 4px;padding:2px 4px;border:1px solid var(--accent);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit;text-align:center}
 /* menu do botão direito (excluir artigo) */
 .cite{cursor:context-menu}
 .cite.ctxsel,.pdfatt.ctxsel{outline:2px solid var(--accent);outline-offset:2px}
@@ -157096,6 +157099,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
   var mainEl=document.querySelector('main');
   function updPgCounter(){
     if(!pgCounter||!mainEl)return;
+    if(pgCounter.classList.contains('pgc-ir')) return; // campo "Ir para" aberto
     var barH=barEl?barEl.offsetHeight:0, pageH=Math.max(200,window.innerHeight-barH);
     // Dentro de uma aula, contar as FOLHAS A4 (as mesmas das linhas tracejadas),
     // e nao telas roladas: assim o numero bate com o que sai impresso.
@@ -157118,6 +157122,43 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     if(Y<2){ pgCounter.hidden=true; return; }
     pgCounter.hidden=false; pgCounter.innerHTML='Página <b>'+X+'</b> de '+Y;
   }
+  // ---- "Ir para a folha nº": clique no contador de páginas (ou Ctrl+G, como no Word) ----
+  function pgGeo(){
+    var barH=barEl?barEl.offsetHeight:0, pageH=Math.max(200,window.innerHeight-barH);
+    if(viewNote && !viewNote.hidden && editor){
+      var ecs=getComputedStyle(editor);
+      var ew=editor.clientWidth-parseFloat(ecs.paddingLeft)-parseFloat(ecs.paddingRight);
+      var ECP=cfgPagina(), ealt=ew*(ECP.h-2*ECP.margem)/(ECP.w-2*ECP.margem);
+      var ehgt=editor.scrollHeight-parseFloat(ecs.paddingTop)-parseFloat(ecs.paddingBottom);
+      var topo=editor.getBoundingClientRect().top+(window.pageYOffset||0)+parseFloat(ecs.paddingTop);
+      return {nome:'folha', total:Math.max(1,Math.ceil(ehgt/ealt)), y:function(n){ return topo+(n-1)*ealt-barH-10; }};
+    }
+    var total=document.documentElement.scrollHeight-(parseFloat(getComputedStyle(mainEl).paddingBottom)||0)-barH;
+    return {nome:'página', total:Math.max(1,Math.ceil(total/pageH)), y:function(n){ return (n-1)*pageH; }};
+  }
+  function irPagina(){
+    if(!pgCounter||!mainEl) return;
+    var g=pgGeo();
+    if(g.total<2){ toast('Esta tela tem só 1 '+g.nome+'.'); return; }
+    var aberto=pgCounter.querySelector('input'); if(aberto){ aberto.focus(); return; }
+    pgCounter.classList.add('pgc-ir'); pgCounter.hidden=false;
+    pgCounter.innerHTML='Ir para a '+g.nome+'<input type="text" inputmode="numeric" autocomplete="off" aria-label="Número da '+g.nome+'">de '+g.total;
+    var inp=pgCounter.querySelector('input'), feito=false; inp.focus();
+    function fim(){ if(feito) return; feito=true; pgCounter.classList.remove('pgc-ir'); updPgCounter(); }
+    inp.addEventListener('keydown',function(e){
+      e.stopPropagation();
+      if(e.key==='Enter'){ e.preventDefault(); var n=parseInt(inp.value,10), g2=pgGeo();
+        if(n>=1){ n=Math.min(n,g2.total); window.scrollTo(0,Math.max(0,g2.y(n))); }
+        fim(); setTimeout(updPgCounter,700); }
+      else if(e.key==='Escape'){ e.preventDefault(); fim(); }
+    });
+    inp.addEventListener('blur',function(){ setTimeout(fim,150); });
+  }
+  if(pgCounter){ pgCounter.title='Clique para ir a outra folha (Ctrl+G)';
+    pgCounter.addEventListener('click',function(e){ if(!(e.target && e.target.tagName==='INPUT')) irPagina(); }); }
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey) && !e.shiftKey && !e.altKey && (e.key==='g'||e.key==='G')){ e.preventDefault(); irPagina(); }
+  });
   window.addEventListener('scroll',updPgCounter,{passive:true});
   window.addEventListener('resize',function(){ updPgCounter(); updAulaPgs(); });
   try{ if(window.ResizeObserver) new ResizeObserver(updPgCounter).observe(mainEl); }catch(e){}
