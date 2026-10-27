@@ -168213,7 +168213,7 @@ if ('serviceWorker' in navigator) {
     b.addEventListener('click', function(){
       var nome = '', wa = '';
       var fim = function(){
-        sb.auth.signOut().catch(function(){}).then(function(){
+        sb.auth.signOut({ scope: 'local' }).catch(function(){}).then(function(){
           if(pendEl) pendEl.hidden = true;
           saiu();
           var n = document.getElementById('gd-pedir-nome'), w = document.getElementById('gd-pedir-wa');
@@ -168267,7 +168267,7 @@ if ('serviceWorker' in navigator) {
     sb.auth.getUser().then(function(r){
       var e = r && r.error;
       if(e && (e.status === 401 || e.status === 403 || e.status === 404 || /exist|not found/i.test(e.message || ''))){
-        sb.auth.signOut().catch(function(){}).then(function(){ try{ localStorage.removeItem(K_SYNC_AT); localStorage.removeItem(K_SYNC_H); }catch(_){} saiu(); });
+        sb.auth.signOut({ scope: 'local' }).catch(function(){}).then(function(){ try{ localStorage.removeItem(K_SYNC_AT); localStorage.removeItem(K_SYNC_H); }catch(_){} saiu(); });
       }
     }).catch(function(){});
   }
@@ -168371,7 +168371,7 @@ if ('serviceWorker' in navigator) {
   }); }
   pass.addEventListener('keydown', function(ev){ if(ev.key==='Enter'){ if(modo) criar(); else entrar(); } });
   email.addEventListener('keydown', function(ev){ if(ev.key==='Enter') pass.focus(); });
-  logoutBtn.addEventListener('click', function(){ sb.auth.signOut().then(saiu); });
+  logoutBtn.addEventListener('click', function(){ sb.auth.signOut({ scope: 'local' }).then(saiu); });
 
   if(subBtn){ subBtn.addEventListener('click', function(){ if(CHECKOUT_URL) window.open(CHECKOUT_URL, '_blank'); }); }
   var subRefresh = document.getElementById('gd-sub-refresh');
@@ -168381,7 +168381,7 @@ if ('serviceWorker' in navigator) {
     setTimeout(function(){ if(subStatus && subEl && !subEl.hidden) subStatus.textContent = 'Ainda nao encontrei sua assinatura. Se acabou de pagar, espere 1 minuto e tente de novo.'; }, 1800);
   }); }
   var subLogout = document.getElementById('gd-sub-logout');
-  if(subLogout){ subLogout.addEventListener('click', function(){ sb.auth.signOut().then(function(){ hideSub(); saiu(); }); }); }
+  if(subLogout){ subLogout.addEventListener('click', function(){ sb.auth.signOut({ scope: 'local' }).then(function(){ hideSub(); saiu(); }); }); }
 
   var pendWa = document.getElementById('gd-pend-wa');
   if(pendWa){ pendWa.addEventListener('click', function(){
@@ -168404,7 +168404,7 @@ if ('serviceWorker' in navigator) {
     setTimeout(function(){ if(st && pendEl && !pendEl.hidden) st.textContent = 'Ainda nao liberado. Assim que liberarem, toque aqui de novo.'; }, 1800);
   }); }
   var pendLogout = document.getElementById('gd-pend-logout');
-  if(pendLogout){ pendLogout.addEventListener('click', function(){ sb.auth.signOut().then(function(){ hidePend(); saiu(); }); }); }
+  if(pendLogout){ pendLogout.addEventListener('click', function(){ sb.auth.signOut({ scope: 'local' }).then(function(){ hidePend(); saiu(); }); }); }
   var pendToggle = document.getElementById('gd-pend-toggle');
   if(pendToggle){ pendToggle.addEventListener('click', function(){
     var op = document.getElementById('gd-pend-opcoes');

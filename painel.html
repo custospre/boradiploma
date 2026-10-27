@@ -536,7 +536,7 @@
     var gbtn = document.getElementById('btn-google'); if(gbtn) gbtn.addEventListener('click', entrarGoogle);
     document.getElementById('novo-gerar').addEventListener('click', criarAcesso);
     document.getElementById('p').addEventListener('keydown', function(ev){ if(ev.key==='Enter') entrar(); });
-    sairBtn.addEventListener('click', function(){ sb.auth.signOut().then(function(){ location.reload(); }); });
+    sairBtn.addEventListener('click', function(){ sb.auth.signOut({ scope: 'local' }).then(function(){ location.reload(); }); });
     var plCopy=document.getElementById('pl-copy');
     if(plCopy){ plCopy.addEventListener('click', function(){ var t=document.getElementById('pl-link'); try{ t.select(); }catch(e){} try{ navigator.clipboard.writeText(t.value); }catch(e){ try{ document.execCommand('copy'); }catch(_){} } var self=this; self.textContent='Copiado! ✓'; setTimeout(function(){ self.textContent='📋 Copiar link'; },1600); }); }
     var plWa=document.getElementById('pl-wa');
