@@ -277,9 +277,12 @@
 
   // copia o conteudo ATUAL do dono para a conta da pessoa (o banco nunca mexe em assinante nem no dono)
   function mandarExemplo(args, cb){
-    sb.rpc('mandar_exemplo', args).then(function(r){
+    var rodar = function(){ sb.rpc('mandar_exemplo', args).then(function(r){
       cb((r && r.error) ? ('erro: '+r.error.message) : (r && r.data));
-    }, function(e){ cb('erro: '+e); });
+    }, function(e){ cb('erro: '+e); }); };
+    // marca na conta da pessoa: o app dela troca o conteudo inteiro pelo seu (sem juntar com o antigo)
+    if(args && args.alvo){ sb.from('billing').update({ status: 'exemplo:' + Date.now() }).eq('user_id', args.alvo).then(rodar, rodar); }
+    else rodar();
   }
   function mandarExemploBtn(b){
     var nome=b.getAttribute('data-nome')||'esta pessoa';
@@ -356,6 +359,10 @@
   }
   // depois de gerar o link, o proprio botao vira "Enviar no WhatsApp" (o clique abre a conversa da pessoa)
   function prontoWhats(b, wa, nome, link, depois){
+    if(!waDigits(wa)){
+      var dig = prompt((nome||'Esta pessoa')+' nao tem WhatsApp cadastrado.\n\nDigite o WhatsApp dela (com DDD) para abrir a conversa com o link pronto:', '');
+      if(dig && waDigits(dig)) wa = dig;
+    }
     if(!waDigits(wa)){ abrirWhats(wa, nome, link); depois(); return; }   // sem numero: copia a mensagem
     var msg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
     var url = 'https://wa.me/' + waDigits(wa) + '?text=' + encodeURIComponent(msg);

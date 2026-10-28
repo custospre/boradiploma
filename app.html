@@ -165753,8 +165753,10 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
   function persistNote(){
     if(!curNoteId)return;
     var a=getSubs(); var r=findAula(a,curNoteId); if(!r)return;
-    if(r.est) r.aula.label=noteTitle.value; else r.aula.title=noteTitle.value;
-    r.aula.body=cleanBody(); r.aula.updated=Date.now();
+    var nt=noteTitle.value, nb=cleanBody();
+    var mudou=(r.est?(r.aula.label!==nt):(r.aula.title!==nt)) || r.aula.body!==nb;
+    if(r.est) r.aula.label=nt; else r.aula.title=nt;
+    r.aula.body=nb; if(mudou) r.aula.updated=Date.now();
     var c=caretPath(); if(c) r.aula.caret=c;
     saveSubs(a); saveState.textContent='salvo';
   }
@@ -168068,12 +168070,27 @@ if ('serviceWorker' in navigator) {
         return end();
       }
       cloudStatus('sincronizando...');
+      // o dono mandou um exemplo novo pelo painel? entao troca tudo (sem juntar com o que esta aqui)
+      sb.from('billing').select('status').eq('user_id', uid).maybeSingle().then(function(rb){
+        var st = (rb && rb.data && rb.data.status) || '', m = /^exemplo:(\d+)/.exec(st);
+        var forcar = !!(m && Number(m[1]) > (Number(lsGet('gd_exemplo_visto') || '0') || 0)
+          && Number(m[1]) > (Date.parse(lsGet(K_SYNC_AT) || '') || 0));   // este aparelho ainda nao recebeu esse exemplo
+        baixar(forcar, m ? m[1] : '');
+      }, function(){ baixar(false, ''); });
+      function baixar(forcar, marca){
       sb.from('user_data').select('subjects,updated_at').eq('user_id', uid).maybeSingle().then(function(r2){
         var row2 = r2 && r2.data;
         if(!row2 || (r2 && r2.error)){ cloudStatus(''); return end(); }
         if(row2.subjects == null){ return firstTime(localStr); }
         var cloudStr = JSON.stringify(row2.subjects);
         var cloudH = hashStr(cloudStr);
+        if(forcar){
+          if(localStr) lsSet('gd_backup_local', localStr);
+          setLocal(cloudStr); markSynced(row2.updated_at, cloudH); lsSet('gd_exemplo_visto', marca);
+          cloudStatus(''); end(); scheduleAttSync();
+          refreshView(true);
+          return;
+        }
         if(!localChanged || localH === cloudH){
           // so a nuvem mudou: traz para este aparelho
           if(accountSwitched && localStr) lsSet('gd_backup_local', localStr);
@@ -168089,6 +168106,7 @@ if ('serviceWorker' in navigator) {
         setLocal(merged);
         upload(merged, hashStr(merged), function(){ end(); refreshView(false); });
       }).catch(function(){ cloudStatus(''); end(); });
+      }
     }).catch(function(){ cloudStatus(''); end(); });
   }
 
