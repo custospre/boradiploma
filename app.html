@@ -13,6 +13,9 @@
 <style id="gd-mobile">
 /* Ajustes de celular (nao afetam o visual do PC) */
 html,body{overflow-x:clip;max-width:100%}
+/* Celular/tablet em qualquer posicao (inclusive DEITADO) e telas baixas: a barra de botoes do topo
+   rola junto, senao ela gruda e cobre quase toda a tela (ex.: Painel de prazos com o celular deitado). */
+@media (pointer:coarse),(max-height:600px){ .bar,#noteHead{position:static !important} }
 @media (max-width:560px){
   .bar-in{max-width:100%}
   .grp{flex-wrap:wrap}
@@ -418,10 +421,10 @@ select.mini{font:inherit;font-family:var(--font-head);font-size:.82rem;padding:7
 .pcard.open>.pcbody{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x pan-y}
 /* painel de prazos: a tabela não espreme no celular — rola para o lado, com o nome do item fixo à esquerda */
 .pcbody .ptable{min-width:620px}
-.ptable td.prowlbl,.ptable thead th:first-child,.ptable tr.pgrouprow td{position:sticky;left:0;z-index:1;background:var(--surface)}
-.ptable td.prowlbl{box-shadow:4px 0 6px -4px rgba(0,0,0,.18)}
+/* painel de prazos: uma linha com cor, outra sem (ajuda a seguir a linha ate o mes) */
+.ptable tbody tr.zebra>td:not(.filled){background:var(--accent-soft)}
 .pcrola{display:none;position:sticky;left:0;font-family:var(--font-head);font-size:.74rem;color:var(--muted);margin:6px 0 0}
-@media (max-width:767px){.pcrola{display:block}.pcbody .ptable{min-width:560px}.ptable thead th:first-child,.ptable td.prowlbl{width:96px;min-width:96px;max-width:96px;overflow-wrap:anywhere}.ptable th.pdeliv,.ptable td.pdeliv{width:140px}}
+@media (max-width:900px){.pcrola{display:block}.pcard{padding:12px 10px}.pcbody .ptable{min-width:100%;width:max-content}.ptable thead th:first-child,.ptable td.prowlbl{width:auto;min-width:72px;max-width:120px;overflow-wrap:anywhere}.ptable th.pdeliv,.ptable td.pdeliv{width:auto;padding:4px}.ptable input.dentrega{width:118px}.ptable th{padding:6px 4px}.ptable td.pcell{min-width:44px}}
 .pgrouph{font-family:var(--font-head);font-weight:800;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;
   color:var(--muted);margin:10px 0 2px}
 .ptable{border-collapse:collapse;width:100%;font-family:var(--font-head);font-size:.86rem;
@@ -167081,9 +167084,9 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
       h+='</tr></thead><tbody>';
       function grp(title,rows){
         h+='<tr class="pgrouprow"><td colspan="'+(months.length+2)+'">'+title+'</td></tr>';
-        (rows||[]).forEach(function(it){ var v=it.date;
+        (rows||[]).forEach(function(it,ix){ var v=it.date;
           var sec=(rows===s.avals)?'avals':'trabalhos';
-          h+='<tr'+(it.entregue?' class="entregue"':'')+'><td class="prowlbl">'+esc(it.label||'')+'</td>'
+          h+='<tr class="'+(it.entregue?'entregue ':'')+(ix%2?'':'zebra')+'"><td class="prowlbl">'+esc(it.label||'')+'</td>'
             +'<td class="pdeliv"><input type="date" class="dentrega" value="'+(it.entregue||'')+'"'
             +' data-sid="'+s.id+'" data-sec="'+sec+'" data-id="'+it.id+'"'
             +' title="Preenchida a data, este item deixa de aparecer no aviso de prazos"></td>';
