@@ -168181,6 +168181,9 @@ if ('serviceWorker' in navigator) {
 #gd-install .gi-txt{font-size:14.5px;color:var(--muted,#6b6459);line-height:1.5;margin:0}
 #gd-install .gi-btn{display:block;width:100%;padding:13px;font-size:16px;border:0;border-radius:12px;background:var(--accent,#7a1f2b);color:#fff;cursor:pointer;margin-top:18px;font-weight:600}
 #gd-install .gi-x{display:block;width:100%;padding:10px;font-size:14px;border:0;border-radius:10px;background:none;color:var(--muted,#6b6459);cursor:pointer;margin-top:4px;text-decoration:underline}
+#gd-install .gi-passos{text-align:left;font-size:15px;line-height:1.5;margin-top:16px;background:var(--bg,#f5f3ee);border-radius:12px;padding:12px 14px}
+#gd-install .gi-passos ol{margin:0;padding-left:20px}#gd-install .gi-passos li{margin:6px 0}
+#gd-install .gi-ico{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 6px;border-radius:7px;background:var(--surface,#fff);border:1px solid var(--line,#ccc);font-weight:700;vertical-align:middle}
 #gd-install .gi-ios{font-size:13px;color:var(--muted,#6b6459);margin-top:14px;background:var(--bg,#f5f3ee);border-radius:10px;padding:10px;line-height:1.45}
 #gd-demo{position:fixed;left:0;right:0;top:0;z-index:99995;display:flex;justify-content:center;padding:10px;font-family:var(--font-head,system-ui,sans-serif)}
 #gd-demo[hidden]{display:none}
@@ -168280,6 +168283,7 @@ if ('serviceWorker' in navigator) {
     <div class="gi-h">Bem-vindo ao BoraDiploma! 🎓</div>
     <div class="gi-txt">Instale na sua tela pra abrir com <b>1 toque</b>, como um app de verdade.</div>
     <button class="gi-btn" id="gd-install-ok">📲 Instalar agora</button>
+    <div class="gi-passos" id="gd-install-passos" hidden></div>
     <button class="gi-x" id="gd-install-no">Agora nao</button>
     <div class="gi-ios" id="gd-install-ios" hidden>No iPhone: toque em <b>Compartilhar</b> ↑ embaixo e depois em <b>"Adicionar a Tela de Inicio"</b>.</div>
   </div>
@@ -168361,15 +168365,23 @@ if ('serviceWorker' in navigator) {
   }catch(e){}
   function isStandalone(){ try{ return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }catch(e){ return false; } }
   function isiOS(){ try{ return /iphone|ipad|ipod/i.test(navigator.userAgent); }catch(e){ return false; } }
+  function passosInstalar(){
+    var ua = ''; try{ ua = navigator.userAgent || ''; }catch(e){}
+    if(isiOS()) return '<b>No iPhone:</b><ol><li>Toque em <span class="gi-ico">⬆</span> <b>Compartilhar</b> (embaixo, no Safari).</li><li>Toque em <b>Adicionar à Tela de Início</b>.</li><li>Toque em <b>Adicionar</b>. Pronto! 🎉</li></ol>';
+    if(/android/i.test(ua)) return '<b>No Android:</b><ol><li>Toque nos <span class="gi-ico">⋮</span> três pontinhos (em cima, à direita).</li><li>Se aparecer <b>Abrir no Chrome</b>, toque nele primeiro.</li><li>Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>. Pronto! 🎉</li></ol>';
+    return '<b>No computador:</b><ol><li>Na barra de endereço, clique no ícone <span class="gi-ico">⊕</span> (ou nos <span class="gi-ico">⋮</span> três pontinhos).</li><li>Clique em <b>Instalar BoraDiploma</b>. Pronto! 🎉</li></ol>';
+  }
   function maybeInstall(){
     if(!currentUser) return;
     if(pendEl && !pendEl.hidden) return;
     if(subEl && !subEl.hidden) return;
     if(isStandalone()) return;
     try{ var d = Number(localStorage.getItem('gd_install_dismiss') || '0'); if(d && (Date.now()-d) < 7*86400000) return; }catch(e){}
-    if(!deferredPrompt && !isiOS()) return;
     var el = document.getElementById('gd-install'); if(!el) return;
-    if(isiOS() && !deferredPrompt){ var iosEl=document.getElementById('gd-install-ios'); if(iosEl) iosEl.hidden=false; var okB=document.getElementById('gd-install-ok'); if(okB) okB.style.display='none'; }
+    // sem o botao automatico do navegador: mostra o passo a passo de onde tocar (iPhone, Android ou PC)
+    var okB=document.getElementById('gd-install-ok'), psEl=document.getElementById('gd-install-passos');
+    if(okB) okB.style.display = deferredPrompt ? '' : 'none';
+    if(psEl){ psEl.innerHTML = deferredPrompt ? '' : passosInstalar(); psEl.hidden = !!deferredPrompt; }
     el.hidden = false;
   }
   (function(){
@@ -168744,8 +168756,9 @@ if ('serviceWorker' in navigator) {
     if(subEl) subEl.hidden = false;
   }
   function showTrialBanner(days){
+    // a faixa fixa na tela foi tirada (ficava em cima do microfone); o aviso so aparece do 10o dia em diante
     if(!trialEl) return;
-    trialEl.hidden = false;
+    trialEl.hidden = true;
     trialEl.classList.toggle('urgente', days <= 5);
     trialEl.innerHTML = 'Teste gratis: ' + (days === 1 ? 'falta 1 dia' : ('faltam ' + days + ' dias')) + ' &middot; <a href="#" id="gd-trial-a">Assinar</a>';
     var a = document.getElementById('gd-trial-a');
@@ -168753,8 +168766,9 @@ if ('serviceWorker' in navigator) {
     maybeRemind(days);
   }
   function maybeRemind(days){
-    if(days > 7) return;
-    try{ var hoje = new Date().toDateString(); if(localStorage.getItem('gd_remind_day') === hoje) return; localStorage.setItem('gd_remind_day', hoje); }catch(e){}
+    // faltando 5 dias ou menos (10o dia do teste em diante): avisa toda vez que o app abre
+    if(days > 5 || maybeRemind._feito) return;
+    maybeRemind._feito = true;
     showRemind(days);
   }
   function showRemind(days){

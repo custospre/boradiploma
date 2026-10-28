@@ -364,9 +364,11 @@
       if(dig && waDigits(dig)) wa = dig;
     }
     if(!waDigits(wa)){ abrirWhats(wa, nome, link); depois(); return; }   // sem numero: copia a mensagem
-    var msg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
-    var url = 'https://wa.me/' + waDigits(wa) + '?text=' + encodeURIComponent(msg);
-    try{ navigator.clipboard.writeText(link); }catch(e){}
+    var msg = msgAcesso(nome, link);
+    // um clique so: o navegador ainda deixa abrir logo depois do clique; se bloquear, o botao vira 'Enviar no WhatsApp'
+    if(abrirConversa(waDigits(wa), msg)){
+      b.disabled = false; b.textContent = '✓ Enviado'; depois(); return;
+    }
     b.disabled = false; b.classList.add('pronto'); b.style.background = '#25D366';
     b.textContent = '📲 Enviar no WhatsApp';
     b._go = function(){ abrirConversa(waDigits(wa), msg); b.classList.remove('pronto'); depois(); };
@@ -394,9 +396,15 @@
     try{ var w = window.open('', '_blank'); if(w){ try{ w.document.write('<p style="font:16px sans-serif;padding:20px">Abrindo o WhatsApp...</p>'); }catch(e){} } return w; }catch(e){ return null; }
   }
   function fecharPre(w){ try{ if(w) w.close(); }catch(e){} }
+  // mensagem curta de acesso (a mesma em todos os envios)
+  function msgAcesso(nome, link){
+    return 'Oi' + (nome?(' '+nome):'') + '! 🎓 Seu acesso ao BoraDiploma está liberado (15 dias grátis).\n\n'
+      + '1️⃣ Toque aqui para entrar: ' + link + '\n'
+      + '2️⃣ Quando o app abrir, toque em *Instalar* para ter o ícone na tela.';
+  }
   function abrirWhats(wa, nome, link, win){
     _plWa = waDigits(wa);
-    _plMsg = 'Oi' + (nome?(' '+nome):'') + '! Seu acesso ao BoraDiploma esta liberado (15 dias de teste gratis). Toque no link para entrar, sem senha: ' + link;
+    _plMsg = msgAcesso(nome, link);
     if(!_plWa){
       // sem numero (pediu pelo proprio WhatsApp): so copia a mensagem; voce cola na conversa dela que ja esta aberta
       var mostrar = function(){ abrirCaixa(nome, link); };
@@ -420,7 +428,7 @@
   function abrirConversa(d, msg){
     d = String(d||'').replace(/\D/g,''); msg = msg||'';
     if(msg){ try{ navigator.clipboard.writeText(msg); }catch(e){} }
-    window.open('https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):''), '_blank');
+    return window.open('https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):''), '_blank');
   }
   function abrirCaixa(nome, link){
     var el=document.getElementById('pedlink');
