@@ -464,6 +464,24 @@ select.mini{font:inherit;font-family:var(--font-head);font-size:.82rem;padding:7
 .prz .pwhen{font-weight:700;color:var(--accent);white-space:nowrap}
 .prz.soon .pwhen{color:#c0392b}
 .prz small{display:block;color:var(--muted);font-weight:500;font-size:.78rem}
+#view-agenda{max-width:760px}
+.agform{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.agform input{width:100%;box-sizing:border-box}
+.agform .agfull{grid-column:1/-1}
+.agform .agbtns{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.agform label{font-family:var(--font-head);font-size:.78rem;color:var(--muted);display:block;margin-bottom:3px}
+.agcard{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px;cursor:pointer}
+.agcard:hover{border-color:var(--accent)}
+.agcard .agtxt{flex:1;min-width:0;font-family:var(--font-head)}
+.agcard .agtit{font-weight:700;font-size:1.02rem;overflow-wrap:anywhere}
+.agcard .agsub{color:var(--muted);font-size:.86rem;margin-top:3px;overflow-wrap:anywhere}
+.agcard .agsub b{color:var(--accent)}
+.agcard.hoje{border-left:4px solid var(--accent)}
+.agcard.passou{opacity:.55}
+.agdel{background:none;border:none;cursor:pointer;font-size:1.15rem;padding:6px;color:var(--muted)}
+.agdel:hover{color:#b23}
+.aghd{font-family:var(--font-head);font-weight:700;font-size:.82rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px}
+@media (max-width:520px){.agform{grid-template-columns:1fr}}
 .modal .mfoot{padding:12px 18px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--line)}
 .aulabar{display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;margin:0 0 12px;
   padding:10px 12px;background:var(--accent-soft);border:1px solid var(--line);border-radius:10px}
@@ -731,6 +749,13 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
 <div class="bkcard"><label class="act bkbig" style="display:inline-block;cursor:pointer">⬆ Restaurar backup<input type="file" id="bkUp" accept="application/json,.json" style="display:none"></label><p>Escolha um arquivo de backup (.json). As disciplinas dele são <b>acrescentadas</b> às atuais — nada é apagado.</p></div>
 <div class="bkcard"><button type="button" class="notesbtn bkbig" id="bkCopy">📋 Copiar tudo (texto)</button><p>Copia o texto de todas as aulas e materiais para colar no Word, e-mail etc.</p></div>
 </div></section>
+<section id="view-agenda" hidden><h1>📅 Agenda</h1><p class="lead">Seus compromissos, em ordem de data. Toque num compromisso para editar.</p>
+<div class="agform" id="agForm"><div class="agfull"><label for="agTit">Compromisso</label><input id="agTit" placeholder="Ex.: Reunião com o orientador" autocomplete="off"></div>
+<div><label for="agData">Data</label><input id="agData" type="date"></div>
+<div><label for="agHora">Hora</label><input id="agHora" type="time"></div>
+<div class="agfull"><label for="agObs">Observações</label><input id="agObs" placeholder="Ex.: Levar o trabalho impresso · Sala 204" autocomplete="off"></div>
+<div class="agbtns"><button type="button" class="act" id="agSalvar">＋ Adicionar</button><button type="button" class="notesbtn" id="agCancelar" hidden>Cancelar</button></div></div>
+<div id="agLista"></div></section>
 <section id="view-prazos" hidden><h1>Painel de prazos</h1><p class="lead">Avaliações e eventos de todas as disciplinas, por data.</p><div id="prazosBody"></div></section>
 <section class="code" id="code-pen" data-code="pen">
 <p class="sub">Decreto-Lei nº 2.848, de 7 de dezembro de 1940 — texto compilado. Fonte: Planalto.</p>
@@ -165221,7 +165246,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     if(curNoteId && !viewNote.hidden) saveCaret();
   }
   window.gdFlushAll = flushAll;
-  function hideViews(){ viewIndex.hidden=true; viewFolder.hidden=true; viewNotes.hidden=true; viewSubject.hidden=true; viewNote.hidden=true; if(viewPrazos)viewPrazos.hidden=true; var vm=document.getElementById('view-manual'); if(vm) vm.hidden=true; var vfo=document.getElementById('view-fora'); if(vfo) vfo.hidden=true; var vb=document.getElementById('view-backup'); if(vb) vb.hidden=true; hideAllCodes(); }
+  function hideViews(){ viewIndex.hidden=true; viewFolder.hidden=true; viewNotes.hidden=true; viewSubject.hidden=true; viewNote.hidden=true; if(viewPrazos)viewPrazos.hidden=true; var vm=document.getElementById('view-manual'); if(vm) vm.hidden=true; var vfo=document.getElementById('view-fora'); if(vfo) vfo.hidden=true; var vb=document.getElementById('view-backup'); if(vb) vb.hidden=true; var vag=document.getElementById('view-agenda'); if(vag) vag.hidden=true; hideAllCodes(); }
   function hideControls(){ controls.hidden=true; noteControls.hidden=true; updateAulaBtn(); updateTopNew(); }
   var newAulaTop=document.getElementById('newAulaTop'), newEstTop=document.getElementById('newEstTop'), saveBtn=document.getElementById('saveBtn');
   function updateTopNew(){ var on=!!curSubjectId; if(newAulaTop) newAulaTop.hidden=!on; if(newEstTop) newEstTop.hidden=!on; }
@@ -165383,6 +165408,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     var pk=[{label:'Todas as disciplinas', act:'prazos'}];
     subs.forEach(function(s){ pk.push({label:s.name||'(sem nome)', act:'prazos:'+s.id}); });
     t.push({label:'Painel de prazos', children:pk});
+    t.push({label:'📅 Agenda', act:'agenda'});
     t.push({label:'🛟 Backup', act:'backup'});
     t.push({label:'📖 Manual do app', act:'manual'});
     return t;
@@ -165395,6 +165421,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     if(act==='manual'){ openManual(); return; }
     if(act==='fora'){ openFora(); return; }
     if(act==='backup'){ openBackup(); return; }
+    if(act==='agenda'){ openAgenda(); return; }
     if(act==='site'){ openFacSite(); return; }
     if(act==='matdir'){ window.open(MAT_DIR,'_blank'); return; }
     if(act==='newsub'){ var o=newSubject(); openSubject(o.id); return; }
@@ -165424,9 +165451,12 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
   var LS='vademecum_subjects_v1', LSA='vademecum_active_aula_v1', LSS='vademecum_active_subj_v1', OLD='vademecum_notes_v1';
   function uid(){ return 'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
   function fmtDate(t){ try{ var d=new Date(t); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
-  function saveSubs(a){ try{ localStorage.setItem(LS, JSON.stringify(a)); if(typeof setDirty==='function') setDirty(false); }catch(e){ toast('Não foi possível salvar — espaço cheio?'); } }
+  function agRaw(){ try{ var r=JSON.parse(localStorage.getItem(LS)||'[]'); return Array.isArray(r)?r:[]; }catch(e){ return []; } }
+  function agItem(r){ return (r||agRaw()).filter(function(x){ return x&&x.kind==='agenda'; })[0]||null; }
+  function saveSubs(a){ a=(a||[]).filter(function(x){ return !(x&&x.kind==='agenda'); }); var ag=agItem(); if(ag) a=a.concat([ag]); try{ localStorage.setItem(LS, JSON.stringify(a)); if(typeof setDirty==='function') setDirty(false); }catch(e){ toast('Não foi possível salvar — espaço cheio?'); } }
   function getSubs(){
     var s=null; try{ s=JSON.parse(localStorage.getItem(LS)||'null'); }catch(e){ s=null; }
+    if(s&&Array.isArray(s)) s=s.filter(function(x){ return !(x&&x.kind==='agenda'); });
     if(!s){ s=[];
       try{ var old=JSON.parse(localStorage.getItem(OLD)||'[]'); if(old&&old.length){ s=[{id:uid(),name:'Geral',prof:'',created:Date.now(),aulas:old}]; } }catch(e){}
       saveSubs(s);
@@ -166761,7 +166791,7 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     });
   }
   function exportBackupData(files){
-    var data=JSON.stringify({app:'BoraDiploma',ver:2,exported:Date.now(),subjects:getSubs(),files:files||[]});
+    var data=JSON.stringify({app:'BoraDiploma',ver:2,exported:Date.now(),subjects:getSubs(),agenda:getAgenda(),files:files||[]});
     try{
       var blob=new Blob([data],{type:'application/json'});
       var url=URL.createObjectURL(blob);
@@ -166778,6 +166808,8 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
       try{
         var obj=JSON.parse(r.result);
         var subs=Array.isArray(obj)?obj:(obj.subjects||[]);
+        subs=subs.filter(function(x){ return !(x&&x.kind==='agenda'); });
+        if(Array.isArray(obj.agenda)&&obj.agenda.length){ var ga=getAgenda(), gi={}; ga.forEach(function(x){ gi[x.id]=1; }); obj.agenda.forEach(function(x){ if(x&&x.id&&!gi[x.id]) ga.push(x); }); saveAgenda(ga); if(!subs.length){ toast('Agenda restaurada'); return; } }
         if(!subs.length){ toast('Backup vazio ou inválido'); return; }
         var cur=getSubs(), n=0;
         subs.forEach(function(s){ if(!s||typeof s!=='object')return; s.id=uid(); if(!Array.isArray(s.aulas))s.aulas=[]; var mp={}; s.aulas.forEach(function(au){ var nid=uid(); mp[au.id]=nid; au.id=nid; }); (s.estudos||[]).forEach(function(es){ es.id=uid(); if(es.aula) es.aula=mp[es.aula]||''; }); cur.unshift(s); n++; });
@@ -166833,6 +166865,74 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
     if(d) d.addEventListener('click',function(){ flushAll(); exportBackup(); });
     if(u) u.addEventListener('change',function(){ if(u.files&&u.files[0]) importBackup(u.files[0]); u.value=''; });
     if(c) c.addEventListener('click',function(){ flushAll(); copyAll(); }); })();
+  // --- agenda (compromissos, estilo Voz System) ---
+  // excluir = marcar del:true (assim a exclusão também vale no outro aparelho ao sincronizar)
+  function getAgenda(){ var ag=agItem(); return (ag&&Array.isArray(ag.itens))?ag.itens:[]; }
+  function saveAgenda(itens){
+    var r=agRaw().filter(function(x){ return !(x&&x.kind==='agenda'); });
+    r.push({id:'__agenda__',kind:'agenda',itens:itens,updated:Date.now()});
+    try{ localStorage.setItem(LS, JSON.stringify(r)); }catch(e){ toast('Não foi possível salvar — espaço cheio?'); }
+  }
+  var agEdit=null;
+  function agKey(x){ return (x.data||'9999-99-99')+' '+(x.hora||'99:99'); }
+  function agHoje(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function agQuando(x){
+    if(!x.data) return x.hora?('às '+x.hora):'';
+    var p=x.data.split('-'), dt=new Date(+p[0],+p[1]-1,+p[2]), h=agHoje();
+    var t=new Date(); t.setHours(0,0,0,0); var dd=Math.round((dt-t)/86400000);
+    var rot=dd===0?'Hoje':dd===1?'Amanhã':dd===-1?'Ontem':(p[2]+'/'+p[1]+(p[0]!==h.slice(0,4)?'/'+p[0]:''));
+    if(dd>1&&dd<7) rot=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()]+' '+p[2]+'/'+p[1];
+    return rot+(x.hora?' às '+x.hora:'');
+  }
+  function renderAgenda(){
+    var box=document.getElementById('agLista'); if(!box) return;
+    var h=agHoje(), it=getAgenda().filter(function(x){ return x&&!x.del; }).sort(function(a,b){ return agKey(a)<agKey(b)?-1:agKey(a)>agKey(b)?1:0; });
+    var fut=it.filter(function(x){ return !x.data||x.data>=h; }), pas=it.filter(function(x){ return x.data&&x.data<h; }).reverse();
+    function card(x){ var q=agQuando(x), cls=(x.data===h?' hoje':'')+(x.data&&x.data<h?' passou':'');
+      return '<div class="agcard'+cls+'" data-id="'+esc(x.id)+'"><div class="agtxt"><div class="agtit">'+esc(x.titulo||'(sem título)')+'</div>'+
+        ((q||x.obs)?'<div class="agsub">'+(q?'<b>'+esc(q)+'</b>':'')+(q&&x.obs?' · ':'')+esc(x.obs||'')+'</div>':'')+
+        '</div><button type="button" class="agdel" data-id="'+esc(x.id)+'" title="Excluir compromisso">🗑</button></div>'; }
+    var o='';
+    if(!it.length) o='<div class="subempty">Nenhum compromisso ainda. Preencha acima e toque em ＋ Adicionar.</div>';
+    if(fut.length) o+=fut.map(card).join('');
+    else if(it.length) o+='<div class="subempty">Nenhum compromisso pela frente.</div>';
+    if(pas.length) o+='<div class="aghd">Já passaram</div>'+pas.map(card).join('');
+    box.innerHTML=o;
+  }
+  function agLimpa(){ agEdit=null; ['agTit','agObs','agHora'].forEach(function(i){ document.getElementById(i).value=''; }); document.getElementById('agData').value=agHoje();
+    document.getElementById('agSalvar').textContent='＋ Adicionar'; document.getElementById('agCancelar').hidden=true; }
+  function agSalvar(){
+    var tit=document.getElementById('agTit').value.trim(); if(!tit){ toast('Escreva o compromisso'); document.getElementById('agTit').focus(); return; }
+    var v={titulo:tit,data:document.getElementById('agData').value||'',hora:document.getElementById('agHora').value||'',obs:document.getElementById('agObs').value.trim(),updated:Date.now()};
+    var a=getAgenda(), x=agEdit?a.filter(function(y){ return y.id===agEdit; })[0]:null;
+    if(x){ Object.keys(v).forEach(function(k){ x[k]=v[k]; }); toast('Compromisso alterado'); }
+    else { v.id=uid(); v.created=v.updated; a.push(v); toast('Compromisso adicionado'); }
+    saveAgenda(a); agLimpa(); renderAgenda(); document.getElementById('agTit').focus();
+  }
+  function openAgenda(){
+    flushAll(); active=null; curFolder=null; curNoteId=null; curSubjectId=null;
+    hideViews(); document.getElementById('view-agenda').hidden=false; hideControls();
+    backBtn.hidden=false; backBtn.textContent='← Página anterior';
+    crumb.innerHTML='<span class="dim">Índice ›</span> Agenda'; window.scrollTo({top:0});
+    agLimpa(); renderAgenda();
+  }
+  (function(){
+    var s=document.getElementById('agSalvar'), c=document.getElementById('agCancelar'), l=document.getElementById('agLista');
+    if(s) s.addEventListener('click',agSalvar);
+    if(c) c.addEventListener('click',agLimpa);
+    ['agTit','agData','agHora','agObs'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); agSalvar(); } else if(ev.key==='Escape'&&agEdit){ agLimpa(); } }); });
+    if(l) l.addEventListener('click',function(e){
+      var d=e.target.closest('.agdel');
+      if(d){ var id=d.getAttribute('data-id'), a=getAgenda(), x=a.filter(function(y){ return y.id===id; })[0]; if(!x) return;
+        if(!confirm('Excluir "'+(x.titulo||'compromisso')+'"?')) return;
+        x.del=true; x.updated=Date.now(); saveAgenda(a); if(agEdit===id) agLimpa(); renderAgenda(); toast('Compromisso excluído'); return; }
+      var cd=e.target.closest('.agcard'); if(!cd) return;
+      var x2=getAgenda().filter(function(y){ return y.id===cd.getAttribute('data-id'); })[0]; if(!x2) return;
+      agEdit=x2.id; document.getElementById('agTit').value=x2.titulo||''; document.getElementById('agData').value=x2.data||''; document.getElementById('agHora').value=x2.hora||''; document.getElementById('agObs').value=x2.obs||'';
+      document.getElementById('agSalvar').textContent='💾 Salvar alteração'; document.getElementById('agCancelar').hidden=false;
+      window.scrollTo({top:0,behavior:'smooth'}); document.getElementById('agTit').focus();
+    });
+  })();
   function openManual(){
     flushAll(); active=null; curFolder=null; curNoteId=null; curSubjectId=null;
     hideViews(); document.getElementById('view-manual').hidden=false; hideControls();
@@ -167992,7 +168092,7 @@ if ('serviceWorker' in navigator) {
     (local || []).forEach(function(l){ if(!l) return; var c = (l.id != null) ? ic[l.id] : null; if(l.id != null) seen[l.id] = 1;
       if(!c){ out.push(l); return; }
       var m = {}; Object.keys(c).forEach(function(k){ m[k] = c[k]; }); Object.keys(l).forEach(function(k){ m[k] = l[k]; });
-      ['aulas', 'estudos', 'avals', 'trabalhos'].forEach(function(k){ if(Array.isArray(l[k]) || Array.isArray(c[k])) m[k] = mergeList(l[k], c[k]); });
+      ['aulas', 'estudos', 'avals', 'trabalhos', 'itens'].forEach(function(k){ if(Array.isArray(l[k]) || Array.isArray(c[k])) m[k] = mergeList(l[k], c[k]); });
       out.push(m);
     });
     (cloud || []).forEach(function(c){ if(c && c.id != null && !seen[c.id]) out.push(c); });
@@ -168019,7 +168119,7 @@ if ('serviceWorker' in navigator) {
   var demoTimer = null, demoPending = null;
   function updateDemo(subj){
     if(!currentUser || currentUser.id !== OWNER_UID || lsGet('gd_is_demo')) return;
-    demoPending = subj;
+    demoPending = (subj || []).filter(function(x){ return !(x && x.kind === 'agenda'); });
     if(demoTimer) return;
     var last = Number(lsGet('gd_demo_upd') || '0') || 0;
     var wait = Math.max(0, 5*60000 - (Date.now() - last));
