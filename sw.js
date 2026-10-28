@@ -3,7 +3,7 @@
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'boradiploma-v116';
+const CACHE = 'boradiploma-v117';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -56,21 +56,30 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// --- Lembretes de prazo (push) --- (sera ativado na Fase 3) ---
+// --- Avisos da agenda (push) --- enviados pela funcao enviar-lembretes do Supabase ---
 self.addEventListener('push', (event) => {
-  let data = { title: 'BoraDiploma', body: 'Voce tem um prazo chegando.' };
+  let data = { title: 'BoraDiploma', body: 'Voce tem um compromisso chegando.' };
   try { if (event.data) data = event.data.json(); } catch (e) {}
   event.waitUntil(
     self.registration.showNotification(data.title || 'BoraDiploma', {
       body: data.body || '',
       icon: './icons/icon-192.png',
       badge: './icons/icon-192.png',
+      tag: data.tag || undefined,
+      renotify: !!data.tag,
+      vibrate: [200, 100, 200],
       data: data.url || './app.html'
     })
   );
 });
 
+// tocar na notificacao: volta para o app se ja estiver aberto; senao abre
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data || './app.html'));
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((lista) => {
+      for (const c of lista) { if ('focus' in c) return c.focus(); }
+      return clients.openWindow(event.notification.data || './app.html');
+    })
+  );
 });
