@@ -313,14 +313,15 @@ main:has(> #view-index:not([hidden])){margin-left:0;margin-right:auto;max-width:
   font-size:.78rem;color:var(--muted);white-space:nowrap}
 .dynrow .dentregue{font-family:var(--font-head);font-size:.82rem;background:var(--surface);
   border:1px solid var(--line);border-radius:8px;padding:6px 7px;color:var(--fg)}
-.dynrow.jaentregue .dlabel{text-decoration:line-through;opacity:.6}
+.dynrow.jaentregue .dlabel{padding-right:30px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 12.5l5 5L20 6.5' fill='none' stroke='%232e7d32' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;background-size:16px}
 .dynrow.jaentregue .dentregue{border-color:var(--accent);color:var(--accent);font-weight:700}
 /* coluna "Data entrega" do painel de prazos */
 .ptable td.pdeliv,.ptable th.pdeliv{padding:4px 8px;white-space:nowrap;text-align:center}
 .ptable input.dentrega{font-family:var(--font-head);font-size:.78rem;padding:4px 6px;
   border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg)}
 .ptable input.dentrega:focus{outline:2px solid var(--accent);outline-offset:1px}
-.ptable tr.entregue .prowlbl{text-decoration:line-through;opacity:.55}
+.ptable tr.entregue .prowlbl{color:var(--muted)}
+.ptable tr.entregue .prowlbl::after{content:' \2714';color:#2e7d32;font-weight:800;margin-left:4px}
 .ptable tr.entregue .pcell.filled{opacity:.4}
 .ptable tr.entregue input.dentrega{border-color:var(--accent);color:var(--accent);font-weight:700}
 .prtDica{flex:1 0 100%;font-family:var(--font-head);font-size:.78rem;line-height:1.45;color:var(--muted);
