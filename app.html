@@ -167201,9 +167201,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     function tab(l){ return '<div class="agtab"><div class="agth"><span>Data</span><span>Hora</span><span>Compromisso</span><span></span></div>'+l.map(card).join('')+'</div>'; }
     var o='';
     if(!it.length) o='<div class="subempty">Nenhum compromisso ainda. Toque em ＋ Novo compromisso.</div>';
-    if(fut.length) o+=tab(fut);
-    else if(it.length) o+='<div class="subempty">Nenhum compromisso pela frente.</div>';
-    if(pas.length) o+='<div class="aghd">Já passaram</div>'+tab(pas);
+    if(it.length) o+=tab(it);
     box.innerHTML=o;
   }
   function agLimpa(){ agEdit=null; ['agTit','agObs','agHora'].forEach(function(i){ document.getElementById(i).value=''; }); document.getElementById('agData').value=agHoje();
