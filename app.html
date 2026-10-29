@@ -803,7 +803,11 @@ html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="formatar"]{o
 html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="inserir"]{order:24}
 html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="pagina"]{order:26}
 html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="ouvir"]{order:28}
-html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #saveBtn{order:30}
+#ribBreak2{display:none}
+/* Buscar Lei / Lei n / art. n / Partes / Inserir artigo: linha propria, logo acima de 'Direito Civil' */
+html.rib-tudo body:has(#view-note:not([hidden])) #ribBreak2{display:block;order:31;flex-basis:100%;height:0}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in .pickwrap,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #insCode,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #insLei,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #insNum,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #insParts,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #insDo{order:32}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #saveBtn{order:33}
 html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px;height:22px;background:var(--accent);opacity:.35;margin:0 5px;border-radius:2px}
 @media (max-width:560px){
   body:has(#view-note:not([hidden])) .bar-in{gap:5px;padding-block:5px}
@@ -907,11 +911,12 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   }
   // separadores entre os grupos (aparecem so quando esta tudo aberto)
   [21,23,25,27].forEach(function(o){ var d=document.createElement('div'); d.className='ribSep'; d.style.order=o; bi.appendChild(d); });
+  var b2=document.createElement('div'); b2.id='ribBreak2'; bi.appendChild(b2);
   // tela larga: abre tudo; se nao couber em 3 linhas, volta para as abas
   var vn=document.getElementById('view-note'), RT=document.documentElement;
   function avalia(){ if(window.innerWidth<1100||window.matchMedia('(pointer:coarse)').matches){ RT.classList.remove('rib-tudo'); return; }
     RT.classList.add('rib-tudo'); if(!vn||vn.hidden) return;
-    if(bi.getBoundingClientRect().height > 3*28+2*5+12+6) RT.classList.remove('rib-tudo'); }
+    if(bi.getBoundingClientRect().height > 4*28+3*5+12+6) RT.classList.remove('rib-tudo'); }
   var tA=null; window.addEventListener('resize',function(){ clearTimeout(tA); tA=setTimeout(avalia,120); });
   if(vn&&window.MutationObserver) new MutationObserver(function(){ setTimeout(avalia,0); }).observe(vn,{attributes:true,attributeFilter:['hidden']});
   avalia();
