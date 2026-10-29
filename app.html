@@ -168615,7 +168615,7 @@ if ('serviceWorker' in navigator) {
   // so a nuvem -> baixa; so o aparelho -> envia; os dois -> junta item a item (vale o mais novo).
   var K_SYNC_AT = 'gd_synced_at', K_SYNC_H = 'gd_synced_hash';
   var syncing = false, syncAgain = false;
-  function hashStr(s){ s = s || ''; var h = 2166136261; for(var i=0;i<s.length;i++){ h = Math.imul(h ^ s.charCodeAt(i), 16777619); } return (h>>>0).toString(36) + '.' + s.length; }
+  function hashStr(s){ s = (s || '').replace(/,"caret":(null|\{"p":\[[^\]]*\],"o":\d+\})/g, ''); var h = 2166136261; for(var i=0;i<s.length;i++){ h = Math.imul(h ^ s.charCodeAt(i), 16777619); } return (h>>>0).toString(36) + '.' + s.length; }
   function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
   function markSynced(at, h){ lsSet(K_SYNC_AT, at || ''); lsSet(K_SYNC_H, h || ''); lsSet(K_ACCOUNT, currentUser.id); }
@@ -168625,7 +168625,7 @@ if ('serviceWorker' in navigator) {
   function refreshView(force){
     if(!force && editing()){ cloudStatus('atualizado de outro aparelho'); setTimeout(function(){ cloudStatus(''); }, 4000); return; }
     var t = 0; try{ t = Number(sessionStorage.getItem('gd_reload_t') || '0'); sessionStorage.setItem('gd_reload_t', String(Date.now())); }catch(e){}
-    if(!force && Date.now() - t < 8000) return;
+    if(!force && Date.now() - t < 60000){ cloudStatus('atualizado de outro aparelho'); setTimeout(function(){ cloudStatus(''); }, 4000); return; }
     location.reload();
   }
 
@@ -168684,7 +168684,7 @@ if ('serviceWorker' in navigator) {
     cloudStatus('carregando exemplo...');
     sb.from('demo').select('subjects').eq('id', 1).maybeSingle().then(function(r){
       if(r && r.data && r.data.subjects != null){
-        lsSet('gd_is_demo', '1');
+        lsSet('gd_is_demo', '1'); lsSet('gd_exemplo_visto', String(Date.now()));
         var str = JSON.stringify(r.data.subjects);
         setLocal(str);
         upload(str, hashStr(str), function(){ cb(); refreshView(true); });
