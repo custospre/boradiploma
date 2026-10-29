@@ -812,6 +812,10 @@ html.rib-tudo body:has(#view-note:not([hidden])) .bar-in .pickwrap,html.rib-tudo
 html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #backBtn{order:32}
 html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #attPdf{order:32}
 html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #saveBtn{order:33}
+/* Excluir: ao lado do Salvo, so na pagina de aula/material/avaliacao/trabalho */
+body:not(:has(#view-note:not([hidden]))) #delNoteBtn{display:none !important}
+body:has(#view-note:not([hidden])) .bar-in #delNoteBtn{order:1}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #delNoteBtn{order:33}
 html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px;height:22px;background:var(--accent);opacity:.35;margin:0 5px;border-radius:2px}
 @media (max-width:560px){
   body:has(#view-note:not([hidden])) .bar-in{gap:5px;padding-block:5px}
@@ -836,6 +840,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   <button id="newAulaTop" class="notesbtn" hidden title="Criar uma nova aula nesta disciplina">＋ Nova aula</button>
   <button id="newEstTop" class="notesbtn" hidden title="Criar um novo material de estudo nesta disciplina">＋ Novo material</button>
   <button id="saveBtn" class="savebtn" title="Salvar agora (Ctrl+S)">✔ Salvo</button>
+  <button id="delNoteBtn" class="notesbtn" title="Excluir esta página (a que está na caixa Ir para…)">🗑 Excluir</button>
   <button id="shareBtn" class="notesbtn" title="Compartilhar esta página">📤 Compartilhar</button>
   <button id="printBtn" class="notesbtn" title="Imprimir ou salvar em PDF">🖨 Imprimir</button>
   <div id="searchControls" class="grp" hidden style="gap:10px 12px;flex-wrap:wrap">
@@ -165937,6 +165942,19 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   [].slice.call(document.querySelectorAll('#view-subject .dstoggle')).forEach(function(b){
     b.addEventListener('click',function(){ b.parentNode.classList.toggle('open'); });
   });
+  // Excluir a pagina aberta (a que esta na caixa 'Ir para aula'), ali mesmo
+  (function(){ var db=document.getElementById('delNoteBtn'); if(!db) return;
+    db.addEventListener('click',function(){ if(!curSubjectId||!curNoteId) return;
+      var a=getSubs(), s=findSub(a,curSubjectId); if(!s) return; var sec=curSec||'aulas', lst=s[sec]||[];
+      var o=lst.filter(function(x){return x.id===curNoteId;})[0]; if(!o) return;
+      var NM={aulas:'esta aula',estudos:'este material de estudo',avals:'esta avaliação',trabalhos:'este trabalho'}, nome=(o.title||o.label||'').trim();
+      if(!confirm('Excluir '+(NM[sec]||'esta página')+(nome?(' "'+nome+'"'):'')+'?\n\nO texto dela será apagado.')) return;
+      clearTimeout(saveTimer); saveTimer=null; var id=curNoteId; curNoteId=null;
+      s[sec]=lst.filter(function(x){return x.id!==id;}); saveSubs(a);
+      if(sec==='aulas'&&getActAula()===id) setActAula('');
+      setDirty(false); toast(sec==='aulas'?'Aula excluída':(sec==='estudos'?'Material excluído':'Excluído'));
+      if(sec==='aulas') openSubject(curSubjectId); else if(sec==='estudos') openSubject(curSubjectId,{est:true}); else openSubject(curSubjectId,{sec:sec});
+    }); })();
   function delAula(sid,aid){
     var a=getSubs(); var s=findSub(a,sid); if(!s)return;
     s.aulas=s.aulas.filter(function(x){return x.id!==aid;}); saveSubs(a);
