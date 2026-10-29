@@ -165950,9 +165950,12 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       var NM={aulas:'esta aula',estudos:'este material de estudo',avals:'esta avaliação',trabalhos:'este trabalho'}, nome=(o.title||o.label||'').trim();
       if(!confirm('Excluir '+(NM[sec]||'esta página')+(nome?(' "'+nome+'"'):'')+'?\n\nO texto dela será apagado.')) return;
       clearTimeout(saveTimer); saveTimer=null; var id=curNoteId; curNoteId=null;
+      // depois de excluir, volta para a pagina que estava aberta antes (ou a vizinha da lista)
+      var pv=window.bdPrevNote, ix=lst.indexOf(o), vai=lst.filter(function(x){ return x.id===pv&&x.id!==id; })[0]||lst[ix-1]||lst[ix+1]||null;
       s[sec]=lst.filter(function(x){return x.id!==id;}); saveSubs(a);
       if(sec==='aulas'&&getActAula()===id) setActAula('');
       setDirty(false); toast(sec==='aulas'?'Aula excluída':(sec==='estudos'?'Material excluído':'Excluído'));
+      if(vai){ openNote(curSubjectId,vai.id); return; }
       if(sec==='aulas') openSubject(curSubjectId); else if(sec==='estudos') openSubject(curSubjectId,{est:true}); else openSubject(curSubjectId,{sec:sec});
     }); })();
   function delAula(sid,aid){
@@ -165972,7 +165975,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     if(!o){ openSubject(sid); return; }
     curSec=sec;
     curIsEst=isEst; curEstAula=(sec==='estudos')?(o.aula||''):'';
-    curSubjectId=sid; curNoteId=aid; setActSub(sid); if(!isEst) setActAula(aid); active=null; curFolder=null;
+    curSubjectId=sid; if(curNoteId&&curNoteId!==aid) window.bdPrevNote=curNoteId; curNoteId=aid; setActSub(sid); if(!isEst) setActAula(aid); active=null; curFolder=null;
     hideViews(); viewNote.hidden=false; hideControls(); noteControls.hidden=false;
     backBtn.hidden=false; backBtn.textContent='← Página anterior';
     var SECN={aulas:['aula','Título da aula (ex.: Aula 3 — Prescrição)','Comece a digitar a aula aqui…','Ir para aula:',''],
