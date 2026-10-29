@@ -511,7 +511,13 @@ select.mini{font:inherit;font-family:var(--font-head);font-size:.82rem;padding:7
 .agform .agfull{grid-column:1/-1}
 .agform .agbtns{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
 .agform label{font-family:var(--font-head);font-size:.78rem;color:var(--muted);display:block;margin-bottom:3px}
-body:has(#view-agenda:not([hidden])) :is(#homeBtn,#backBtn,#notesBtn,#saveBtn,#delNoteBtn,#shareBtn,#printBtn){display:none!important}
+body:has(#view-agenda:not([hidden])) .bar{display:none!important}
+.aghead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 6px}
+.aghead h1{margin:0;min-width:0}
+.aghead .bd-marca{cursor:pointer;flex:0 0 auto;padding:5px 8px 4px;gap:2px;border-radius:12px}
+.aghead .bd-marca img{width:42px;height:42px}
+.aghead .bd-marca .bd-nome{font-size:9px}
+@media (max-width:520px){.aghead h1{font-size:1.3rem}}
 .agtab{display:grid;grid-template-columns:auto auto 1fr auto;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);font-family:var(--font-head);font-size:.9rem;margin-bottom:10px}
 .agtab>div{display:contents}
 .agtab>div>span{padding:5px 8px;border-top:1px solid var(--line);line-height:1.25;min-width:0}
@@ -971,7 +977,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
 <div class="bkcard"><label class="act bkbig" style="display:inline-block;cursor:pointer">⬆ Restaurar backup<input type="file" id="bkUp" accept="application/json,.json" style="display:none"></label><p>Escolha um arquivo de backup (.json). As disciplinas dele são <b>acrescentadas</b> às atuais — nada é apagado.</p></div>
 <div class="bkcard"><button type="button" class="notesbtn bkbig" id="bkCopy">📋 Copiar tudo (texto)</button><p>Copia o texto de todas as aulas e materiais para colar no Word, e-mail etc.</p></div>
 </div></section>
-<section id="view-agenda" hidden><h1 id="agH1">📅 Agenda</h1><div class="agtabs" id="agTabs"><button type="button" data-q="pessoal">👤 Pessoal</button><button type="button" data-q="bora">🎓 BoraDiploma</button></div><button type="button" class="act" id="agNovo">＋ Novo compromisso</button><div class="agform" id="agForm" hidden><div class="agfull"><label for="agTit">Compromisso</label><input id="agTit" placeholder="Ex.: Reunião com o orientador" autocomplete="off"></div>
+<section id="view-agenda" hidden><div class="aghead"><h1 id="agH1">📅 Agenda</h1><div class="bd-marca" id="agLogo" title="Ir ao índice"><img id="agLogoImg" alt="BoraDiploma"><div class="bd-nome">Bora<b>Diploma</b></div></div></div><div class="agtabs" id="agTabs"><button type="button" data-q="pessoal">👤 Pessoal</button><button type="button" data-q="bora">🎓 BoraDiploma</button></div><button type="button" class="act" id="agNovo">＋ Novo compromisso</button><div class="agform" id="agForm" hidden><div class="agfull"><label for="agTit">Compromisso</label><input id="agTit" placeholder="Ex.: Reunião com o orientador" autocomplete="off"></div>
 <div><label for="agData">Data</label><input id="agData" type="date"></div>
 <div><label for="agHora">Hora</label><input id="agHora" type="time"></div>
 <div class="agfull"><label for="agObs">Observações</label><input id="agObs" placeholder="Ex.: Levar o trabalho impresso · Sala 204" autocomplete="off"></div>
@@ -167240,6 +167246,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   function openAgenda(q){
     flushAll(); active=null; curFolder=null; curNoteId=null; curSubjectId=null;
     hideViews(); document.getElementById('view-agenda').hidden=false; hideControls();
+    var al=document.getElementById('agLogoImg'), bi=document.querySelector('.brandimg'); if(al&&bi&&!al.src) al.src=bi.src;
     backBtn.hidden=false; backBtn.textContent='← Página anterior';
     window.scrollTo({top:0});
     agTroca(q||agQual);
@@ -167253,6 +167260,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     var ap=document.getElementById('agPush'); if(ap) ap.addEventListener('click',function(e){
       if(e.target.id==='agPushAtivar') agAtivar();
       if(e.target.id==='agPushTeste'&&window.bdTestarAviso){ e.target.textContent='Enviando…'; window.bdTestarAviso(function(m){ toast(m); agPushRender(); }); } });
+    var lg=document.getElementById('agLogo'); if(lg) lg.addEventListener('click',function(){ homeBtn.click(); });
     var nv=document.getElementById('agNovo'); if(nv) nv.addEventListener('click',function(){ agLimpa(); agAbreForm(); });
     var tb=document.getElementById('agTabs'); if(tb) tb.addEventListener('click',function(e){ var b=e.target.closest('button'); if(b) agTroca(b.getAttribute('data-q')); });
     ['agTit','agData','agHora','agObs'].forEach(function(i){ var e=document.getElementById(i); if(e) e.addEventListener('keydown',function(ev){ if(ev.key==='Enter'){ ev.preventDefault(); agSalvar(); } else if(ev.key==='Escape'){ agLimpa(); } }); });
