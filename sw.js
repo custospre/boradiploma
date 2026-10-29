@@ -3,7 +3,7 @@
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'boradiploma-v157';
+const CACHE = 'boradiploma-v158';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -76,8 +76,6 @@ self.addEventListener('push', (event) => {
 // tocar na notificacao: abre a agenda no compromisso (se o app ja estiver aberto, so avisa a pagina)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  // bom-dia das 8h: so fecha
-  if (/^✨/.test(event.notification.title || '')) return;
   var d = event.notification.data || {};
   if (typeof d === 'string') d = { url: d };
   var info = { t: d.t || event.notification.title || '', b: d.b || event.notification.body || '', g: d.g || event.notification.tag || '' };
