@@ -3,7 +3,7 @@
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'boradiploma-v156';
+const CACHE = 'boradiploma-v157';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -68,18 +68,24 @@ self.addEventListener('push', (event) => {
       tag: data.tag || undefined,
       renotify: !!data.tag,
       vibrate: [200, 100, 200],
-      data: data.url || './app.html'
+      data: { url: data.url || './app.html', t: data.title || '', b: data.body || '', g: data.tag || '' }
     })
   );
 });
 
-// tocar na notificacao: volta para o app se ja estiver aberto; senao abre
+// tocar na notificacao: abre a agenda no compromisso (se o app ja estiver aberto, so avisa a pagina)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  // bom-dia das 8h: so fecha
+  if (/^✨/.test(event.notification.title || '')) return;
+  var d = event.notification.data || {};
+  if (typeof d === 'string') d = { url: d };
+  var info = { t: d.t || event.notification.title || '', b: d.b || event.notification.body || '', g: d.g || event.notification.tag || '' };
+  var url = (d.url || './app.html').split('#')[0] + '#notif=' + encodeURIComponent(JSON.stringify(info));
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((lista) => {
-      for (const c of lista) { if ('focus' in c) return c.focus(); }
-      return clients.openWindow(event.notification.data || './app.html');
+      for (const c of lista) { if ('focus' in c) { c.postMessage({ bdNotif: info }); return c.focus(); } }
+      return clients.openWindow(url);
     })
   );
 });
