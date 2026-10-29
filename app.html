@@ -166055,6 +166055,19 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     rn.addEventListener('click',function(){ var lb=(document.getElementById('aulaJumpLbl')||{}).textContent||''; var oque=(lb.replace(/^Ir para\s*/i,'').replace(/:\s*$/,'')||'aula');
       var v=prompt('Novo nome d'+(/avalia|aula/.test(oque)?'a ':'o ')+oque+':', noteTitle.value); if(v===null) return; v=v.trim(); if(!v) return;
       noteTitle.value=v; noteTitle.dispatchEvent(new Event('input',{bubbles:true})); }); })();
+  // clique duplo na caixa 'Ir para aula': ela vira um campo para mudar o nome da aula ali mesmo
+  (function(){ var aj=document.getElementById('aulaJump'); if(!aj||!noteTitle) return;
+    aj.title='Escolha outra aula — ou clique duas vezes para mudar o nome desta';
+    aj.addEventListener('dblclick',function(e){ e.preventDefault(); try{ aj.blur(); }catch(_){}
+      var cs=getComputedStyle(aj), ed=document.createElement('input'); ed.type='text'; ed.id='aulaJumpEd'; ed.value=noteTitle.value; ed.spellcheck=true; ed.lang='pt-BR';
+      ed.style.cssText='box-sizing:border-box;width:'+aj.offsetWidth+'px;height:'+aj.offsetHeight+'px;font:'+cs.font+';padding:0 10px;border:2px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--fg)';
+      aj.style.display='none'; aj.parentNode.insertBefore(ed,aj.nextSibling); ed.focus(); ed.select();
+      var feito=false; function fim(salva){ if(feito) return; feito=true; var v=ed.value.trim();
+        if(salva&&v&&v!==noteTitle.value){ noteTitle.value=v; noteTitle.dispatchEvent(new Event('input',{bubbles:true})); }
+        ed.remove(); aj.style.display=''; }
+      ed.addEventListener('keydown',function(k){ if(k.key==='Enter'){ k.preventDefault(); fim(true); } else if(k.key==='Escape'){ k.preventDefault(); fim(false); } });
+      ed.addEventListener('blur',function(){ fim(true); });
+    }); })();
   if(noteTitle) noteTitle.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); noteTitle.blur(); } });
   if(noteTitle) noteTitle.addEventListener('input',function(){ scheduleSave(); if(aulaJump){ var op=aulaJump.options[aulaJump.selectedIndex]; if(op) op.text=noteTitle.value||'(sem título)'; } });
   if(editor) editor.addEventListener('input',function(){ scheduleSave(); saveSel(); updAulaPgs(); });
