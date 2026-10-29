@@ -776,11 +776,33 @@ body:has(#view-note:not([hidden])) .bar-in .pickwrap{width:auto}
 body:has(#view-note:not([hidden])) .bar-in #fmtbar .sep{display:inline-block;width:1px;height:26px;background:var(--line);margin:0 2px}
 body:has(#view-note:not([hidden])) .bar-in .fmtpg{display:inline-flex;align-items:center;gap:6px}
 body:has(#view-note:not([hidden])) .aulabar{padding:4px 10px;margin:4px 0 8px}
-body[data-aba="inicio"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="inicio"]){display:none !important}
-body[data-aba="formatar"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="formatar"]){display:none !important}
-body[data-aba="inserir"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="inserir"]){display:none !important}
-body[data-aba="pagina"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="pagina"]){display:none !important}
-body[data-aba="ouvir"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="ouvir"]){display:none !important}
+html:not(.rib-tudo) body[data-aba="inicio"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="inicio"]){display:none !important}
+html:not(.rib-tudo) body[data-aba="formatar"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="formatar"]){display:none !important}
+html:not(.rib-tudo) body[data-aba="inserir"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="inserir"]){display:none !important}
+html:not(.rib-tudo) body[data-aba="pagina"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="pagina"]){display:none !important}
+html:not(.rib-tudo) body[data-aba="ouvir"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([data-aba="ouvir"]){display:none !important}
+/* PC com tela larga: tudo aberto em ate 3 linhas, botoes mais baixos, agrupados como no Word (sem abas) */
+.ribSep{display:none}
+body:has(#view-note:not([hidden])) .bar-in [data-aba="nenhuma"]{display:none !important}
+html.rib-tudo body:has(#view-note:not([hidden])) #ribTabs,html.rib-tudo body:has(#view-note:not([hidden])) #ribBreak{display:none !important}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in{gap:5px;padding-block:6px}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in button,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in .pickbtn,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in select,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in input{height:28px;font-size:.78rem;padding:0 9px}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #insLei,html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #insNum{width:96px !important}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #fmtbar .sep{height:20px}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #fmtFont{width:104px !important}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #fmtBlock{width:76px !important}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #fmtSize{width:96px !important}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #fmtLh{width:118px !important}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in .fmtpg{font-size:0}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in .fmtpg select{padding:0 6px}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in .fmtpg{gap:5px}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="inicio"]{order:20}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="formatar"]{order:22}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="inserir"]{order:24}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="pagina"]{order:26}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in [data-aba="ouvir"]{order:28}
+html.rib-tudo body:has(#view-note:not([hidden])) .bar-in #saveBtn{order:30}
+html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px;height:22px;background:var(--accent);opacity:.35;margin:0 5px;border-radius:2px}
 @media (max-width:560px){
   body:has(#view-note:not([hidden])) .bar-in{gap:5px;padding-block:5px}
   body:has(#view-note:not([hidden])) .bar-in #ribTabs{flex:1 1 0}
@@ -881,6 +903,16 @@ body[data-aba="ouvir"]:has(#view-note:not([hidden])) .bar-in [data-aba]:not([dat
     kids.forEach(function(k,i){ if(!k.classList.contains('sep')) return; var nx=kids[i+1], pv=kids[i-1];
       k.setAttribute('data-aba',(nx&&pv&&nx.getAttribute('data-aba')==='formatar'&&pv.getAttribute('data-aba')==='formatar')?'formatar':'nenhuma'); });
   }
+  // separadores entre os grupos (aparecem so quando esta tudo aberto)
+  [21,23,25,27].forEach(function(o){ var d=document.createElement('div'); d.className='ribSep'; d.style.order=o; bi.appendChild(d); });
+  // tela larga: abre tudo; se nao couber em 3 linhas, volta para as abas
+  var vn=document.getElementById('view-note'), RT=document.documentElement;
+  function avalia(){ if(window.innerWidth<1100||window.matchMedia('(pointer:coarse)').matches){ RT.classList.remove('rib-tudo'); return; }
+    RT.classList.add('rib-tudo'); if(!vn||vn.hidden) return;
+    if(bi.getBoundingClientRect().height > 3*28+2*5+12+6) RT.classList.remove('rib-tudo'); }
+  var tA=null; window.addEventListener('resize',function(){ clearTimeout(tA); tA=setTimeout(avalia,120); });
+  if(vn&&window.MutationObserver) new MutationObserver(function(){ setTimeout(avalia,0); }).observe(vn,{attributes:true,attributeFilter:['hidden']});
+  avalia();
   escolhe(aba); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
 })();</script>
