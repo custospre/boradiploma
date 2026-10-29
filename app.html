@@ -167946,7 +167946,33 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       var rec=null, segurando=false, holdId=0, final='', parcial='', erro='', tIni=0, reinicios=0, tLiga=null, tFim=null;
       var IOS=/iphone|ipad|ipod/i.test(navigator.userAgent||'')||(/Macintosh/.test(navigator.userAgent||'')&&navigator.maxTouchPoints>1);
       function balOuvindo(txt){ clearTimeout(balT); bal.innerHTML='<div class="vzouvi"><span class="vzbars"><i></i><i></i><i></i><i></i><i></i></span>Ouvindo… solte para enviar</div>'+(txt?'<div class="vzresp">'+esc(txt)+'</div>':''); bal.style.display='block'; place(posX()); }
-      function msgErro(c){ return c==='not-allowed'||c==='service-not-allowed'?'O microfone está bloqueado. Libere o microfone para este app nas permissões do navegador.':c==='network'?'Sem internet: o reconhecimento de voz precisa de conexão.':c==='audio-capture'?'Não encontrei microfone neste aparelho.':''; }
+      function msgErro(c){ if(c==='not-allowed'||c==='service-not-allowed'){ micEstado='denied'; try{ localStorage.removeItem('bd_mic_ok'); }catch(e){} }
+        return c==='not-allowed'||c==='service-not-allowed'?'O microfone está bloqueado. Toque no 🎙 para ver como liberar.':c==='network'?'Sem internet: o reconhecimento de voz precisa de conexão.':c==='audio-capture'?'Não encontrei microfone neste aparelho.':''; }
+      // ---- permissao do microfone: o celular so libera se a pessoa tocar em Permitir.
+      // Antes da 1a vez, um aviso explica; se ja foi bloqueado, mostra o caminho certo para o aparelho dela.
+      var micEstado=''; try{ if(localStorage.getItem('bd_mic_ok')) micEstado='granted'; }catch(e){}
+      try{ if(navigator.permissions&&navigator.permissions.query){ navigator.permissions.query({name:'microphone'}).then(function(p){ micEstado=p.state; p.onchange=function(){ micEstado=p.state; }; }).catch(function(){}); } }catch(e){}
+      function passosMic(){ var ua=navigator.userAgent||'', ios=/iphone|ipad|ipod/i.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1), and=/android/i.test(ua);
+        var inst=false; try{ inst=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true; }catch(e){}
+        if(ios) return '<b>No iPhone:</b><ol><li>Abra <b>Ajustes</b> → <b>Safari</b> → <b>Microfone</b> → <b>Permitir</b>.</li><li>Em <b>Ajustes</b> → <b>Privacidade e Segurança</b> → <b>Reconhecimento de Fala</b>, ligue o <b>Safari</b>.</li><li>Feche o BoraDiploma e abra de novo.</li></ol>';
+        if(and&&inst) return '<b>No Android:</b><ol><li>Segure o dedo no ícone do <b>BoraDiploma</b> e toque em <b>ⓘ Informações do app</b>.</li><li>Toque em <b>Permissões</b> → <b>Microfone</b> → <b>Permitir</b>.</li><li>Volte para o app.</li></ol>';
+        if(and) return '<b>No Android:</b><ol><li>Toque no ícone à esquerda do endereço (cadeado ou ⚙).</li><li>Toque em <b>Permissões</b> → <b>Microfone</b> → <b>Permitir</b>.</li><li>Recarregue a página.</li></ol>';
+        return '<b>No computador:</b><ol><li>Clique no cadeado ao lado do endereço.</li><li>Em <b>Microfone</b>, escolha <b>Permitir</b>.</li><li>Recarregue a página (F5).</li></ol>'; }
+      function cartaoMic(bloq){ var f=document.createElement('div'); f.style.cssText='position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px;font-family:var(--font-head,system-ui,sans-serif)';
+        var bx=document.createElement('div'); bx.style.cssText='width:100%;max-width:360px;background:var(--surface,#fffdf8);color:var(--fg,#1f1b16);border-radius:16px;padding:24px 22px;box-shadow:0 12px 40px rgba(0,0,0,.3);text-align:center;line-height:1.45';
+        var bt='display:block;width:100%;padding:12px;font-size:16px;border:0;border-radius:10px;cursor:pointer;margin-top:12px;font-weight:600';
+        function fecha(){ f.remove(); }
+        function mostra(bl){
+          if(bl){ bx.innerHTML='<div style="font-size:34px">🎙</div><div style="font-size:19px;font-weight:800;color:var(--accent,#7a1f2b);margin:4px 0 8px">Microfone bloqueado</div><div style="font-size:14.5px;text-align:left;background:var(--bg,#f5f3ee);border-radius:10px;padding:10px 12px">'+passosMic()+'</div><button id="mcOk" style="'+bt+';background:var(--accent,#7a1f2b);color:#fff">Já liberei</button><button id="mcX" style="'+bt+';background:none;color:var(--muted,#6b6459);text-decoration:underline;font-weight:400">Agora não</button>';
+            bx.querySelector('#mcOk').onclick=function(){ fecha(); micEstado=''; try{ localStorage.removeItem('bd_mic_ok'); }catch(e){} cartaoMic(false); };
+          } else { bx.innerHTML='<div style="font-size:34px">🎙</div><div style="font-size:19px;font-weight:800;color:var(--accent,#7a1f2b);margin:4px 0 8px">Vamos ligar o microfone</div><div style="font-size:15px;color:var(--muted,#6b6459)">O aparelho vai perguntar se o BoraDiploma pode usar o microfone.<br>Toque em <b style="color:var(--fg,#1f1b16)">Permitir</b>.</div><button id="mcOk" style="'+bt+';background:var(--accent,#7a1f2b);color:#fff">🎙 Ligar microfone</button><button id="mcX" style="'+bt+';background:none;color:var(--muted,#6b6459);text-decoration:underline;font-weight:400">Agora não</button>';
+            bx.querySelector('#mcOk').onclick=function(){ var b=this; b.disabled=true; b.textContent='Aguardando…';
+              navigator.mediaDevices.getUserMedia({audio:true}).then(function(st){ try{ st.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+                micEstado='granted'; try{ localStorage.setItem('bd_mic_ok','1'); }catch(e){} fecha(); balao('','Pronto! Agora segure o 🎙 enquanto fala e solte quando terminar.'); },
+              function(err){ var n=err&&err.name; if(n==='NotAllowedError'||n==='SecurityError'){ micEstado='denied'; mostra(true); } else if(n==='NotFoundError'){ fecha(); balao('','Não encontrei microfone neste aparelho.'); } else { fecha(); balao('','Não consegui ligar o microfone. Tente de novo.'); } }); };
+          }
+          bx.querySelector('#mcX').onclick=fecha; }
+        mostra(bloq); f.appendChild(bx); f.addEventListener('click',function(e){ if(e.target===f) fecha(); }); document.body.appendChild(f); }
       function sessao(id){
         var r=new SR(); rec=r; r.lang='pt-BR'; r.interimResults=true; r.continuous=IOS; r.maxAlternatives=1;
         var antes=final; // no iPhone cada sessao repete o texto todo: guarda o que veio das sessoes anteriores
@@ -167967,6 +167993,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       function comecar(){
         if(!SR){ balao('','Este navegador não tem reconhecimento de voz. Use o Chrome.'); return; }
         if(segurando) return;
+        if(micEstado!=='granted' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){ arr=null; cartaoMic(micEstado==='denied'); return; }
         if(rec){ holdId++; try{ rec.abort(); }catch(e){} rec=null; }
         try{ speechSynthesis.cancel(); }catch(e){}
         holdId++; segurando=true; final=''; parcial=''; erro=''; tIni=Date.now(); reinicios=0;
