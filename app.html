@@ -166058,16 +166058,39 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   // clique duplo na caixa 'Ir para aula': ela vira um campo para mudar o nome da aula ali mesmo
   (function(){ var aj=document.getElementById('aulaJump'); if(!aj||!noteTitle) return;
     aj.title='Escolha outra aula — ou clique duas vezes para mudar o nome desta';
-    aj.addEventListener('dblclick',function(e){ e.preventDefault(); try{ aj.blur(); }catch(_){}
+    function editar(){ try{ aj.blur(); }catch(_){}
       var cs=getComputedStyle(aj), ed=document.createElement('input'); ed.type='text'; ed.id='aulaJumpEd'; ed.value=noteTitle.value; ed.spellcheck=true; ed.lang='pt-BR';
       ed.style.cssText='box-sizing:border-box;width:'+aj.offsetWidth+'px;height:'+aj.offsetHeight+'px;font:'+cs.font+';padding:0 10px;border:2px solid var(--accent);border-radius:8px;background:var(--surface);color:var(--fg)';
-      aj.style.display='none'; aj.parentNode.insertBefore(ed,aj.nextSibling); ed.focus(); ed.select();
+      aj.style.display='none'; aj.parentNode.insertBefore(ed,aj.nextSibling); var cp0=aj.parentNode.querySelector('.ajCapa'); if(cp0) cp0.style.display='none'; ed.focus(); ed.select();
       var feito=false; function fim(salva){ if(feito) return; feito=true; var v=ed.value.trim();
         if(salva&&v&&v!==noteTitle.value){ noteTitle.value=v; noteTitle.dispatchEvent(new Event('input',{bubbles:true})); }
-        ed.remove(); aj.style.display=''; }
+        ed.remove(); aj.style.display=''; var cp=aj.parentNode&&aj.parentNode.querySelector('.ajCapa'); if(cp) cp.style.display=''; }
       ed.addEventListener('keydown',function(k){ if(k.key==='Enter'){ k.preventDefault(); fim(true); } else if(k.key==='Escape'){ k.preventDefault(); fim(false); } });
       ed.addEventListener('blur',function(){ fim(true); });
-    }); })();
+    }
+    aj.addEventListener('dblclick',function(e){ e.preventDefault(); editar(); });
+    // celular: a lista do proprio celular abre no 1o toque e nao deixa ver o 2o. Entao uma capa
+    // transparente por cima da caixa: 1 toque = lista do app para escolher; 2 toques = mudar o nome (igual ao PC)
+    if(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches){
+      var wr=document.createElement('span'); wr.style.cssText='position:relative;display:inline-block;max-width:100%';
+      aj.parentNode.insertBefore(wr,aj); wr.appendChild(aj);
+      var capa=document.createElement('span'); capa.className='ajCapa'; capa.style.cssText='position:absolute;inset:0;cursor:pointer;touch-action:manipulation'; wr.appendChild(capa);
+      var tT=null, ult=0;
+      function lista(){ var bx=aj.getBoundingClientRect(), m=document.createElement('div'), fundo=document.createElement('div');
+        fundo.style.cssText='position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.25)';
+        var top=Math.min(bx.bottom+4, window.innerHeight-120);
+        m.style.cssText='position:fixed;z-index:2001;left:'+Math.max(8,bx.left)+'px;top:'+top+'px;width:'+Math.min(window.innerWidth-16,Math.max(bx.width,260))+'px;max-height:'+(window.innerHeight-top-12)+'px;overflow:auto;background:var(--surface,#fff);border:1px solid var(--accent);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-family:var(--font-head);padding:4px';
+        [].forEach.call(aj.options,function(op,i){ var it=document.createElement('div'); it.textContent=op.text;
+          it.style.cssText='padding:11px 12px;border-radius:8px;font-size:.95rem;'+(i===aj.selectedIndex?'background:var(--accent-soft);color:var(--accent);font-weight:700':'');
+          it.addEventListener('click',function(){ fecha(); if(aj.selectedIndex!==i){ aj.selectedIndex=i; aj.dispatchEvent(new Event('change',{bubbles:true})); } });
+          m.appendChild(it); });
+        function fecha(){ m.remove(); fundo.remove(); }
+        fundo.addEventListener('click',fecha); document.body.appendChild(fundo); document.body.appendChild(m); }
+      capa.addEventListener('click',function(e){ e.preventDefault(); var ag=Date.now();
+        if(ag-ult<400){ clearTimeout(tT); ult=0; editar(); return; }
+        ult=ag; clearTimeout(tT); tT=setTimeout(function(){ ult=0; lista(); },400); });
+    }
+  })();
   if(noteTitle) noteTitle.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); noteTitle.blur(); } });
   if(noteTitle) noteTitle.addEventListener('input',function(){ scheduleSave(); if(aulaJump){ var op=aulaJump.options[aulaJump.selectedIndex]; if(op) op.text=noteTitle.value||'(sem título)'; } });
   if(editor) editor.addEventListener('input',function(){ scheduleSave(); saveSel(); updAulaPgs(); });
