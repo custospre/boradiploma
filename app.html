@@ -167748,20 +167748,24 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
 
       // ---- ouvir: SEGURE o botão enquanto fala; soltou, envia ----
       // (cada sessão do Chrome para sozinha numa pausa; enquanto o dedo estiver no botão, recomeça e vai juntando o texto)
-      var rec=null, segurando=false, holdId=0, final='', parcial='', erro='', tIni=0;
+      var rec=null, segurando=false, holdId=0, final='', parcial='', erro='', tIni=0, reinicios=0, tLiga=null, tFim=null;
+      var IOS=/iphone|ipad|ipod/i.test(navigator.userAgent||'')||(/Macintosh/.test(navigator.userAgent||'')&&navigator.maxTouchPoints>1);
       function balOuvindo(txt){ clearTimeout(balT); bal.innerHTML='<div class="vzouvi"><span class="vzbars"><i></i><i></i><i></i><i></i><i></i></span>Ouvindo… solte para enviar</div>'+(txt?'<div class="vzresp">'+esc(txt)+'</div>':''); bal.style.display='block'; place(posX()); }
       function msgErro(c){ return c==='not-allowed'||c==='service-not-allowed'?'O microfone está bloqueado. Libere o microfone para este app nas permissões do navegador.':c==='network'?'Sem internet: o reconhecimento de voz precisa de conexão.':c==='audio-capture'?'Não encontrei microfone neste aparelho.':''; }
       function sessao(id){
-        var r=new SR(); rec=r; r.lang='pt-BR'; r.interimResults=true; r.continuous=false; r.maxAlternatives=1;
-        r.onstart=function(){ if(id!==holdId||!segurando){ try{ r.stop(); }catch(e){} } };
+        var r=new SR(); rec=r; r.lang='pt-BR'; r.interimResults=true; r.continuous=IOS; r.maxAlternatives=1;
+        var antes=final; // no iPhone cada sessao repete o texto todo: guarda o que veio das sessoes anteriores
+        clearTimeout(tLiga); tLiga=setTimeout(function(){ if(id!==holdId||!rec) return; erro=IOS?'O microfone não respondeu. No iPhone: Ajustes > Safari > Microfone = Permitir, e também Ajustes > Privacidade > Reconhecimento de Fala. Depois feche e abra o app.':'O microfone não respondeu. Tente de novo.'; segurando=false; try{ r.abort(); }catch(e){} terminou(); },5000);
+        r.onstart=function(){ clearTimeout(tLiga); if(id!==holdId||!segurando){ try{ r.stop(); }catch(e){} } };
         r.onresult=function(e){ if(id!==holdId) return; var p='';
-          for(var i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) final=(final+' '+e.results[i][0].transcript).trim(); else p+=e.results[i][0].transcript; }
+          if(IOS){ var tudo=''; for(var j=0;j<e.results.length;j++){ tudo+=e.results[j][0].transcript; } final=(antes+' '+tudo).trim(); p=''; }
+          else for(var i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) final=(final+' '+e.results[i][0].transcript).trim(); else p+=e.results[i][0].transcript; }
           parcial=p; if(segurando) balOuvindo((final+' '+parcial).trim()); };
         r.onerror=function(e){ if(id!==holdId) return; var m=msgErro(e.error); if(m) erro=m; };
-        r.onend=function(){ if(id!==holdId) return; if(segurando&&!erro){ sessao(id); return; } terminou(); };
-        try{ r.start(); }catch(e){ erro='Não consegui ligar o microfone. Tente de novo.'; terminou(); }
+        r.onend=function(){ clearTimeout(tLiga); if(id!==holdId) return; if(segurando&&!erro&&reinicios<20){ reinicios++; setTimeout(function(){ if(id===holdId&&segurando) sessao(id); else if(id===holdId) terminou(); }, IOS?250:0); return; } terminou(); };
+        try{ r.start(); }catch(e){ clearTimeout(tLiga); erro='Não consegui ligar o microfone. Tente de novo.'; terminou(); }
       }
-      function terminou(){ rec=null; mic.classList.remove('ouvindo','pensando'); var t=(final+' '+parcial).trim();
+      function terminou(){ clearTimeout(tLiga); clearTimeout(tFim); if(terminou._id===holdId) return; terminou._id=holdId; rec=null; mic.classList.remove('ouvindo','pensando'); var t=(final+' '+parcial).trim();
         if(erro){ balao('',erro); return; }
         if(t){ executa(t); return; }
         balao('',(Date.now()-tIni<800)?'Segure o 🎙 enquanto fala e solte quando terminar.':'Não ouvi nada. Segure o 🎙 e fale de novo.'); }
@@ -167770,14 +167774,15 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
         if(segurando) return;
         if(rec){ holdId++; try{ rec.abort(); }catch(e){} rec=null; }
         try{ speechSynthesis.cancel(); }catch(e){}
-        holdId++; segurando=true; final=''; parcial=''; erro=''; tIni=Date.now();
+        holdId++; segurando=true; final=''; parcial=''; erro=''; tIni=Date.now(); reinicios=0;
         mic.classList.remove('pensando'); mic.classList.add('ouvindo'); balOuvindo('');
         sessao(holdId);
       }
       function soltar(){ if(!segurando) return; segurando=false; mic.classList.remove('ouvindo'); mic.classList.add('pensando');
         var t=(final+' '+parcial).trim(); balao(t?('“'+t+'”'):'','Entendendo…',true);
+        clearTimeout(tFim); var idS=holdId; tFim=setTimeout(function(){ if(idS!==holdId) return; if(rec){ try{ rec.abort(); }catch(e){} } terminou(); },2000);
         if(rec){ try{ rec.stop(); }catch(e){ terminou(); } } else terminou(); }
-      function cancelar(){ segurando=false; holdId++; mic.classList.remove('ouvindo','pensando'); if(rec){ try{ rec.abort(); }catch(e){} rec=null; } bal.style.display='none'; }
+      function cancelar(){ segurando=false; holdId++; clearTimeout(tLiga); clearTimeout(tFim); mic.classList.remove('ouvindo','pensando'); if(rec){ try{ rec.abort(); }catch(e){} rec=null; } bal.style.display='none'; }
 
       // ---- botão: segurar = falar; no computador, arrastar para o lado = mudar de lugar ----
       var arr=null;
