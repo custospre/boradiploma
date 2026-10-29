@@ -167200,7 +167200,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     var fut=it.filter(function(x){ return !x.data||x.data>=h; }), pas=it.filter(function(x){ return x.data&&x.data<h; }).reverse();
     function dia(x){ if(!x.data) return '—'; var p=x.data.split('-'), t=new Date(); t.setHours(0,0,0,0); var dd=Math.round((new Date(+p[0],+p[1]-1,+p[2])-t)/86400000);
       return dd===0?'Hoje':dd===1?'Amanhã':(p[2]+'/'+p[1]+(p[0]!==h.slice(0,4)?'/'+p[0].slice(2):'')); }
-    function card(x){ var cls=(x.data===h?' hoje':'')+(x.data&&x.data<h?' passou':''), av=(x.avisos&&x.avisos.length&&x.hora)?'🔔 '+x.avisos.slice().sort(function(a,b){ return b-a; }).join(', ')+' min antes':'';
+    function card(x){ var cls=(x.data===h?' hoje':'')+(x.data&&x.data<h?' passou':''), av=x.hora?'🔔 '+((x.avisos&&x.avisos.length)?x.avisos:[60]).slice().sort(function(a,b){ return b-a; }).join(', ')+' min antes':'';
       var sub=[x.obs||'',av].filter(Boolean).join(' · ');
       return '<div class="agrow agcard'+cls+'" data-id="'+esc(x.id)+'"><span class="agd">'+esc(dia(x))+'</span><span class="agh">'+esc(x.hora||'—')+'</span><span class="agc">'+esc(x.titulo||'(sem título)')+
         (sub?'<small>'+esc(sub)+'</small>':'')+'</span><span class="agx"><button type="button" class="agdel" data-id="'+esc(x.id)+'" title="Excluir compromisso">🗑</button></span></div>'; }
@@ -167211,7 +167211,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     box.innerHTML=o;
   }
   function agLimpa(){ agEdit=null; ['agTit','agObs','agHora'].forEach(function(i){ document.getElementById(i).value=''; }); document.getElementById('agData').value=agHoje();
-    agSetAvs([]); document.getElementById('agSalvar').textContent='＋ Adicionar'; document.getElementById('agForm').hidden=true; document.getElementById('agNovo').hidden=false; }
+    agSetAvs([60]); document.getElementById('agSalvar').textContent='＋ Adicionar'; document.getElementById('agForm').hidden=true; document.getElementById('agNovo').hidden=false; }
   function agGetAvs(){ return [].slice.call(document.querySelectorAll('#agAvs button.on')).map(function(b){ return +b.getAttribute('data-m'); }); }
   function agSetAvs(l){ [].slice.call(document.querySelectorAll('#agAvs button')).forEach(function(b){ b.classList.toggle('on',(l||[]).indexOf(+b.getAttribute('data-m'))>=0); }); }
   function agPushRender(){ var el=document.getElementById('agPush'); if(!el) return;
@@ -167230,7 +167230,8 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   function agSalvar(){
     var tit=document.getElementById('agTit').value.trim(); if(!tit){ toast('Escreva o compromisso'); document.getElementById('agTit').focus(); return; }
     var v={titulo:tit,data:document.getElementById('agData').value||'',hora:document.getElementById('agHora').value||'',obs:document.getElementById('agObs').value.trim(),avisos:agGetAvs(),updated:Date.now()};
-    if(v.avisos.length&&!v.hora){ toast('Para avisar antes, marque a hora do compromisso'); document.getElementById('agHora').focus(); return; }
+    if(!v.avisos.length) v.avisos=[60];
+    if(!v.hora){ if(v.avisos.join()!=='60'){ toast('Para avisar antes, marque a hora do compromisso'); document.getElementById('agHora').focus(); return; } v.avisos=[]; }
     var a=getAgenda(), x=agEdit?a.filter(function(y){ return y.id===agEdit; })[0]:null;
     if(x){ Object.keys(v).forEach(function(k){ x[k]=v[k]; }); toast('Compromisso alterado'); }
     else { v.id=uid(); v.created=v.updated; v.ag=agQual; a.push(v); toast('Compromisso adicionado'); }
@@ -167271,7 +167272,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         x.del=true; x.updated=Date.now(); saveAgenda(a); if(agEdit===id) agLimpa(); renderAgenda(); toast('Compromisso excluído'); return; }
       var cd=e.target.closest('.agcard'); if(!cd) return;
       var x2=getAgenda().filter(function(y){ return y.id===cd.getAttribute('data-id'); })[0]; if(!x2) return;
-      agEdit=x2.id; document.getElementById('agTit').value=x2.titulo||''; document.getElementById('agData').value=x2.data||''; document.getElementById('agHora').value=x2.hora||''; document.getElementById('agObs').value=x2.obs||''; agSetAvs(x2.avisos||[]);
+      agEdit=x2.id; document.getElementById('agTit').value=x2.titulo||''; document.getElementById('agData').value=x2.data||''; document.getElementById('agHora').value=x2.hora||''; document.getElementById('agObs').value=x2.obs||''; agSetAvs((x2.avisos&&x2.avisos.length)?x2.avisos:[60]);
       document.getElementById('agSalvar').textContent='💾 Salvar alteração'; agAbreForm();
       window.scrollTo({top:0,behavior:'smooth'});
     });
@@ -168180,7 +168181,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
           for(var i=0;i+al.length<=on.length;i++){ var ok=true; for(var j=0;j<al.length;j++){ if(on[i+j]!==al[j]){ ok=false; break; } } if(ok) return o.slice(i,i+al.length).join(' ').replace(/[,.;:]+$/,''); }
           return x; }
         tit=cap(orig(tit)); obs=cap(orig(obs.trim()));
-        var it={id:uid(),titulo:tit,data:D.data||agHoje(),hora:H.hora,obs:obs,ag:qual||'pessoal',avisos:H.hora?avs:[],created:Date.now(),updated:Date.now()};
+        var it={id:uid(),titulo:tit,data:D.data||agHoje(),hora:H.hora,obs:obs,ag:qual||'pessoal',avisos:H.hora?(avs.length?avs:[60]):[],created:Date.now(),updated:Date.now()};
         var a=getAgenda(); a.push(it); saveAgenda(a); openAgenda(it.ag);
         var p=it.data.split('-'), dt=new Date(+p[0],+p[1]-1,+p[2]);
         var quando=(it.data===agHoje()?'hoje':DIASF[dt.getDay()]+', dia '+p[2]+'/'+p[1])+(it.hora?(' às '+it.hora.replace(':00',' horas').replace(/^0/,'').replace(/^(\d+):(\d+)$/,'$1 e $2')):'');
@@ -169250,10 +169251,10 @@ if ('serviceWorker' in navigator) {
       var itens = [], agora = Date.now();
       var SEM = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
       ((ag && ag.itens) || []).forEach(function(x){
-        if(!x || x.del || !x.data || !x.hora || !x.avisos || !x.avisos.length) return;
+        if(!x || x.del || !x.data || !x.hora) return;
         var d = x.data.split('-'), h = x.hora.split(':');
         var hora = new Date(+d[0], +d[1] - 1, +d[2], +h[0], +h[1]);
-        x.avisos.forEach(function(m){
+        ((x.avisos && x.avisos.length) ? x.avisos : [60]).forEach(function(m){
           var q = new Date(hora.getTime() - m * 60000);
           if(q.getTime() < agora - 60000) return;
           itens.push({ chave: x.id + '|' + m + '|' + x.data + 'T' + x.hora, quando: q.toISOString(),
