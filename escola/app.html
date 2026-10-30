@@ -2859,7 +2859,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   }
   function agAtivar(depois){ if(!window.bdAtivarAvisos){ toast('Entre na sua conta para ativar os avisos'); return; }
     var el=document.getElementById('agPush'); if(el) el.textContent='Ativando avisos…';
-    window.bdAtivarAvisos(function(r){ agPushRender(); if(r==='ok'){ toast('Avisos ativados neste aparelho'); if(depois) depois(); } else if(r!=='bloqueado') toast(r); }); }
+    window.bdAtivarAvisos(function(r){ agPushRender(); if(r==='ok'){ toast('Avisos ativados neste aparelho'); if(depois) depois(); } else if(r==='travou') toast('O aparelho não mostrou a pergunta. Libere as notificações nas configurações do celular.'); else if(r!=='bloqueado') toast(r); }); }
   function agSyncAvisos(){ if(window.bdSyncLembretes) window.bdSyncLembretes(); }
   function agAbreForm(){ document.getElementById('agForm').hidden=false; document.getElementById('agNovo').hidden=true; document.getElementById('agTit').focus(); }
   function agSalvar(){
@@ -4369,7 +4369,7 @@ if ('serviceWorker' in navigator) {
     var caixa = 'font-size:13.5px;background:var(--bg,#f5f3ee);border-radius:10px;padding:8px 12px;margin-top:8px';
     var okTxt = 'margin-top:8px;padding:10px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:700;text-align:center';
     function linha(ic, tit, txt, corpo){ return '<div style="border:1px solid var(--line,#e2ddd2);border-radius:12px;padding:12px;margin-top:12px"><div style="font-weight:800">' + ic + ' ' + tit + '</div><div style="font-size:13.5px;color:var(--muted,#6b6459)">' + txt + '</div>' + corpo + '</div>'; }
-    var aviso = '';
+    var aviso = '', travou = false;
     function fecha(){ f.remove(); }
     function desenha(){
       var m = window.bdMic ? window.bdMic.estado() : 'na', p = window.bdPushEstado ? window.bdPushEstado() : 'sem', o = '';
@@ -4385,13 +4385,14 @@ if ('serviceWorker' in navigator) {
           p === 'ativo' ? '<div style="' + okTxt + '">✅ Notificações liberadas</div>' :
           p === 'bloqueado' ? '<div style="' + caixa + '">🚫 Estão bloqueadas. Para liberar:<br>' + bdPassosNotif() + '</div>' :
           p === 'ios' ? '<div style="' + caixa + '">📱 No iPhone, as notificações só funcionam com o app instalado: no Safari, toque em <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b> e abra o BoraDiploma pelo ícone.</div>' :
-          '<button type="button" id="bpNot" style="' + bt + '">🔔 Liberar notificações</button>');
+          (travou ? '<div style="' + caixa + '">⏳ O aparelho não mostrou a pergunta. Libere assim:<br>' + bdPassosNotif() + '</div>' : '')
+          + '<button type="button" id="bpNot" style="' + bt + '">' + (travou ? '🔔 Já liberei / tentar de novo' : '🔔 Liberar notificações') + '</button>');
       }
       o += '<button type="button" id="bpFim" style="' + bt + ';background:none;color:var(--accent,#7a1f2b);border:1px solid var(--accent,#7a1f2b);margin-top:14px">' + (bdPermFalta() ? 'Continuar' : '🎉 Tudo pronto! Continuar') + '</button><div id="bpMsg" style="font-size:13px;color:#b23;text-align:center;margin-top:6px"></div>';
       bx.innerHTML = o; bx.querySelector('#bpMsg').textContent = aviso; aviso = '';
       var bm = bx.querySelector('#bpMic'); if(bm) bm.onclick = function(){ bm.disabled = true; bm.textContent = 'Aguardando…'; window.bdMic.pedir(function(r){ if(r !== 'ok' && r !== 'bloqueado') aviso = r; desenha(); }); };
       var bd = bx.querySelector('#bpMicDe'); if(bd) bd.onclick = function(){ try{ localStorage.removeItem('bd_mic_ok'); }catch(e){} bd.disabled = true; bd.textContent = 'Aguardando…'; window.bdMic.pedir(function(){ desenha(); }); };
-      var bn = bx.querySelector('#bpNot'); if(bn) bn.onclick = function(){ bn.disabled = true; bn.textContent = 'Aguardando…'; window.bdAtivarAvisos(function(r){ if(r !== 'ok' && r !== 'bloqueado') aviso = r; desenha(); }); };
+      var bn = bx.querySelector('#bpNot'); if(bn) bn.onclick = function(){ bn.disabled = true; bn.textContent = 'Aguardando…'; window.bdAtivarAvisos(function(r){ travou = (r === 'travou'); if(r !== 'ok' && r !== 'bloqueado' && r !== 'travou') aviso = r; desenha(); }); };
       bx.querySelector('#bpFim').onclick = fecha;
     }
     desenha(); f.appendChild(bx); document.body.appendChild(f);
@@ -4992,8 +4993,11 @@ if ('serviceWorker' in navigator) {
     if(Notification.permission === 'granted' && currentUser && lsGet('bd_push_ok') === currentUser.id) return 'ativo';
     return 'desligado';
   };
-  window.bdAtivarAvisos = function(cb){
-    cb = cb || function(){};
+  window.bdAtivarAvisos = function(cb0){
+    cb0 = cb0 || function(){};
+    // alguns celulares escondem a pergunta "Permitir notificacoes?" (ou ela nunca responde): depois de 8 s mostra como liberar a mao
+    var feito = false, tmr = setTimeout(function(){ if(!feito){ feito = true; cb0('travou'); } }, 8000);
+    function cb(r){ if(feito) return; feito = true; clearTimeout(tmr); cb0(r); }
     if(!sb || !currentUser){ cb('Entre na sua conta para ativar os avisos.'); return; }
     if(window.bdPushEstado() === 'sem' || window.bdPushEstado() === 'ios'){ cb('Este aparelho não recebe notificações.'); return; }
     Notification.requestPermission().then(function(p){
