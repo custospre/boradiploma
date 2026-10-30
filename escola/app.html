@@ -4385,14 +4385,14 @@ if ('serviceWorker' in navigator) {
           p === 'ativo' ? '<div style="' + okTxt + '">✅ Notificações liberadas</div>' :
           p === 'bloqueado' ? '<div style="' + caixa + '">🚫 Estão bloqueadas. Para liberar:<br>' + bdPassosNotif() + '</div>' :
           p === 'ios' ? '<div style="' + caixa + '">📱 No iPhone, as notificações só funcionam com o app instalado: no Safari, toque em <b>Compartilhar</b> → <b>Adicionar à Tela de Início</b> e abra o BoraDiploma pelo ícone.</div>' :
-          (travou ? '<div style="' + caixa + '">⏳ O aparelho não mostrou a pergunta. Libere assim:<br>' + bdPassosNotif() + '</div>' : '')
+          (travou ? '<div style="' + caixa + '">⏳ O aparelho não mostrou a pergunta (ou ela foi fechada). Libere assim:<br>' + bdPassosNotif() + '</div>' : '')
           + '<button type="button" id="bpNot" style="' + bt + '">' + (travou ? '🔔 Já liberei / tentar de novo' : '🔔 Liberar notificações') + '</button>');
       }
       o += '<button type="button" id="bpFim" style="' + bt + ';background:none;color:var(--accent,#7a1f2b);border:1px solid var(--accent,#7a1f2b);margin-top:14px">' + (bdPermFalta() ? 'Continuar' : '🎉 Tudo pronto! Continuar') + '</button><div id="bpMsg" style="font-size:13px;color:#b23;text-align:center;margin-top:6px"></div>';
       bx.innerHTML = o; bx.querySelector('#bpMsg').textContent = aviso; aviso = '';
       var bm = bx.querySelector('#bpMic'); if(bm) bm.onclick = function(){ bm.disabled = true; bm.textContent = 'Aguardando…'; window.bdMic.pedir(function(r){ if(r !== 'ok' && r !== 'bloqueado') aviso = r; desenha(); }); };
       var bd = bx.querySelector('#bpMicDe'); if(bd) bd.onclick = function(){ try{ localStorage.removeItem('bd_mic_ok'); }catch(e){} bd.disabled = true; bd.textContent = 'Aguardando…'; window.bdMic.pedir(function(){ desenha(); }); };
-      var bn = bx.querySelector('#bpNot'); if(bn) bn.onclick = function(){ bn.disabled = true; bn.textContent = 'Aguardando…'; window.bdAtivarAvisos(function(r){ travou = /^travou/.test(r); if(travou) aviso = 'Parou na etapa: ' + r.split(':')[1] + ' (mande um print para o suporte).'; else if(r !== 'ok' && r !== 'bloqueado') aviso = r; desenha(); }); };
+      var bn = bx.querySelector('#bpNot'); if(bn) bn.onclick = function(){ bn.disabled = true; bn.textContent = 'Aguardando…'; window.bdAtivarAvisos(function(r){ travou = /^travou/.test(r); if(travou && r !== 'travou:pergunta') aviso = 'Parou na etapa: ' + r.split(':')[1] + ' (mande um print para o suporte).'; else if(!travou && r !== 'ok' && r !== 'bloqueado') aviso = r; desenha(); }); };
       bx.querySelector('#bpFim').onclick = fecha;
     }
     desenha(); f.appendChild(bx); document.body.appendChild(f);
@@ -5001,7 +5001,7 @@ if ('serviceWorker' in navigator) {
     if(!sb || !currentUser){ cb('Entre na sua conta para ativar os avisos.'); return; }
     if(window.bdPushEstado() === 'sem' || window.bdPushEstado() === 'ios'){ cb('Este aparelho não recebe notificações.'); return; }
     Notification.requestPermission().then(function(p){
-      if(p !== 'granted'){ cb('bloqueado'); return; }
+      if(p !== 'granted'){ cb(Notification.permission === 'denied' ? 'bloqueado' : 'travou:pergunta'); return; }
       etapa = 'aparelho';
       // pega o service worker DO ESCOLA (o da faculdade fica no mesmo endereco); se ainda nao existe, registra agora
       return navigator.serviceWorker.getRegistration('./').then(function(reg){ return reg || navigator.serviceWorker.register('sw.js'); }).then(function(reg){
