@@ -2859,7 +2859,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   }
   function agAtivar(depois){ if(!window.bdAtivarAvisos){ toast('Entre na sua conta para ativar os avisos'); return; }
     var el=document.getElementById('agPush'); if(el) el.textContent='Ativando avisos…';
-    window.bdAtivarAvisos(function(r){ agPushRender(); if(r==='ok'){ toast('Avisos ativados neste aparelho'); if(depois) depois(); } else if(r==='travou') toast('O aparelho não mostrou a pergunta. Libere as notificações nas configurações do celular.'); else if(r!=='bloqueado') toast(r); }); }
+    window.bdAtivarAvisos(function(r){ agPushRender(); if(r==='ok'){ toast('Avisos ativados neste aparelho'); if(depois) depois(); } else if(/^travou/.test(r)) toast('O aparelho não mostrou a pergunta. Libere as notificações nas configurações do celular.'); else if(r!=='bloqueado') toast(r); }); }
   function agSyncAvisos(){ if(window.bdSyncLembretes) window.bdSyncLembretes(); }
   function agAbreForm(){ document.getElementById('agForm').hidden=false; document.getElementById('agNovo').hidden=true; document.getElementById('agTit').focus(); }
   function agSalvar(){
@@ -4392,7 +4392,7 @@ if ('serviceWorker' in navigator) {
       bx.innerHTML = o; bx.querySelector('#bpMsg').textContent = aviso; aviso = '';
       var bm = bx.querySelector('#bpMic'); if(bm) bm.onclick = function(){ bm.disabled = true; bm.textContent = 'Aguardando…'; window.bdMic.pedir(function(r){ if(r !== 'ok' && r !== 'bloqueado') aviso = r; desenha(); }); };
       var bd = bx.querySelector('#bpMicDe'); if(bd) bd.onclick = function(){ try{ localStorage.removeItem('bd_mic_ok'); }catch(e){} bd.disabled = true; bd.textContent = 'Aguardando…'; window.bdMic.pedir(function(){ desenha(); }); };
-      var bn = bx.querySelector('#bpNot'); if(bn) bn.onclick = function(){ bn.disabled = true; bn.textContent = 'Aguardando…'; window.bdAtivarAvisos(function(r){ travou = (r === 'travou'); if(r !== 'ok' && r !== 'bloqueado' && r !== 'travou') aviso = r; desenha(); }); };
+      var bn = bx.querySelector('#bpNot'); if(bn) bn.onclick = function(){ bn.disabled = true; bn.textContent = 'Aguardando…'; window.bdAtivarAvisos(function(r){ travou = /^travou/.test(r); if(travou) aviso = 'Parou na etapa: ' + r.split(':')[1] + ' (mande um print para o suporte).'; else if(r !== 'ok' && r !== 'bloqueado') aviso = r; desenha(); }); };
       bx.querySelector('#bpFim').onclick = fecha;
     }
     desenha(); f.appendChild(bx); document.body.appendChild(f);
@@ -4996,16 +4996,21 @@ if ('serviceWorker' in navigator) {
   window.bdAtivarAvisos = function(cb0){
     cb0 = cb0 || function(){};
     // alguns celulares escondem a pergunta "Permitir notificacoes?" (ou ela nunca responde): depois de 8 s mostra como liberar a mao
-    var feito = false, tmr = setTimeout(function(){ if(!feito){ feito = true; cb0('travou'); } }, 8000);
+    var feito = false, etapa = 'pergunta', tmr = setTimeout(function(){ if(!feito){ feito = true; cb0('travou:' + etapa); } }, 8000);
     function cb(r){ if(feito) return; feito = true; clearTimeout(tmr); cb0(r); }
     if(!sb || !currentUser){ cb('Entre na sua conta para ativar os avisos.'); return; }
     if(window.bdPushEstado() === 'sem' || window.bdPushEstado() === 'ios'){ cb('Este aparelho não recebe notificações.'); return; }
     Notification.requestPermission().then(function(p){
       if(p !== 'granted'){ cb('bloqueado'); return; }
-      return navigator.serviceWorker.ready.then(function(reg){
+      etapa = 'aparelho';
+      // pega o service worker DO ESCOLA (o da faculdade fica no mesmo endereco); se ainda nao existe, registra agora
+      return navigator.serviceWorker.getRegistration('./').then(function(reg){ return reg || navigator.serviceWorker.register('sw.js'); }).then(function(reg){
+        return (reg.active ? Promise.resolve(reg) : navigator.serviceWorker.ready);
+      }).then(function(reg){
+        etapa = 'assinatura';
         return reg.pushManager.getSubscription().then(function(sub){ return sub || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUB) }); });
       }).then(function(sub){
-        var j = sub.toJSON();
+        var j = sub.toJSON(); etapa = 'servidor';
         return sb.rpc('salvar_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_aparelho: (navigator.userAgent || '').slice(0, 150) });
       }).then(function(r){
         if(r && r.error){ cb('Não consegui ativar: ' + r.error.message); return; }
