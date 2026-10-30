@@ -3,7 +3,7 @@
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'bdescola-v1';
+const CACHE = 'bdescola-v2';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -12,8 +12,8 @@ const APP_SHELL = [
   './app.html',
   './escola-config.js',
   './manifest.webmanifest',
-  '../icons/icon-192.png',
-  '../icons/icon-512.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   '../icons/logo.png'
 ];
 
@@ -64,8 +64,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'BoraDiploma Escola', {
       body: data.body || '',
-      icon: '../icons/icon-192.png',
-      badge: '../icons/icon-192.png',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
       tag: data.tag || undefined,
       renotify: !!data.tag,
       vibrate: [200, 100, 200],
