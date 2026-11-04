@@ -3,7 +3,7 @@
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'boradiploma-v174';
+const CACHE = 'boradiploma-v175';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -13,7 +13,8 @@ const APP_SHELL = [
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/logo.png'
+  './icons/logo.png',
+  './acentos.txt'
 ];
 
 self.addEventListener('install', (event) => {
