@@ -590,6 +590,13 @@ main:has(> #view-note:not([hidden])){padding-top:2px;max-width:none}
 .fmtcolor{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-head);font-weight:800;
   border:1px solid var(--line);border-radius:7px;padding:4px 7px;cursor:pointer}
 .fmtcolor input{width:20px;height:20px;border:none;background:none;padding:0;cursor:pointer}
+/* tamanho de letra: texto colado (Word, site, PDF) fica no tamanho do app; Pequeno/Normal/Grande/Maior ficam proporcionais ao texto do app */
+#editor :not(.docview, .docview *)[style*="font-size"]{font-size:inherit!important}
+#editor :not(.docview, .docview *)[style*="font-size: small"]{font-size:.88rem!important}
+#editor :not(.docview, .docview *)[style*="font-size: medium"]{font-size:1.05rem!important}
+#editor :not(.docview, .docview *)[style*="font-size: x-large"]{font-size:1.35rem!important}
+#editor :not(.docview, .docview *)[style*="font-size: xx-large"]{font-size:1.65rem!important}
+#editor font[size="2"]{font-size:.88rem} #editor font[size="3"]{font-size:1.05rem} #editor font[size="5"]{font-size:1.35rem} #editor font[size="6"]{font-size:1.65rem}
 #editor h2{font-family:var(--font-head);font-weight:800;font-size:1.3rem;margin:.6em 0 .2em}
 #editor h3{font-family:var(--font-head);font-weight:700;font-size:1.1rem;margin:.5em 0 .2em}
 /* O recuo das listas usa !important porque texto colado do Word/PDF costuma vir
