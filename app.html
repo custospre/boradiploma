@@ -170013,6 +170013,14 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
 .fcpinin.err{border-color:#c62828;animation:fcerr .35s}
 @keyframes fcerr{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .fcpinmsg{min-height:1.2em;color:#c62828;font-size:.9rem}
+.simgera{display:flex;gap:14px;align-items:center;margin-top:14px;padding:14px;border-radius:12px;border:2px solid var(--accent,#7a1f2b);background:var(--accent-soft,#f6e9ea)}
+.simroda{flex:none;width:38px;height:38px;border-radius:50%;border:4px solid rgba(0,0,0,.12);border-top-color:var(--accent,#7a1f2b);animation:simgira .9s linear infinite}
+.simgera-tx{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.simgera-tx b{color:var(--accent,#7a1f2b);font-size:1rem}
+.simbarra{height:6px;border-radius:3px;background:rgba(0,0,0,.1);overflow:hidden;position:relative}
+.simbarra span{position:absolute;top:0;bottom:0;width:35%;border-radius:3px;background:var(--accent,#7a1f2b);animation:simanda 1.4s ease-in-out infinite}
+@keyframes simgira{to{transform:rotate(360deg)}}
+@keyframes simanda{0%{left:-35%}100%{left:100%}}
 .simesc{margin-top:12px;border:1px solid var(--line,#ccc);border-radius:10px;padding:8px 10px;max-height:360px;overflow:auto}
 .simesc-top{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-bottom:6px}
 .simesc-bt{margin-left:auto;font-size:.9rem}
@@ -170077,9 +170085,11 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
       h+='<p>Toda semana você pode gerar <b>1 simulado</b> com <b>10 questões no estilo da OAB</b> (4 alternativas), feito pela IA a partir das <b>suas anotações</b> das aulas, materiais e trabalhos que você marcar. Depois de responder, você vê o gabarito e a explicação de cada alternativa.</p>';
       if(ds.length&&ds.indexOf(matSel)<0) matSel=ds[0];
       h+=ds.length?('<div class="fcacts"><select class="fcsel" id="simMat">'+ds.map(function(d){ return '<option'+(d===matSel?' selected':'')+'>'+E(d)+'</option>'; }).join('')+'</select>'
-        +'<button type="button" class="fcbtn" data-sm="gerar"'+(gerando?' disabled':'')+'>✨ Gerar meu simulado</button></div>'
-        +'<p class="fcdim" id="simProg" style="margin:10px 0 0">'+(gerando?'✨ A IA está preparando o seu simulado… isso leva até 2 minutos.':'Quanto mais anotações nas aulas marcadas, mais o simulado fica parecido com as suas aulas.')+'</p>'
-        +'<div id="simItens">'+listaItens(matSel)+'</div>')
+        +'<button type="button" class="fcbtn" data-sm="gerar"'+(gerando?' disabled':'')+'>'+(gerando?'⏳ Gerando…':'✨ Gerar meu simulado')+'</button></div>'
+        +(gerando?('<div class="simgera" role="status" aria-live="polite"><div class="simroda" aria-hidden="true"></div><div class="simgera-tx"><b id="simFrase">'+SIMFR[0]+'</b>'
+          +'<div class="simbarra"><span></span></div><span class="fcdim">Pode levar até 2 minutos · <span id="simSeg">0 s</span>. Não feche o app.</span></div></div>')
+          :('<p class="fcdim" id="simProg" style="margin:10px 0 0">Quanto mais anotações nas aulas marcadas, mais o simulado fica parecido com as suas aulas.</p>'
+        +'<div id="simItens">'+listaItens(matSel)+'</div>')))
         :'<p class="fcdim">Crie uma disciplina (Índice › Disciplinas) e anote as aulas para gerar o simulado.</p>';
     } else if(!esta.respondido){
       h+='<p>Seu simulado de <b>'+E(esta.materia)+'</b> está pronto: '+esta.total+' questões.</p><button type="button" class="fcbtn" data-sm="abrir" data-id="'+esta.id+'">Responder agora</button>';
@@ -170116,6 +170126,12 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
     box.innerHTML=h;
   }
   function abrir(id){ var s=(lista||[]).filter(function(x){ return String(x.id)===String(id); })[0]; if(!s) return; aberto=s; resp=(s.questoes||[]).map(function(){ return null; }); desenhar(); window.scrollTo({top:0}); }
+  // sinal de "processando" enquanto a IA monta o simulado
+  var SIMFR=['✨ A IA está lendo as suas aulas…','📚 Separando os assuntos…','✍️ Escrevendo as questões…','🔎 Conferindo as alternativas…','💡 Preparando as explicações…','⏳ Quase pronto…'];
+  var simIni=0, simTick=null;
+  function simRelogio(on){ clearInterval(simTick); simTick=null; if(!on) return; simIni=Date.now();
+    simTick=setInterval(function(){ var t=Math.round((Date.now()-simIni)/1000), a=box.querySelector('#simSeg'), f=box.querySelector('#simFrase');
+      if(!a){ return; } a.textContent=(t<60?t+' s':Math.floor(t/60)+' min '+(t%60)+' s'); if(f) f.textContent=SIMFR[Math.min(SIMFR.length-1,Math.floor(t/12))]; },1000); }
   function gerar(){
     var sel=box.querySelector('#simMat'), mat=sel?sel.value:''; if(!mat||gerando) return;
     var it=itensDe(mat), m=marcados(mat), esc=it.filter(function(x){ return m[x.id]; });
@@ -170123,10 +170139,10 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
     var anot=esc.filter(function(x){ return x.txt; }).map(function(x){ return {titulo:x.tipo+': '+x.nome,texto:x.txt.slice(0,30000)}; });
     if(it.length&&!anot.length&&!confirm('As aulas marcadas estão vazias. Fazer o simulado com o conteúdo geral da disciplina?')) return;
     var c=sb(); if(!c||!c.functions){ toast('Entre na sua conta para usar a IA.'); return; }
-    gerando=true; desenhar();
+    gerando=true; desenhar(); simRelogio(true);
     c.functions.invoke('tutor-faculdade',{body:{acao:'simulado',materia:mat,escolheu:!!it.length,anotacoes:anot}}).then(function(r){ if(r.error) return erroDe(r); return r.data; })
-      .then(function(d){ gerando=false; return carregar().then(function(){ if(d&&d.id) abrir(d.id); else desenhar(); }); },
-        function(e){ gerando=false; toast(e.message); carregar().then(desenhar); });
+      .then(function(d){ gerando=false; simRelogio(false); return carregar().then(function(){ if(d&&d.id){ toast('✅ Seu simulado está pronto!'); abrir(d.id); } else desenhar(); }); },
+        function(e){ gerando=false; simRelogio(false); toast(e.message); carregar().then(desenhar); });
   }
   function corrigir(){
     if(resp.some(function(x){ return x==null; })){ toast('Responda todas as questões antes de corrigir.'); return; }
