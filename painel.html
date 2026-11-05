@@ -102,6 +102,23 @@
       <h1 style="font-size:17px;margin:0 0 6px">Pedidos pelo WhatsApp</h1>
       <p class="hint">Pedidos feitos pelo app (nome + WhatsApp). Toque pra criar o acesso e enviar o link.</p>
     </div>
+    <div class="card" id="escolas-card">
+      <h1 style="font-size:17px;margin:0 0 6px">🏫 Escolas (BoraDiploma Escola)</h1>
+      <p class="hint">Crie a escola que contratou: o app gera o convite da coordenação para você mandar ao diretor. Depois, a própria escola convida professores, alunos e pais (o convite já libera o acesso). Cobrança: R$ 14,90 por aluno cadastrado e não bloqueado no último dia útil do mês.</p>
+      <label for="esc-nome">Nome da escola</label>
+      <input id="esc-nome" type="text" placeholder="Ex.: Colégio São José">
+      <label for="esc-tipo">Tipo</label>
+      <select id="esc-tipo"><option value="escola">Escola (ensino fundamental e médio)</option><option value="cursinho">Cursinho</option></select>
+      <label for="esc-coord">Nome de quem vai ser a coordenação</label>
+      <input id="esc-coord" type="text" placeholder="Ex.: Maria Silva (diretora)">
+      <label for="esc-cont">WhatsApp ou e-mail da coordenação</label>
+      <input id="esc-cont" type="text" placeholder="(00) 00000-0000 ou email@escola.com.br">
+      <button class="primary btn-lib" id="esc-criar" style="background:#1f4e8c">Criar escola e gerar convite</button>
+      <div class="msg" id="esc-msg" style="color:var(--muted)"></div>
+      <div id="esc-conv"></div>
+      <div id="esc-lista"><div class="empty">Carregando...</div></div>
+      <div class="total" id="esc-tot"></div>
+    </div>
     <div class="card">
       <h1 style="font-size:17px;margin:0 0 6px">Pedidos aguardando liberação</h1>
       <div id="pedidos"></div>
@@ -209,7 +226,71 @@
     }).catch(function(){ loginMsg.textContent='Erro ao abrir o Google.'; });
   }
 
+  // ---------- 🏫 Escolas (BoraDiploma Escola): criar escola real e ver a base de cobrança ----------
+  var ESC_PRECO = 14.90, ESC_APP = 'https://escola.boradiploma.com.br/';
+  function brl(v){ return 'R$ ' + v.toFixed(2).replace('.', ','); }
+  function escConvite(escola, nome, codigo){
+    return 'Olá, ' + String(nome||'').trim().split(/\s+/)[0] + '! O BoraDiploma Escola do ' + escola + ' está pronto para você (Coordenação).\n\n'
+      + '1) Abra este link: ' + ESC_APP + 'app.html?convite=' + codigo + '\n2) Entre com a sua conta Google\n3) Se o app pedir, digite o código: ' + codigo
+      + '\n\nNa primeira vez em 🏫 Minha escola, aceite o Termo da escola. Depois cadastre as turmas e convide professores, alunos e responsáveis (ou importe a lista pelo Painel da escola).'
+      + '\n\nAntes de entrar, leia:\n• Política de Privacidade: ' + ESC_APP + 'privacidade.html\n• Termos de Uso: ' + ESC_APP + 'termos.html';
+  }
+  function escMostraConvite(escola, c){
+    var txt = escConvite(escola, c.nome, c.codigo), cont = String(c.contato||'').trim(), fone = cont.replace(/\D/g,''), mail = /@/.test(cont);
+    if(fone.length>=10 && fone.length<=11) fone = '55' + fone;
+    var wa = 'https://wa.me/' + (!mail && fone.length>=12 ? fone : '') + '?text=' + encodeURIComponent(txt);
+    var box = document.getElementById('esc-conv');
+    box.innerHTML = '<div style="margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:10px"><b>📨 Convite da coordenação — ' + esc(escola) + '</b>'
+      + '<div style="font-size:22px;font-weight:800;letter-spacing:3px;margin:6px 0">' + esc(c.codigo) + '</div>'
+      + '<textarea readonly style="width:100%;min-height:150px">' + esc(txt) + '</textarea>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><a class="btn" href="' + esc(wa) + '" target="_blank" rel="noopener" style="background:#1a7f37;color:#fff;padding:10px 14px;border-radius:10px;text-decoration:none">🟢 Enviar no WhatsApp</a>'
+      + (mail ? '<a href="mailto:' + esc(cont) + '?subject=' + encodeURIComponent('BoraDiploma Escola: convite da coordenação') + '&body=' + encodeURIComponent(txt) + '" style="padding:10px 14px">✉️ E-mail</a>' : '')
+      + '<button type="button" id="esc-copiar" style="padding:10px 14px">📋 Copiar</button><button type="button" id="esc-fechar" style="padding:10px 14px">Fechar</button></div></div>';
+    document.getElementById('esc-copiar').onclick = function(){ var ta = box.querySelector('textarea'); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function(){}, function(){ ta.select(); document.execCommand('copy'); }); this.textContent = '✅ Copiado'; };
+    document.getElementById('esc-fechar').onclick = function(){ box.innerHTML = ''; };
+    box.scrollIntoView({block:'nearest'});
+  }
+  var escDados = [];
+  function carregarEscolas(){
+    sb.rpc('dono_escolas').then(function(r){
+      var lista = document.getElementById('esc-lista');
+      if(r.error){ lista.innerHTML = '<div class="empty">' + (/does not exist|Could not find/i.test(r.error.message) ? 'Falta rodar o SQL dono-escolas.sql no Supabase.' : esc(r.error.message)) + '</div>'; return; }
+      escDados = (r.data||[]).filter(function(e){ return !e.modelo; });
+      var ex = (r.data||[]).length - escDados.length, tot = 0;
+      lista.innerHTML = escDados.length ? escDados.map(function(e, i){
+        tot += e.cobranca;
+        var coord = (e.coord||[]).map(function(c){ return esc(c.nome) + (c.entrou ? ' ✅' : ' <button type="button" data-escconv="' + i + ':' + esc(c.id) + '" style="padding:2px 8px;font-size:12px">📨 convite ' + esc(c.codigo||'') + '</button>'); }).join(' · ');
+        return '<div class="row"><div class="grow"><div class="nome">' + esc(e.nome) + (e.tipo === 'cursinho' ? ' <small>(cursinho)</small>' : '') + '</div>'
+          + '<div class="sub" style="margin:2px 0">💰 <b>' + e.cobranca + ' aluno' + (e.cobranca === 1 ? '' : 's') + ' para cobrança</b> = ' + brl(e.cobranca * ESC_PRECO) + '/mês · ' + e.alunos_entraram + ' já entraram · ' + e.responsaveis + ' responsáveis · ' + e.professores + ' professores · ' + e.turmas + ' turmas</div>'
+          + '<div class="sub" style="margin:2px 0">Coordenação: ' + (coord || '—') + ' · Termo da escola: ' + (e.termo_ok ? '✅ aceito' : '⏳ ainda não') + '</div></div></div>';
+      }).join('') : '<div class="empty">Nenhuma escola cadastrada ainda.</div>';
+      document.getElementById('esc-tot').textContent = escDados.length ? ('Total: ' + escDados.length + ' escola' + (escDados.length === 1 ? '' : 's') + ' · ' + tot + ' alunos para cobrança = ' + brl(tot * ESC_PRECO) + '/mês' + (ex ? ' · (' + ex + ' escola' + (ex === 1 ? '' : 's') + ' de exemplo não contam)' : '')) : '';
+    });
+  }
+  document.addEventListener('click', function(ev){
+    var b = ev.target.closest && ev.target.closest('[data-escconv]'); if(!b) return;
+    var pr = b.getAttribute('data-escconv').split(':'), e = escDados[+pr[0]]; if(!e) return;
+    var c = (e.coord||[]).filter(function(x){ return x.id === pr[1]; })[0]; if(c) escMostraConvite(e.nome, c);
+  });
+  document.getElementById('esc-criar').addEventListener('click', function(){
+    var nome = document.getElementById('esc-nome').value.trim(), tipo = document.getElementById('esc-tipo').value,
+        coord = document.getElementById('esc-coord').value.trim(), cont = document.getElementById('esc-cont').value.trim(), msg = document.getElementById('esc-msg'), bt = this;
+    if(nome.length < 3){ msg.textContent = 'Escreva o nome da escola.'; return; }
+    if(coord.length < 2){ msg.textContent = 'Escreva o nome de quem vai ser a coordenação.'; return; }
+    if(!confirm('Criar a escola "' + nome + '" com ' + coord + ' na coordenação?')) return;
+    bt.disabled = true; msg.textContent = 'Criando...';
+    sb.rpc('dono_criar_escola', { p_nome: nome, p_tipo: tipo, p_coord: coord, p_contato: cont }).then(function(r){
+      bt.disabled = false;
+      if(r.error){ msg.textContent = '⚠️ ' + r.error.message; return; }
+      msg.textContent = '✅ Escola criada. Envie o convite abaixo para a coordenação.';
+      ['esc-nome','esc-coord','esc-cont'].forEach(function(id){ document.getElementById(id).value = ''; });
+      escMostraConvite(nome, { nome: coord, contato: cont, codigo: r.data.codigo });
+      carregarEscolas();
+    }, function(){ bt.disabled = false; msg.textContent = 'Erro de conexão. Tente de novo.'; });
+  });
+
   function carregar(){
+    carregarEscolas();
     Promise.all([
       sb.from('perfis').select('user_id,nome,whatsapp,email,created_at'),
       sb.from('billing').select('user_id,email,aprovado,active,trial_ends_at,status'),
