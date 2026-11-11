@@ -167329,10 +167329,14 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       ov.querySelector('#prtRedo').addEventListener('click',function(){ refazComCursor(); toast('Folhas reorganizadas'); });
       // enquanto se digita, se o texto passar do fim da folha ele e levado para
       // a folha seguinte sozinho (antes ele simplesmente sumia)
-      var tRefaz=null;
-      sheetsBox.addEventListener('input',function(){
+      var tRefaz=null, sujoPrt=false;
+      sheetsBox.addEventListener('input',function(e){
         clearTimeout(tRefaz);
-        tRefaz=setTimeout(function(){ if(transbordou()||encolheu()) refazComCursor(); },800);
+        // texto que passou do fim da folha (ex.: Enter antes de um titulo no fim da folha) vai para a
+        // folha seguinte NA HORA; antes esperava 0,8 s e, enquanto isso, ficava escondido atras da folha de baixo
+        var corpoEd=(e&&e.target&&e.target.closest)?e.target.closest('.prtBody'):null;
+        if(!(e&&e.isComposing) && corpoEd && empurraExcesso(corpoEd)) sujoPrt=true;   // so move os blocos que passaram; rapido
+        tRefaz=setTimeout(function(){ var s=sujoPrt; sujoPrt=false; if(s||transbordou()||encolheu()) refazComCursor(); },800);
       });
       ov.querySelector('#prtSave').addEventListener('click',guarda);
       document.addEventListener('keydown',function(e){ if(e.key==='Escape' && ov && !ov.hidden){ e.preventDefault(); fecha(); } });
@@ -167372,6 +167376,22 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       s.appendChild(c); sheetsBox.appendChild(s); return c;
     }
     function cabe(c,A){ return c.scrollHeight<=A.h*0.985; }
+
+    // Enter (ou texto novo) que empurra o fim da folha para fora: leva os ultimos blocos para o inicio da
+    // folha seguinte NA HORA (so move elementos, e rapido). A reorganizacao completa vem depois (timer).
+    function empurraExcesso(corpo){
+      var A=area(), lim=A.h*0.985+1, sel=window.getSelection(), nc=null, no=0, mexeu=false, g=0;
+      if(sel&&sel.rangeCount&&corpo.ownerDocument.contains(sel.anchorNode)){ nc=sel.anchorNode; no=sel.anchorOffset; }
+      var c=corpo;
+      while(c && g++<400 && c.scrollHeight>lim && c.children.length>1){
+        var ult=c.lastElementChild, folha=c.closest('.prtSheet'), prox=folha.nextElementSibling, nb=prox?prox.querySelector('.prtBody'):null;
+        if(!nb) nb=novaFolha();
+        nb.insertBefore(ult,nb.firstChild); mexeu=true;
+        if(c.scrollHeight<=lim){ c=(nb.scrollHeight>lim)?nb:null; }
+      }
+      if(mexeu && nc && nc.isConnected){ try{ var r=document.createRange(); r.setStart(nc,no); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }catch(_){} }
+      return mexeu;
+    }
 
     // Parte um paragrafo simples (sem elementos dentro) no ponto em que deixa de caber
     function parte(el,c,A){
