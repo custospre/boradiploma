@@ -167082,6 +167082,62 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     });
   }
 
+  // Redimensionar imagem da aula arrastando os cantos (clique na imagem para ver as alcas)
+  (function(){
+    var box=null, img=null, drag=null;
+    function mk(){
+      box=document.createElement('div'); box.id='imgResizer'; box.hidden=true;
+      box.style.cssText='position:fixed;z-index:9000;pointer-events:none;border:2px solid #7a1f2b;box-sizing:border-box';
+      ['nw','ne','sw','se'].forEach(function(p){
+        var h=document.createElement('div'); h.className='imgH'; h.setAttribute('data-p',p);
+        h.style.cssText='position:absolute;width:16px;height:16px;background:#fff;border:2px solid #7a1f2b;border-radius:3px;box-sizing:border-box;pointer-events:auto;touch-action:none;'
+          +(p.charAt(0)==='n'?'top:-9px;':'bottom:-9px;')
+          +(p.charAt(1)==='w'?'left:-9px;cursor:'+(p==='nw'?'nwse':'nesw')+'-resize':'right:-9px;cursor:'+(p==='ne'?'nesw':'nwse')+'-resize');
+        box.appendChild(h);
+      });
+      document.body.appendChild(box);
+      box.addEventListener('pointerdown',function(e){
+        var h=e.target.closest?e.target.closest('.imgH'):null; if(!h||!img) return;
+        e.preventDefault();
+        var r=img.getBoundingClientRect();
+        drag={p:h.getAttribute('data-p'), x:e.clientX, w:r.width};
+        try{ h.setPointerCapture(e.pointerId); }catch(_){}
+      });
+      box.addEventListener('pointermove',function(e){
+        if(!drag||!img) return;
+        var dx=e.clientX-drag.x; if(drag.p.charAt(1)==='w') dx=-dx;
+        var maxW=editor.getBoundingClientRect().width;
+        var w=Math.max(40,Math.min(maxW,drag.w+dx));
+        img.style.width=Math.round(w)+'px'; img.style.height='auto';
+        pos();
+      });
+      function fim(){ if(!drag) return; drag=null; try{ scheduleSave(); }catch(_){} try{ updAulaPgs(); }catch(_){} }
+      box.addEventListener('pointerup',fim);
+      box.addEventListener('pointercancel',fim);
+    }
+    function pos(){
+      if(!box||!img) return;
+      if(!img.isConnected||!editor.contains(img)){ esconde(); return; }
+      var r=img.getBoundingClientRect();
+      box.style.left=r.left+'px'; box.style.top=r.top+'px'; box.style.width=r.width+'px'; box.style.height=r.height+'px';
+    }
+    function mostra(i){ if(!box) mk(); img=i; box.hidden=false; pos(); }
+    function esconde(){ if(box) box.hidden=true; img=null; drag=null; }
+    editor.addEventListener('click',function(e){
+      var t=e.target;
+      if(t&&t.tagName==='IMG'&&!(t.closest&&t.closest('.pdfview,.docview,.dhandle'))) mostra(t); else esconde();
+    });
+    editor.addEventListener('input',pos);
+    editor.addEventListener('keydown',function(e){ if(e.key==='Escape') esconde(); });
+    document.addEventListener('pointerdown',function(e){
+      if(!box||box.hidden) return;
+      if(box.contains(e.target)||editor.contains(e.target)) return;
+      esconde();
+    },true);
+    window.addEventListener('scroll',pos,true);
+    window.addEventListener('resize',pos);
+  })();
+
   // Configurar Pagina na barra da aula (margem, papel, orientacao)
   var pgMargem=document.getElementById('pgMargem'), pgPapel=document.getElementById('pgPapel'), pgOrient=document.getElementById('pgOrient');
   function sincPagina(){
