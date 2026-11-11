@@ -166935,12 +166935,44 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   }
   // Risca uma linha tracejada onde termina cada folha A4, como a quebra de
   // pagina do Word, para saber onde o texto vai cortar na impressao.
+  var _mfT=null;
   function marcaFolhas(pg,alt,padTop){
     if(!editor)return;
+    var pos0=[]; for(var i=1;i<pg;i++) pos0.push(padTop+i*alt);
+    desenhaGuias(pos0);                       // na hora: posicao exata da folha (estimativa)
+    clearTimeout(_mfT);
+    if(pg<2) return;
+    // logo depois: encaixa cada linha no espaco ENTRE duas linhas de texto, para a linha
+    // tracejada nao cortar uma frase ao meio (como um risco por cima do texto)
+    _mfT=setTimeout(function(){
+      if(!editor||viewNote.hidden) return;
+      try{
+        var cs=getComputedStyle(editor), fim=editor.scrollHeight-parseFloat(cs.paddingBottom);
+        var er=editor.getBoundingClientRect(), off=er.top+editor.clientTop, bots=[], rg=document.createRange();
+        var w=document.createTreeWalker(editor,NodeFilter.SHOW_TEXT,null), t;
+        while((t=w.nextNode())){
+          if(!/\S/.test(t.nodeValue)) continue;
+          rg.selectNodeContents(t);
+          var rs=rg.getClientRects(); for(var k=0;k<rs.length;k++){ if(rs[k].height>0) bots.push(rs[k].bottom-off); }
+        }
+        [].forEach.call(editor.querySelectorAll('img,table,hr'),function(el){ var r=el.getBoundingClientRect(); if(r.height>0) bots.push(r.bottom-off); });
+        bots.sort(function(a,b){ return a-b; });
+        var pos=[], y0=padTop, g=0;
+        while(g++<500){
+          var alvo=y0+alt; if(alvo>=fim) break;
+          var melhor=null; for(var j=0;j<bots.length;j++){ if(bots[j]<=alvo && bots[j]>y0+10) melhor=bots[j]; }
+          var y=(melhor!=null)?melhor+1:alvo; pos.push(y); y0=y;
+        }
+        desenhaGuias(pos);
+        if(aulaPgs && /· \d+ pág/.test(aulaPgs.textContent)) aulaPgs.textContent=aulaPgs.textContent.replace(/· \d+ pág/,'· '+(pos.length+1)+' pág');
+      }catch(e){}
+    },250);
+  }
+  function desenhaGuias(lista){
     var imgs=[], poss=[];
-    for(var i=1;i<pg;i++){
+    for(var i=0;i<lista.length;i++){
       imgs.push('repeating-linear-gradient(to right,var(--accent) 0 8px,transparent 8px 16px)');
-      poss.push('0 '+Math.round(padTop+i*alt)+'px');
+      poss.push('0 '+Math.round(lista[i])+'px');
     }
     if(imgs.length){
       editor.style.backgroundImage=imgs.join(',');
