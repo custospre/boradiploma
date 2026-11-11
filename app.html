@@ -654,6 +654,13 @@ html.bd-semsel #editor::selection,html.bd-semsel #editor ::selection{background:
 .cite{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;
   padding:10px 12px;margin:12px 0;font-size:.95rem;overflow-wrap:anywhere;word-break:break-word}
 .cite-h{font-family:var(--font-head);font-weight:700;color:var(--accent);font-size:.78rem;margin-bottom:5px;letter-spacing:.03em}
+/* sanfona do artigo inserido: fechado por padrao, toque no titulo abre/fecha */
+#editor .cite-h{cursor:pointer;user-select:none;margin-bottom:0}
+#editor .cite-h:before{content:'▸ ';display:inline-block;width:1.1em}
+#editor .cite.aberto .cite-h{margin-bottom:5px}
+#editor .cite.aberto .cite-h:before{content:'▾ '}
+#editor .cite:not(.aberto) > :not(.cite-h){display:none}
+@media print{#editor .cite > *{display:block!important}#editor .cite-h:before{content:''}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));
   background:var(--fg);color:var(--bg);font-family:var(--font-head);font-size:.86rem;padding:11px 18px;border-radius:12px;
   box-shadow:0 8px 28px rgba(0,0,0,.28);z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:88vw;text-align:center}
@@ -166375,6 +166382,14 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   window.addEventListener('scroll',function(){ if(!ctxMenu.hidden) hideCtx(); },{passive:true});
   // No celular (sem botao direito): tocar num artigo inserido (.cite) abre o
   // mesmo menu Excluir/Copiar. Toque num link dentro do artigo abre o link.
+  // Sanfona: clicar/tocar no titulo do artigo inserido abre ou fecha o texto
+  if(editor) editor.addEventListener('click',function(e){
+    var hd=e.target.closest && e.target.closest('.cite-h');
+    if(!hd || !editor.contains(hd)) return;
+    var c=hd.closest('.cite'); if(!c) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    hideCtx(); c.classList.toggle('aberto');
+  },true);
   if(editor && window.matchMedia && window.matchMedia('(pointer: coarse)').matches){
     editor.addEventListener('click',function(e){
       if(e.target.closest && e.target.closest('a[href]')) return;

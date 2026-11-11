@@ -1,9 +1,9 @@
-/* BoraDiploma - Service Worker (PWA)
+﻿/* BoraDiploma - Service Worker (PWA)
    Faz o app abrir mesmo sem internet (guarda os arquivos no aparelho)
    e, mais pra frente, vai receber os lembretes de prazo (push).
    Troque a versao do cache sempre que publicar uma atualizacao. */
 
-const CACHE = 'boradiploma-v203';
+const CACHE = 'boradiploma-v204';
 
 // Arquivos que ficam guardados pra abrir offline (o "esqueleto" do app).
 // O app.html (grande, ~12 MB) entra no cache na 1a vez que abrir.
@@ -37,7 +37,7 @@ self.addEventListener('activate', (event) => {
 // Para a PAGINA principal (navegacao / app.html / index), forcamos buscar da rede
 // SEM usar o cache do proprio navegador (cache:'no-store'). Sem isso, o celular
 // podia abrir uma versao velha por ate 10 min (cache HTTP do GitHub Pages) mesmo
-// com internet — era o que prendia as correcoes/traducao.
+// com internet â€” era o que prendia as correcoes/traducao.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
