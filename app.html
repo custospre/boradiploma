@@ -166935,18 +166935,25 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   }
   // Risca uma linha tracejada onde termina cada folha A4, como a quebra de
   // pagina do Word, para saber onde o texto vai cortar na impressao.
-  var _mfT=null;
+  var _mfT=null, calcQuebras=null;
   function marcaFolhas(pg,alt,padTop){
     if(!editor)return;
     var pos0=[]; for(var i=1;i<pg;i++) pos0.push(padTop+i*alt);
     desenhaGuias(pos0);                       // na hora: posicao exata da folha (estimativa)
     clearTimeout(_mfT);
-    if(pg<2) return;
-    // logo depois: encaixa cada linha no espaco ENTRE duas linhas de texto, para a linha
-    // tracejada nao cortar uma frase ao meio (como um risco por cima do texto)
+    if(pg<1) return;
+    // logo depois: 1o) usa a mesma paginacao da tela Imprimir (as linhas mostram onde o PDF vai quebrar);
+    // 2o) se isso falhar, encaixa cada linha no espaco ENTRE duas linhas de texto
     _mfT=setTimeout(function(){
       if(!editor||viewNote.hidden) return;
       try{
+        var ysP=null; try{ ysP=calcQuebras?calcQuebras():null; }catch(e){ ysP=null; }
+        if(ysP){
+          desenhaGuias(ysP);
+          if(aulaPgs && /· \d+ pág/.test(aulaPgs.textContent)) aulaPgs.textContent=aulaPgs.textContent.replace(/· \d+ pág/,'· '+(ysP.length+1)+' pág');
+          return;
+        }
+        if(pg<2) return;
         var cs=getComputedStyle(editor), fim=editor.scrollHeight-parseFloat(cs.paddingBottom);
         var er=editor.getBoundingClientRect(), off=er.top+editor.clientTop, bots=[], rg=document.createRange();
         var w=document.createTreeWalker(editor,NodeFilter.SHOW_TEXT,null), t;
@@ -166966,7 +166973,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         desenhaGuias(pos);
         if(aulaPgs && /· \d+ pág/.test(aulaPgs.textContent)) aulaPgs.textContent=aulaPgs.textContent.replace(/· \d+ pág/,'· '+(pos.length+1)+' pág');
       }catch(e){}
-    },250);
+    },500);
   }
   function desenhaGuias(lista){
     var imgs=[], poss=[];
@@ -167378,18 +167385,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       return nb;
     }
 
-    function desenha(){
-      sheetsBox.style.zoom='';
-      var A=area(), f=folha();
-      // A margem vai para o @page (e nao para dentro da folha) e, no papel, a
-      // folha tem o tamanho da area util. Assim ela cabe mesmo quando o
-      // navegador impoe a margem dele, em vez de estourar para a pagina seguinte.
-      pageStyle.textContent='@page{size:'+f.w+'mm '+f.h+'mm;margin:'+cfg.margem+'mm}'
-        +'@media print{:root.prtmode .prtSheet{width:auto !important;height:'+(f.h-2*cfg.margem-6)+'mm !important;padding:0 !important}}';
-      sheetsBox.innerHTML='';
-      var tmp=document.createElement('div'); tmp.innerHTML=src.html;
-      [].slice.call(tmp.querySelectorAll('script,style,canvas,iframe,.fmtbar,.dhandle,.prtNum,button,select,input,textarea,.rowbtns,.pdfview,.docview,.emptybox,.estback')).forEach(function(n){ n.remove(); });
-      [].slice.call(tmp.querySelectorAll('[hidden]')).forEach(function(n){ n.remove(); });
+    function enche(tmp,A){
       var c=novaFolha(), nodes=[].slice.call(tmp.childNodes), g=0;
       while(nodes.length && g++<30000){
         var n=nodes.shift();
@@ -167413,6 +167409,21 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
           else { var r=parteBloco(n,c,A,0); c=novaFolha(); if(r) nodes.unshift(r); }
         }
       }
+    }
+
+    function desenha(){
+      sheetsBox.style.zoom='';
+      var A=area(), f=folha();
+      // A margem vai para o @page (e nao para dentro da folha) e, no papel, a
+      // folha tem o tamanho da area util. Assim ela cabe mesmo quando o
+      // navegador impoe a margem dele, em vez de estourar para a pagina seguinte.
+      pageStyle.textContent='@page{size:'+f.w+'mm '+f.h+'mm;margin:'+cfg.margem+'mm}'
+        +'@media print{:root.prtmode .prtSheet{width:auto !important;height:'+(f.h-2*cfg.margem-6)+'mm !important;padding:0 !important}}';
+      sheetsBox.innerHTML='';
+      var tmp=document.createElement('div'); tmp.innerHTML=src.html;
+      [].slice.call(tmp.querySelectorAll('script,style,canvas,iframe,.fmtbar,.dhandle,.prtNum,button,select,input,textarea,.rowbtns,.pdfview,.docview,.emptybox,.estback')).forEach(function(n){ n.remove(); });
+      [].slice.call(tmp.querySelectorAll('[hidden]')).forEach(function(n){ n.remove(); });
+      enche(tmp,A);
       var fs=[].slice.call(sheetsBox.children);
       if(fs.length>1 && !fs[fs.length-1].textContent.trim()){ fs[fs.length-1].remove(); fs.pop(); }
       fs.forEach(function(s,i){ var d=document.createElement('div'); d.className='prtNum';
@@ -167516,6 +167527,58 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       if(curNoteId===src.noteId && editor) editor.innerHTML=d.innerHTML;
       toast('Corre\u00e7\u00f5es guardadas no texto');
     }
+
+    // ---- onde cada folha do PDF comecaria, mostrado como linha tracejada na pagina da aula ----
+    // Paginacao da impressao feita fora da tela, sobre o texto da aula. Cada inicio de folha e
+    // localizado no editor pela contagem de caracteres (sem espacos) e imagens ate ali.
+    var EXCL='script,style,canvas,iframe,.fmtbar,.dhandle,.prtNum,.prtLogo,button,select,input,textarea,.rowbtns,.pdfview,.docview,.emptybox,.estback,[hidden]';
+    function contaUn(root,ate){            // percorre texto e imagens de root; ate(un) pode interromper
+      var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,null), n, tot=0;
+      while((n=w.nextNode())){
+        var out=false; for(var p=n.parentNode;p&&p!==root;p=p.parentNode){ if(p.nodeType===1&&p.matches&&p.matches(EXCL)){ out=true; break; } }
+        if(out) continue;
+        if(n.nodeType===3){ var c=(n.nodeValue.match(/\S/g)||[]).length; if(!c) continue; if(ate&&ate(n,c,tot)) return tot; tot+=c; }
+        else if(n.tagName==='IMG'){ if(ate&&ate(n,1,tot)) return tot; tot+=1; }
+      }
+      return tot;
+    }
+    calcQuebras=function(){
+      var CPn=cfgPagina(); cfg.papel=CPn.papel; cfg.margem=CPn.margem; cfg.deitado=CPn.deitado; cfg.logo=lerLogo();
+      var fonte=pega();
+      var off=document.createElement('div'); off.style.cssText='position:absolute;left:-30000px;top:0;visibility:hidden;pointer-events:none';
+      document.body.appendChild(off);
+      var salvo=sheetsBox, folhas;
+      try{
+        sheetsBox=off;
+        var tmp=document.createElement('div'); tmp.innerHTML=fonte.html;
+        [].slice.call(tmp.querySelectorAll(EXCL)).forEach(function(n){ n.remove(); });
+        enche(tmp,area());
+        folhas=[].slice.call(off.children);
+      } finally { sheetsBox=salvo; }
+      var cont=[]; folhas.forEach(function(f){ var b=f.querySelector('.prtBody'); cont.push(b?contaUn(b):0); });
+      var tit=0; if(folhas.length){ var b0=folhas[0].querySelector('.prtBody'), h0=b0&&b0.firstElementChild; if(h0&&h0.tagName==='H1') tit=contaUn(h0); }
+      off.remove();
+      var er=editor.getBoundingClientRect(), topo=er.top+editor.clientTop, rg=document.createRange(), ys=[], acum=0;
+      for(var k=0;k<folhas.length-1;k++){
+        acum+=cont[k]; var B=acum-tit; if(B<=0) continue;
+        var achou=null;
+        contaUn(editor,function(n,c,tot){
+          if(tot+c<=B) return false;
+          if(n.nodeType===3){
+            var i=0, vistos=tot; for(;i<n.nodeValue.length;i++){ if(/\S/.test(n.nodeValue.charAt(i))){ if(vistos===B) break; vistos++; } }
+            rg.setStart(n,i); rg.setEnd(n,Math.min(n.nodeValue.length,i+1));
+            var r=rg.getClientRects()[0]||rg.getBoundingClientRect(), pe=n.parentNode, lh=parseFloat(getComputedStyle(pe).lineHeight);
+            var gap=isNaN(lh)?8:Math.max(0,lh-r.height);
+            achou=r.top-topo-gap/2;
+          } else { achou=n.getBoundingClientRect().top-topo-4; }
+          return true;
+        });
+        if(achou==null) return null;
+        if(ys.length&&achou<=ys[ys.length-1]) return null;
+        ys.push(achou);
+      }
+      return ys;
+    };
 
     function pega(){
       var c=activeContent();
