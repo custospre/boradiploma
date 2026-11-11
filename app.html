@@ -167365,7 +167365,19 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         if(n.nodeType===1 && n.classList && n.classList.contains('prtBreak')){ c.appendChild(n); c=novaFolha(); continue; }
         c.appendChild(n);
         if(!cabe(c,A)){
-          if(c.childNodes.length>1){ c.removeChild(n); nodes.unshift(n); c=novaFolha(); }
+          if(c.childNodes.length>1){
+            // bloco grande que nao cabe no que sobrou da folha: em vez de empurrar tudo para a folha
+            // seguinte (deixava um buraco), divide o bloco e aproveita o espaco. Blocos pequenos
+            // continuam indo inteiros; so divide se sobrar um pedaco decente (>= ~2,4 cm) na folha.
+            var feito=false;
+            if(n.nodeType===1 && n.getBoundingClientRect().height>A.h*0.12){
+              c.removeChild(n); var tt=n.cloneNode(true); c.appendChild(tt);
+              var rs=parteBloco(tt,c,A,0);
+              if(cabe(c,A) && tt.textContent.trim() && tt.getBoundingClientRect().height>=90){ c=novaFolha(); if(rs) nodes.unshift(rs); feito=true; }
+              else c.removeChild(tt);
+            }
+            if(!feito){ if(n.parentNode===c) c.removeChild(n); nodes.unshift(n); c=novaFolha(); }
+          }
           else { var r=parteBloco(n,c,A,0); c=novaFolha(); if(r) nodes.unshift(r); }
         }
       }
