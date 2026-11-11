@@ -167268,14 +167268,24 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     var ov=null, sheetsBox=null, info=null, pageStyle=null, src=null;
     var PAPEL={a4:{w:210,h:297,n:'A4'}, carta:{w:216,h:279,n:'Carta'}};
     var CPI=cfgPagina();
-    var cfg={papel:CPI.papel, margem:CPI.margem, letra:12, deitado:CPI.deitado, zoom:'auto', logo:lerLogo()};
+    var cfg={papel:CPI.papel, margem:CPI.margem, letra:12, deitado:CPI.deitado, zoom:'auto', logo:lerLogo(), cabModo:lerCabModo(), cab:lerCab()};
+    // texto do cabecalho de cada folha: nao (sem texto) | auto (disciplina e titulo da aula) | livre (o que o usuario digitar)
+    function lerCabModo(){ var v='nao'; try{ v=localStorage.getItem('bd_prt_cabmodo')||'nao'; }catch(_){} return /^(nao|auto|livre)$/.test(v)?v:'nao'; }
+    function lerCab(){ var v=''; try{ v=localStorage.getItem('bd_prt_cab')||''; }catch(_){} return v.slice(0,140); }
+    var cabTit='';                                // titulo da aula atual (usado no modo auto)
+    function cabTexto(){
+      if(cfg.cabModo==='livre') return (cfg.cab||'').trim();
+      if(cfg.cabModo==='auto'){ var d=document.getElementById('aulaDisc'), dn=d?(d.textContent||'').trim():''; return [dn,(cabTit||'').trim()].filter(Boolean).join(' · '); }
+      return '';
+    }
+    function cabAltura(){ var tx=cabTexto(); if(cfg.logo==='nao'&&!tx) return 0; return (cfg.logo!=='nao'?LOGO_H:7)+LOGO_GAP; }
     // logo do BoraDiploma no cabecalho de cada folha: nao (sem logo) | esq | cen | dir. Fica lembrado no aparelho.
     function lerLogo(){ var v='esq'; try{ v=localStorage.getItem('bd_prt_logo')||'esq'; }catch(_){} return /^(nao|esq|cen|dir)$/.test(v)?v:'esq'; }
     var LOGO_H=11, LOGO_GAP=3;                    // altura da logo e espaco abaixo dela (mm)
 
     function mm(v){ return v*96/25.4; }           // milimetros -> pixels na tela
     function folha(){ var p=PAPEL[cfg.papel]; return cfg.deitado?{w:p.h,h:p.w}:{w:p.w,h:p.h}; }
-    function area(){ var f=folha(), lg=(cfg.logo!=='nao')?(LOGO_H+LOGO_GAP):0; return {w:mm(f.w-2*cfg.margem), h:mm(f.h-2*cfg.margem-lg)}; }
+    function area(){ var f=folha(), lg=cabAltura(); return {w:mm(f.w-2*cfg.margem), h:mm(f.h-2*cfg.margem-lg)}; }
 
     function monta(){
       ov=document.createElement('div'); ov.id='prtOverlay'; ov.hidden=true;
@@ -167287,6 +167297,8 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         +'<label class="prtf">Margem <select id="prtMargem"><option value="10">1,0 cm</option><option value="15">1,5 cm</option><option value="20">2,0 cm</option><option value="25">2,5 cm</option><option value="30">3,0 cm</option></select></label>'
         +'<label class="prtf">Letra <select id="prtLetra"><option value="10">pequena</option><option value="12">normal</option><option value="14">grande</option></select></label>'
         +'<label class="prtf">Logo <select id="prtLogo" title="Logo do BoraDiploma no topo de cada folha"><option value="nao">sem logo</option><option value="esq">à esquerda</option><option value="cen">no centro</option><option value="dir">à direita</option></select></label>'
+        +'<label class="prtf">Cabeçalho <select id="prtCabModo" title="Texto no topo de cada folha, na mesma linha da logo"><option value="nao">sem texto</option><option value="auto">disciplina e aula</option><option value="livre">texto livre</option></select></label>'
+        +'<input type="text" id="prtCab" maxlength="140" placeholder="Digite o cabeçalho" title="Texto do cabeçalho de cada folha" style="display:none;width:200px;font:inherit;padding:4px 6px;border:1px solid #bbb;border-radius:6px">'
         +'<label class="prtf">Deitado <input type="checkbox" id="prtDeitado"></label>'
         +'<label class="prtf">Ver <select id="prtZoom"><option value="auto">caber na tela</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option></select></label>'
         +'<span class="prtsep"></span>'
@@ -167305,7 +167317,11 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       ov.querySelector('#prtPapel').addEventListener('change',function(){ cfg.papel=this.value; guardaPagina(cfg.papel,null); sincPagina(); refaz(); });
       ov.querySelector('#prtMargem').addEventListener('change',function(){ cfg.margem=+this.value; guardaMargem(cfg.margem); sincPagina(); refaz(); });
       ov.querySelector('#prtLetra').addEventListener('change',function(){ cfg.letra=+this.value; refaz(); });
-      ov.querySelector('#prtLogo').addEventListener('change',function(){ cfg.logo=this.value; try{ localStorage.setItem('bd_prt_logo',cfg.logo); }catch(_){} refaz(); });
+      ov.querySelector('#prtLogo').addEventListener('change',function(){ cfg.logo=this.value; try{ localStorage.setItem('bd_prt_logo',cfg.logo); }catch(_){} refaz(); if(typeof updAulaPgs==='function') updAulaPgs(); });
+      function mostraCab(){ var i=ov.querySelector('#prtCab'); i.style.display=(cfg.cabModo==='livre')?'':'none'; }
+      ov.querySelector('#prtCabModo').addEventListener('change',function(){ cfg.cabModo=this.value; try{ localStorage.setItem('bd_prt_cabmodo',cfg.cabModo); }catch(_){} mostraCab(); refaz(); if(typeof updAulaPgs==='function') updAulaPgs(); if(cfg.cabModo==='livre') ov.querySelector('#prtCab').focus(); });
+      var tCab=null;
+      ov.querySelector('#prtCab').addEventListener('input',function(){ cfg.cab=this.value; try{ localStorage.setItem('bd_prt_cab',cfg.cab); }catch(_){} clearTimeout(tCab); tCab=setTimeout(function(){ refaz(); if(typeof updAulaPgs==='function') updAulaPgs(); },500); });
       ov.querySelector('#prtDeitado').addEventListener('change',function(){ cfg.deitado=this.checked; guardaPagina(null,cfg.deitado); sincPagina(); refaz(); });
       ov.querySelector('#prtZoom').addEventListener('change',function(){ cfg.zoom=(this.value==='auto')?'auto':(+this.value); aplicaZoom(); });
       window.addEventListener('resize',function(){ if(ov && !ov.hidden && cfg.zoom==='auto') aplicaZoom(); });
@@ -167338,11 +167354,20 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       var c=document.createElement('div'); c.className='prtBody';
       c.style.fontSize=cfg.letra+'pt';
       c.setAttribute('contenteditable','true'); c.setAttribute('spellcheck','true'); c.setAttribute('lang','pt-BR');
-      if(cfg.logo!=='nao'){
-        var lg=document.createElement('div'); lg.className='prtLogo'; lg.setAttribute('contenteditable','false');
-        lg.style.cssText='height:'+LOGO_H+'mm;margin-bottom:'+LOGO_GAP+'mm;text-align:'+(cfg.logo==='dir'?'right':(cfg.logo==='cen'?'center':'left'))+';line-height:0;user-select:none';
-        lg.innerHTML='<img src="icons/logo.png" alt="BoraDiploma" style="height:'+LOGO_H+'mm;width:auto;display:inline-block">';
-        s.appendChild(lg);
+      var ctx=cabTexto(), temLogo=(cfg.logo!=='nao');
+      if(temLogo||ctx){
+        var H=temLogo?LOGO_H:7, lg=document.createElement('div'); lg.className='prtLogo'; lg.setAttribute('contenteditable','false');
+        lg.style.cssText='height:'+H+'mm;margin-bottom:'+LOGO_GAP+'mm;display:flex;align-items:center;gap:4mm;box-sizing:border-box;overflow:hidden;user-select:none;line-height:1.2;font-size:9pt;color:#444'
+          +(ctx?';border-bottom:.3mm solid #999;padding-bottom:1mm':'');
+        var im='<img src="icons/logo.png" alt="BoraDiploma" style="height:'+(ctx?H-2:H)+'mm;width:auto;flex:none">';
+        var tx=function(al){ return '<div style="flex:1;min-width:0;max-height:'+H+'mm;overflow:hidden;text-align:'+al+'">'+esc(ctx)+'</div>'; };
+        var html;
+        if(!ctx) html=im, lg.style.justifyContent=(cfg.logo==='dir'?'flex-end':(cfg.logo==='cen'?'center':'flex-start'));
+        else if(!temLogo) html=tx('left');
+        else if(cfg.logo==='esq') html=im+tx('right');
+        else if(cfg.logo==='dir') html=tx('left')+im;
+        else html=tx('left')+im+'<div style="flex:1"></div>';
+        lg.innerHTML=html; s.appendChild(lg);
       }
       s.appendChild(c); sheetsBox.appendChild(s); return c;
     }
@@ -167543,8 +167568,8 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       return tot;
     }
     calcQuebras=function(){
-      var CPn=cfgPagina(); cfg.papel=CPn.papel; cfg.margem=CPn.margem; cfg.deitado=CPn.deitado; cfg.logo=lerLogo();
-      var fonte=pega();
+      var CPn=cfgPagina(); cfg.papel=CPn.papel; cfg.margem=CPn.margem; cfg.deitado=CPn.deitado; cfg.logo=lerLogo(); cfg.cabModo=lerCabModo(); cfg.cab=lerCab();
+      var fonte=pega(); cabTit=fonte.title||'';
       var off=document.createElement('div'); off.style.cssText='position:absolute;left:-30000px;top:0;visibility:hidden;pointer-events:none';
       document.body.appendChild(off);
       var salvo=sheetsBox, folhas;
@@ -167607,6 +167632,8 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       ov.querySelector('#prtMargem').value=String(cfg.margem);
       ov.querySelector('#prtLetra').value=String(cfg.letra);
       cfg.logo=lerLogo(); ov.querySelector('#prtLogo').value=cfg.logo;
+      cfg.cabModo=lerCabModo(); cfg.cab=lerCab(); cabTit=src.title||'';
+      ov.querySelector('#prtCabModo').value=cfg.cabModo; ov.querySelector('#prtCab').value=cfg.cab; ov.querySelector('#prtCab').style.display=(cfg.cabModo==='livre')?'':'none';
       ov.querySelector('#prtDeitado').checked=cfg.deitado;
       ov.querySelector('#prtZoom').value=String(cfg.zoom);
       ov.querySelector('#prtSave').style.display=src.noteId?'':'none';
