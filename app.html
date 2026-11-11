@@ -167259,6 +167259,26 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       var ne=el.cloneNode(false); ne.textContent=resto; return ne;
     }
 
+    // Parte um bloco com elementos dentro (ex.: caixa de artigo): tira os filhos do fim ate caber
+    // e devolve uma copia do bloco com o que sobrou (vai para a folha seguinte). Antes, esse tipo de
+    // bloco ficava inteiro na folha e o que passava do fim sumia atras da folha seguinte.
+    function parteBloco(el,c,A,nivel){
+      if(el.nodeType!==1) return null;
+      if(!el.children.length) return parte(el,c,A);
+      if(nivel>6) return null;
+      var movidos=[];
+      while(!cabe(c,A) && el.childNodes.length>1){ var k=el.lastChild; movidos.unshift(k); el.removeChild(k); }
+      if(!cabe(c,A) && el.childNodes.length===1){
+        var so=el.firstChild;
+        if(so.nodeType===3){ var sp=document.createElement('span'); sp.textContent=so.textContent; el.replaceChild(sp,so); so=sp; }
+        var rr=parteBloco(so,c,A,(nivel||0)+1); if(rr) movidos.unshift(rr);
+      }
+      if(!movidos.length) return null;
+      var nb=el.cloneNode(false); if(nb.removeAttribute) nb.removeAttribute('id');
+      movidos.forEach(function(k){ nb.appendChild(k); });
+      return nb;
+    }
+
     function desenha(){
       sheetsBox.style.zoom='';
       var A=area(), f=folha();
@@ -167279,7 +167299,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         c.appendChild(n);
         if(!cabe(c,A)){
           if(c.childNodes.length>1){ c.removeChild(n); nodes.unshift(n); c=novaFolha(); }
-          else { var r=parte(n,c,A); c=novaFolha(); if(r) nodes.unshift(r); }
+          else { var r=parteBloco(n,c,A,0); c=novaFolha(); if(r) nodes.unshift(r); }
         }
       }
       var fs=[].slice.call(sheetsBox.children);
