@@ -166185,7 +166185,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     if(goEst) goEst.textContent=(sec==='avals')?'📝 Lista de Avaliações':((sec==='trabalhos')?'📋 Lista de Trabalhos':(isEst?'📚 Lista de Material de Estudo':'📚 Material de Estudo'));
     if(goAula){ var ra=isEst&&o.aula?s.aulas.filter(function(x){return x.id===o.aula;})[0]:null;
       goAula.hidden=!ra; if(ra){ var gt=ra.title||'aula'; if(gt.length>22) gt=gt.slice(0,22)+'…'; goAula.textContent='📝 Aula: '+gt; } }
-    noteTitle.value=(isEst?o.label:o.title)||''; noteTitle.classList.toggle('tem-nome',!!noteTitle.value); editor.innerHTML=o.body||''; saveState.textContent='salvo';
+    noteTitle.value=(isEst?o.label:o.title)||''; noteTitle.classList.toggle('tem-nome',!!noteTitle.value); editor.innerHTML=o.body||''; window.bdGapCites(editor); saveState.textContent='salvo';
     var nlk=linkify(editor);
     savedRange=(o.caret&&!nlk)?rangeFromPath(editor,o.caret):null;
     renderMat(o);
@@ -166222,6 +166222,17 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   function saveCaret(){ if(!curNoteId)return; var c=caretPath(); if(!c)return; var a=getSubs(), r=findAula(a,curNoteId); if(!r)return; r.aula.caret=c; saveSubs(a); }
   var BLK=/^(P|DIV|H1|H2|H3|H4|H5|H6|BLOCKQUOTE|PRE)$/;
   function isBlank(el){ return !el.textContent.trim() && !(el.querySelector && el.querySelector('img,.cite,.pdfatt')); }
+  // garante uma linha livre (onde dá para clicar e digitar) antes do 1º artigo, entre dois artigos e depois do último
+  window.bdGapCites=function(root){
+    if(!root) return;
+    function sib(n,dir){ n=n[dir]; while(n && n.nodeType===3 && !n.textContent.trim()) n=n[dir]; return n; }
+    function linha(){ var p=document.createElement('p'); p.innerHTML='<br>'; return p; }
+    [].slice.call(root.children).forEach(function(c){
+      if(!c.classList.contains('cite')) return;
+      var nx=sib(c,'nextSibling'); if(!nx || (nx.nodeType===1 && nx.classList.contains('cite'))) root.insertBefore(linha(),c.nextSibling);
+      if(!sib(c,'previousSibling')) root.insertBefore(linha(),c);
+    });
+  };
   // insere html na posição do range, quebrando o parágrafo se necessário; devolve onde fica o cursor depois
   function insertAtRange(root,r,html){
     var tmp=document.createElement('div'); tmp.innerHTML=html;
@@ -168485,6 +168496,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       sel.removeAllRanges(); sel.addRange(nr); savedRange=nr.cloneRange();
       if(pos.first && pos.first.scrollIntoView){ try{ pos.first.scrollIntoView({block:'nearest'}); }catch(e){} }
     }catch(e){ editor.insertAdjacentHTML('beforeend',h); }
+    window.bdGapCites(editor);
     persistNote(); updAulaPgs();
   }
   // rola a tela para o elemento ficar no topo, logo abaixo das barras fixas
@@ -168504,7 +168516,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     var d=document.createElement('div'); d.innerHTML=aula.body||'';
     var r=aula.caret?rangeFromPath(d,aula.caret):null;
     if(!r){ r=document.createRange(); r.selectNodeContents(d); r.collapse(false); }
-    try{ var pos=insertAtRange(d,r,h); aula.body=d.innerHTML; var p=pathOf(d,pos.node); aula.caret=p?{p:p,o:pos.offset}:null; }
+    try{ var pos=insertAtRange(d,r,h); window.bdGapCites(d); aula.body=d.innerHTML; var p=pathOf(d,pos.node); aula.caret=p?{p:p,o:pos.offset}:null; }
     catch(e){ aula.body=(aula.body||'')+h; aula.caret=null; }
   }
   function insertCitation(code,num,aid){
