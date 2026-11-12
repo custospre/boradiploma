@@ -167495,6 +167495,17 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         if(so.nodeType===3){ var sp=DOC.createElement('span'); sp.textContent=so.textContent; el.replaceChild(sp,so); so=sp; }
         var rr=parteBloco(so,c,A,(nivel||0)+1); if(rr){ movidos.unshift(rr); cont=true; }
       }
+      // ja cabe, mas o 1o pedaco que saiu pode ser dividido (ex.: texto do artigo inserido): aproveita o resto da folha
+      else if(movidos.length && cabe(c,A) && nivel<6){
+        var k0=movidos[0], t0=k0.cloneNode(true);
+        if(t0.nodeType===3){ var s0=DOC.createElement('span'); s0.textContent=t0.textContent; t0=s0; }
+        if(t0.nodeType===1){
+          el.appendChild(t0);
+          var r0=parteBloco(t0,c,A,nivel+1);
+          if(r0 && cabe(c,A) && t0.textContent.trim()){ movidos[0]=r0; cont=true; }
+          else el.removeChild(t0);
+        }
+      }
       if(!movidos.length) return null;
       var nb=el.cloneNode(false); if(nb.removeAttribute) nb.removeAttribute('id');
       // continuacao de um item de lista nao ganha outra bolinha; lista numerada continua a contagem
@@ -167518,7 +167529,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
           // seguinte (deixava um buraco), divide o bloco e aproveita o espaco. Blocos pequenos
           // continuam indo inteiros; so divide se sobrar um pedaco decente (>= ~2,4 cm) na folha.
           var feito=false;
-          if(n.nodeType===1 && n.getBoundingClientRect().height>A.h*0.12){
+          if(n.nodeType===1 && (n.getBoundingClientRect().height>A.h*0.12 || (n.classList && n.classList.contains('cite')))){
             c.removeChild(n); var tt=n.cloneNode(true); c.appendChild(tt);
             var rs=parteBloco(tt,c,A,0);
             if(cabe(c,A) && tt.textContent.trim() && tt.getBoundingClientRect().height>=90){ st.c=novaFolha(); if(rs) st.nodes.unshift(rs); feito=true; }
