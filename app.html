@@ -168507,7 +168507,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       editor.focus();
       var nr=document.createRange(); nr.setStart(pos.node,pos.offset); nr.collapse(true);
       sel.removeAllRanges(); sel.addRange(nr); savedRange=nr.cloneRange();
-      if(pos.first && pos.first.scrollIntoView){ try{ pos.first.scrollIntoView({block:'nearest'}); }catch(e){} }
+      if(pos.first && pos.first.scrollIntoView){ try{ if(toTop) scrollToTop(pos.first); else pos.first.scrollIntoView({block:'nearest'}); }catch(e){} }
     }catch(e){ editor.insertAdjacentHTML('beforeend',h); }
     window.bdGapCites(editor);
     persistNote(); updAulaPgs();
