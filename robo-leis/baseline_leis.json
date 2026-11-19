@@ -135,9 +135,9 @@
 "len": 168128
 },
 "custeio": {
-"fp": "94a4d9117833719e6c9b9c4d981f28b7b91d878a119f7129dc606ad71308f7a0",
+"fp": "cdb87e61f3fee5be87815792955fea85510297cb98e776813cf8de241c0ebec7",
 "n": 115,
-"len": 141158
+"len": 141226
 },
 "jesp": {
 "fp": "fabd6a53a22b60e1e01b039d9dd4b36221f896e3be4cab6dfb5b503caa69ceb2",
@@ -178,5 +178,315 @@
 "fp": "a77c8b84b8116ca683233207ad3906322e228b0fa22f9084ca685bfe4165a756",
 "n": 12,
 "len": 17532
+},
+"acessoinfo": {
+"fp": "32fb00a6c3e9573e97034e26cee4072a3810e7ca54320d6ea4d0eaed0ecc721d",
+"n": 49,
+"len": 40673
+},
+"anticorr": {
+"fp": "cf6b3008f562749f8e82a690e55f24c25e9300b43d9d1dd5b6f3d7656a4fbbb1",
+"n": 33,
+"len": 21383
+},
+"concess": {
+"fp": "2dc821884f2f5117be9ef9b5337ad069bbded231bba2b0df9f077b48c5e9250e",
+"n": 52,
+"len": 40093
+},
+"ppp": {
+"fp": "eb496854438439fe55203535a4d566569eed74bd77901404d6ca76c70e6fa06d",
+"n": 32,
+"len": 40199
+},
+"desapr": {
+"fp": "8107ddfc64a9cef4d45b4473f68a8ef65e1dfb5f74a498ba0cbd2b47583f9c19",
+"n": 49,
+"len": 28464
+},
+"lrf": {
+"fp": "b3b107e3ea6e867aded47605b16093c34723c828282b0cf273c4eb4dc4dd92c5",
+"n": 83,
+"len": 96599
+},
+"prefeitos": {
+"fp": "1bb5f74e15367b7ad3f305c1cc50728b09d75379715acafbf3e37bc8d123c3e7",
+"n": 9,
+"len": 14908
+},
+"snuc": {
+"fp": "98de23e2814136720de804397a4189c655c64182e2914913cb247a7d35dc89ce",
+"n": 62,
+"len": 49100
+},
+"residuos": {
+"fp": "268a9047ef699ae53b8e59399a0ea96aee79b1511042654ebeb8dcce83a3917a",
+"n": 57,
+"len": 62881
+},
+"hidricos": {
+"fp": "51e516938bb67743037a93ca512ef54f31e96037b7b327f8d37f062c44800f9e",
+"n": 57,
+"len": 30534
+},
+"autorais": {
+"fp": "47fb386a1edf32089c17e8dae5cf1485e7beff0250148bd9a919a35a2ed17b1f",
+"n": 123,
+"len": 67423
+},
+"alienpar": {
+"fp": "f81ca64c40b5f8005d056293d255c7c4a13589e9e2bcc31e219bb05dc4d63b6e",
+"n": 12,
+"len": 6700
+},
+"paternid": {
+"fp": "1596b18caa036709b06a4d2c5ce83ac1cba0ac6d9f19af1decbbeb4ca3d32388",
+"n": 11,
+"len": 4481
+},
+"libecon": {
+"fp": "f13036971c72308185d57ab076a0d15a88b0a66f2a3e0d8cee64a558f575c463",
+"n": 21,
+"len": 50750
+},
+"alienfid": {
+"fp": "460b3d841de387a51e00c5c36a97672c3a36f7497a0368290f35f144ed698a5b",
+"n": 16,
+"len": 21225
+},
+"incorp": {
+"fp": "5e31a36f395c96cace73297266f9e8948c94a46e917924ce8a25847c14951048",
+"n": 80,
+"len": 107752
+},
+"parcel": {
+"fp": "9cb200bf5016b2429e92984c68a2ab447cec0ed53808af91f9c20ce2d7774e4b",
+"n": 66,
+"len": 62940
+},
+"divorcio": {
+"fp": "e59f6738cd2d305c92e1c3ea300c9e7bf28b2c2d067392b2315114c37792e132",
+"n": 54,
+"len": 18752
+},
+"cpm": {
+"fp": "7b45abec5bced780fb33c52f92a074e047be1e3ff4bde7c921cd3d0b34087d48",
+"n": 401,
+"len": 182298
+},
+"cppm": {
+"fp": "546b3392f70557c88a445a24f1daca9f0d776e2ab935e1a41dffbdc7a8954d5e",
+"n": 719,
+"len": 311003
+},
+"cba": {
+"fp": "bd4a0e5eda4de579bc1fdcb25e5518f7a0e80d30153f7c1e6c852923483c2280",
+"n": 326,
+"len": 152791
+},
+"acpop": {
+"fp": "73620711d32deeddbf1f58c63293076b82be09816acc5b6783d3e641b38f44fb",
+"n": 22,
+"len": 17027
+},
+"hdata": {
+"fp": "ba0b474c212b39f0595cae6a4fa299936bd563e0cda6cf55e27a3a87d3b2379b",
+"n": 23,
+"len": 6735
+},
+"minj": {
+"fp": "876eeed1319c22efa3f6ee0bae09c45a79d8b6892445856bb4559c261e8a4e49",
+"n": 15,
+"len": 6954
+},
+"adi": {
+"fp": "21b212f82d9da8e35210706d82d78e881bc5baf4792e8e18df2176243df8d054",
+"n": 39,
+"len": 19459
+},
+"adpf": {
+"fp": "13d522a26b9a0421f6b307590af405896d2361be35d748227f3763b81e908848",
+"n": 14,
+"len": 5561
+},
+"crimresp": {
+"fp": "b7cc47a51f1dbcca0fd58197a6678d4604c1ce7bc56f21eb26f7a5d764cb94c1",
+"n": 87,
+"len": 38327
+},
+"marcocivil": {
+"fp": "5f9b398db6fd6447a317a88cf0fc7842b410895c2fc7b7a6a0b7ee24c369acff",
+"n": 32,
+"len": 26555
+},
+"lgpd": {
+"fp": "af3ddf8d46d0d57b69a81681e13d54ff56caed8815005d92bcfb7eaef584b4a4",
+"n": 79,
+"len": 78729
+},
+"propind": {
+"fp": "509e99cc3ccda262c47f2c08758c2a3e09b820fbd784703869406b9787a73923",
+"n": 248,
+"len": 107253
+},
+"terra": {
+"fp": "1983c6ec9f027b1c8acdeae06d40979552faaae3e20523897655440327dfc287",
+"n": 129,
+"len": 127126
+},
+"indio": {
+"fp": "36e6dbde8c0a4346f9ce4d80ecda951bfff54243cf9f1ac0c9a54042ec4332bc",
+"n": 68,
+"len": 26703
+},
+"militares": {
+"fp": "3dc699f6cebec7e0f70b847204f1da058925a7ff3f5f35b44b93934d0ec3d2ec",
+"n": 166,
+"len": 119941
+},
+"refugiados": {
+"fp": "98bca59a639d885660b03587c457d7f54db7d5ddaa9f322149715e1037ca87da",
+"n": 49,
+"len": 16512
+},
+"esporte": {
+"fp": "87c53becb682c619eedba34cacfe3ca79f4302e2915c304735cd564232402e24",
+"n": 220,
+"len": 167016
+},
+"sanjose": {
+"fp": "404dd2443a7cd9dd52d9a513477108edc949207ed45c83f7f62ab3e15c009247",
+"n": 3,
+"len": 860
+},
+"convpcd": {
+"fp": "66ee1eb5c6003dfe46c472da1de6e91d75a4e4e9fda5d57bad2466a6789c355c",
+"n": 3,
+"len": 668
+},
+"loman": {
+"fp": "ac6a0dd1973a8bf8fcca5d21b29b8de6bc5edd97b9ec3cc145caedb89ea7078a",
+"n": 146,
+"len": 75910
+},
+"lonmp": {
+"fp": "b9f34a05eac74d30ec141e4ac5634e6f0f551379920b982b40c56bbd2f271c14",
+"n": 84,
+"len": 55017
+},
+"defens": {
+"fp": "ab5e78743707cad23788d97f365fd27e8937a39f3ba324c5edb655e06fcc7c2a",
+"n": 163,
+"len": 113215
+},
+"orcrim": {
+"fp": "d641c86be3f23346b71081f2ba49e37b69e750007dd6845bea3f9bf25d19249a",
+"n": 36,
+"len": 34518
+},
+"lavagem": {
+"fp": "cfe5366907a20891a718656629fd2aeec6983818a698cf59231e982818ab0d0a",
+"n": 28,
+"len": 31782
+},
+"intercep": {
+"fp": "1bfdab6ec1d0d757410a2cc1942572af2871054fdb86e56f2e3269024f12ee42",
+"n": 14,
+"len": 7006
+},
+"tortura": {
+"fp": "5fa5b45cebf7c13eaa4ef29e934bf814753f4b4cb6708a1b945f2359e16107b5",
+"n": 4,
+"len": 2474
+},
+"pristemp": {
+"fp": "505954c601ee3de8ac6a5c43c728c6c6dc5c242479af395f9b306bcee26a2214",
+"n": 7,
+"len": 4439
+},
+"racismo": {
+"fp": "79cd9089ef0ca5e5b0a9885f7a87ac5128d5eac8340c9f40424971309b484c77",
+"n": 27,
+"len": 8292
+},
+"crimtrib": {
+"fp": "4c9a65a45577b66be1247eeca108ea7828caf10aa90bb8d14d027869e1d093e2",
+"n": 23,
+"len": 12096
+},
+"sistfin": {
+"fp": "0d28e0cece2441fcc7769d9bd2c26134205c5053dda32b405e686d81b3cd73fe",
+"n": 35,
+"len": 11486
+},
+"identcrim": {
+"fp": "b99ce57a1ff1c425dc2e3ad40e58e14b27d1e385c2becb61b169a06f8a610bae",
+"n": 13,
+"len": 8728
+},
+"protest": {
+"fp": "c62a24f309cd2b6a8021a6637c124e70dac50b7e8a5bdba21b40fb87e8cd2cb0",
+"n": 22,
+"len": 13050
+},
+"henryborel": {
+"fp": "4fbfd9a95c67216beb0965db1b5c719667978bf5fb36f1b67a9fad726e8440f7",
+"n": 34,
+"len": 34705
+},
+"loas": {
+"fp": "f5a5e997b569fbff0620ee97811b1ecb92c46eb410146d212fb17bdffe2099e6",
+"n": 70,
+"len": 67866
+},
+"mediacao": {
+"fp": "1a235bcfcb2e51272a35d05ef7c255a5246c3caf01723b021aca9d855272e9c2",
+"n": 48,
+"len": 24977
+},
+"jef": {
+"fp": "ad307e1d1e75211af4939b6fa08c7bc2d2ad9b0b93a932c950bfa0b9d70dd874",
+"n": 27,
+"len": 12211
+},
+"jefaz": {
+"fp": "7a6382ae9f11ec4813e7210551918d3a04bb7e2334e0ba31a60c4ab840a6b08f",
+"n": 28,
+"len": 11531
+},
+"gratuid": {
+"fp": "488ff1246b0b76a994cc8a6f4f93e925be0b8b8994248949ccac72f3707b552c",
+"n": 19,
+"len": 6316
+},
+"sus": {
+"fp": "b89fadde4a646f1ef41c8402e1fb5b4a61cda80e67a19aa62e9c50082ae76529",
+"n": 90,
+"len": 65778
+},
+"fgts": {
+"fp": "a610098893a661246ec4dfb9f168001f2b18ef4d7ebb6bf8f432387ab25ee4c5",
+"n": 54,
+"len": 78769
+},
+"greve": {
+"fp": "d11d5e5b117dc843ae61983225c80fb20ebaed35fdb7cb4f078d6493a35ffcee",
+"n": 19,
+"len": 7539
+},
+"estagio": {
+"fp": "5537dbb1ea0a2465133b27a2ea85ec86ec2221ad59eea47ec0856e2078586fd0",
+"n": 22,
+"len": 15076
+},
+"segdesemp": {
+"fp": "e8aaecf3cfd23902639305895f8b3bf439204d5ace5664e187710e2f949130ac",
+"n": 46,
+"len": 28238
+},
+"lc214": {
+"fp": "4dde6974b7f1606144ca450083c4ae8c7405ff8b457286637e4fc77afee5de06",
+"n": 580,
+"len": 771287
 }
 }
