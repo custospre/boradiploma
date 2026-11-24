@@ -63,7 +63,7 @@
 </style>
 <div class="wrap">
   <div class="topbar">
-    <div class="marca"><div class="bd-marca"><img src="icons/logo.png" alt=""><div class="bd-nome">Bora<b>Diploma</b></div></div><div><h1>Painel do BoraDiploma</h1><p class="sub">BoraDiploma — liberar acessos (15 dias de teste)</p></div></div>
+    <div class="marca"><div class="bd-marca"><img src="icons/logo.png" alt=""><div class="bd-nome">Bora<b>Diploma</b></div></div><div><h1>Painel do BoraDiploma</h1><p class="sub">BoraDiploma — liberar acessos</p></div></div>
     <button class="sair" id="sair" hidden>Sair</button>
   </div>
 
@@ -87,7 +87,7 @@
 
     <div class="card"><!-- Criar acesso: escondido em 27/10, mostrado de novo em 24/11 a pedido do dono -->
       <h1 style="font-size:17px;margin:0 0 6px">Criar acesso — Faculdade</h1>
-      <p class="hint">Pra quem te chamou direto (WhatsApp, Instagram). Gera o link de 15 dias e abre o WhatsApp pra voce enviar.</p>
+      <p class="hint">Pra quem te chamou direto (WhatsApp, Instagram). Gera o link de acesso (sem prazo) e abre o WhatsApp pra voce enviar.</p>
       <label for="novo-nome">Nome</label>
       <input id="novo-nome" type="text" placeholder="nome da pessoa">
       <label for="novo-wa">WhatsApp (com DDD)</label>
@@ -149,7 +149,7 @@
   <div class="pl-box">
     <h2>Acesso criado! ✅</h2>
     <p id="pl-nome"></p>
-    <p>Envie este link pra pessoa (ela abre e entra, 15 dias grátis):</p>
+    <p>Envie este link pra pessoa (ela abre e entra):</p>
     <textarea id="pl-link" readonly></textarea>
     <div class="pl-acts">
       <button id="pl-copy" style="background:#1a7f37">📋 Copiar link</button>
@@ -482,7 +482,7 @@
   // mensagem curta de acesso (a mesma em todos os envios)
   function linkEscola(link){ return String(link||'').replace(/^https?:\/\/[^?#]*\/entrar\.html/, 'https://escola.boradiploma.com.br/entrar.html'); }
   function msgAcesso(nome, link){
-    return 'Oi' + (nome?(' '+nome):'') + '! 🎓 Seu acesso ao BoraDiploma' + (/escola\.boradiploma/.test(link)?' Escola':'') + ' está liberado (15 dias grátis).\n\n'
+    return 'Oi' + (nome?(' '+nome):'') + '! 🎓 Seu acesso ao BoraDiploma' + (/escola\.boradiploma/.test(link)?' Escola':'') + ' está liberado.\n\n'
       + '1️⃣ Toque aqui para entrar: ' + link + '\n'
       + '2️⃣ Quando o app abrir, toque em *Instalar* para ter o ícone na tela.';
   }
@@ -556,7 +556,11 @@
         } else onerr(base);
         return;
       }
-      onok(r.data.link, r.data.user_id);
+      // acesso SEM PRAZO (24/11/2026): marca como liberado de vez, o app nao bloqueia mais apos 15 dias
+      var uidOk = r.data.user_id || payload.user_id;
+      var segue = function(){ onok(r.data.link, r.data.user_id); };
+      if(uidOk) sb.from('billing').update({aprovado:true, status:null}).eq('user_id', uidOk).then(segue, segue);
+      else segue();
     }).catch(function(e){ onerr(String(e)); });
   }
 
