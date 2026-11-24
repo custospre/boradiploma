@@ -496,8 +496,9 @@
       return;
     }
     try{ navigator.clipboard.writeText(link); }catch(e){}
+    if(win && noPC()){ fecharPre(win); win = null; }
     if(win && !win.closed){
-      try{ win.location.href = 'https://wa.me/'+_plWa+'?text='+encodeURIComponent(_plMsg); return; }catch(e){}
+      try{ win.location.href = urlWhats(_plWa, _plMsg); return; }catch(e){}
     }
     abrirCaixa(nome, link);
   }
@@ -509,10 +510,19 @@
   }
   // Abre a conversa no WhatsApp pelo link wa.me (o mesmo jeito que sempre funcionou).
   // A mensagem tambem vai para a area de transferencia, como reserva.
+  // No computador abre o aplicativo do WhatsApp (ja conectado), sem abrir janela nova do WhatsApp Web.
+  // No celular continua pelo wa.me, que abre o app do celular.
+  function noPC(){ return !/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||''); }
+  function urlWhats(d, msg){
+    d = String(d||'').replace(/\D/g,''); var t = msg ? encodeURIComponent(msg) : '';
+    if(noPC()) return 'whatsapp://send?phone='+d+(t?('&text='+t):'');
+    return 'https://wa.me/'+d+(t?('?text='+t):'');
+  }
   function abrirConversa(d, msg){
     d = String(d||'').replace(/\D/g,''); msg = msg||'';
     if(msg){ try{ navigator.clipboard.writeText(msg); }catch(e){} }
-    return window.open('https://wa.me/'+d+(msg?('?text='+encodeURIComponent(msg)):''), '_blank');
+    if(noPC()){ window.location.href = urlWhats(d, msg); return true; }
+    return window.open(urlWhats(d, msg), '_blank');
   }
   function abrirCaixa(nome, link){
     var el=document.getElementById('pedlink');
