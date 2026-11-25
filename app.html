@@ -167603,7 +167603,8 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         if(!res){ construindo=false; toast('Não consegui montar as folhas'); return; }
         if(editouMontando){ res.cont.remove(); construindo=false; refazComCursor(); return; }   // digitou durante a montagem: refaz a partir do que esta na tela (nada se perde)
         var cont=res.cont, fs=[].slice.call(cont.children);
-        if(fs.length>1 && !fs[fs.length-1].textContent.trim()) fs[fs.length-1].remove();
+        // folhas vazias (sem texto e sem imagem), em qualquer posicao, saem (ex.: anexo grande empurrado para a folha seguinte)
+        fs.slice().forEach(function(x){ if(fs.length>1 && !x.textContent.replace(/\d+\s*\/\s*\d+/,'').trim() && !x.querySelector('img,table,hr,.prtBreak')){ x.remove(); fs.splice(fs.indexOf(x),1); } });
         sheetsBox.style.zoom='';
         sheetsBox.innerHTML=cont.innerHTML; cont.remove();
         numera(); aplicaZoom(); ultimoTam=tamanhoTotal(); construindo=false;
