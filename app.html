@@ -166594,6 +166594,16 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         }).catch(function(){ pa.removeAttribute('data-busy'); toast('Não consegui ler este arquivo Word (.docx)'); });
         return;
       }
+      // 25/11/2026: no computador o PDF abre em tela inteira, com botao para voltar ao app
+      var urlT=URL.createObjectURL(new Blob([r.blob],{type:'application/pdf'}));
+      var ov=document.createElement('div'); ov.id='bdPdfTela';
+      ov.setAttribute('style','position:fixed;inset:0;z-index:99999;background:#3a3a3a;display:flex;flex-direction:column');
+      ov.innerHTML='<div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#7a1f2b;color:#fff;font-family:system-ui,sans-serif"><button type="button" id="bdPdfVolta" style="padding:8px 16px;border:0;border-radius:999px;background:#fff;color:#7a1f2b;font-weight:700;font-size:15px;cursor:pointer">← Voltar ao app</button><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px"></span><span style="margin-left:auto;font-size:12px;opacity:.8">Esc fecha</span></div><iframe style="flex:1;border:0;width:100%;background:#fff"></iframe>';
+      ov.querySelector('span').textContent=r.name||'PDF'; ov.querySelector('iframe').src=urlT+'#view=FitH';
+      function fechaT(){ document.removeEventListener('keydown',escT,true); if(ov.parentNode) ov.parentNode.removeChild(ov); setTimeout(function(){ try{URL.revokeObjectURL(urlT);}catch(e){} },1000); }
+      function escT(e){ if(e.key==='Escape'){ e.preventDefault(); fechaT(); } }
+      ov.querySelector('#bdPdfVolta').addEventListener('click',fechaT); document.addEventListener('keydown',escT,true);
+      document.body.appendChild(ov); return;
       var url=URL.createObjectURL(new Blob([r.blob],{type:'application/pdf'}));
       var f=document.createElement('iframe'); f.className='pdfview'; f.src=url+'#view=FitH'; f.setAttribute('data-url',url); f.title=r.name||'PDF';
       pa.appendChild(f); pa.classList.add('open');
