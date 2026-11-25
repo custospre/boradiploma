@@ -170118,7 +170118,7 @@ if ('serviceWorker' in navigator) {
     if(!confirm('Apagar TODO o conteudo de exemplo e comecar do zero? Isso nao da pra desfazer.')) return;
     try{ indexedDB.deleteDatabase('boradiploma_arquivos'); }catch(e){}
     try{ localStorage.removeItem('gd_is_demo'); }catch(e){}
-    setLocal('[]');
+    setLocal('[]'); window.bdPodeVazio = true;
     pushNow();
     var el = document.getElementById('gd-demo'); if(el) el.hidden = true;
     setTimeout(function(){ location.reload(); }, 600);
@@ -170223,8 +170223,20 @@ if ('serviceWorker' in navigator) {
   function pushNow(){ clearTimeout(pushTimer); pushTimer = null; sync(); }
   function startSync(){ sync(); }
 
+  var bdTrava = 0;
   function upload(str, h, cb){
     var subj; try{ subj = JSON.parse(str || '[]'); }catch(e){ return cb(); }
+    if(Date.now() < bdTrava) return cb();   // logo apos trazer da nuvem: nao manda nada (a tela vai recarregar)
+    // 25/11/2026: nunca troca um conteudo da nuvem por uma lista vazia (so o "apagar tudo" pode)
+    if(Array.isArray(subj) && !subj.length && !window.bdPodeVazio){
+      return sb.from('user_data').select('subjects,updated_at').eq('user_id', currentUser.id).maybeSingle().then(function(r){
+        var row = r && r.data;
+        if(row && Array.isArray(row.subjects) && row.subjects.length){
+          var cs = JSON.stringify(row.subjects); setLocal(cs); markSynced(row.updated_at, hashStr(cs)); cb(); refreshView(true); return;
+        }
+        window.bdPodeVazio = true; upload(str, h, function(){ window.bdPodeVazio = false; cb(); });
+      }, function(){ cb(); });
+    }
     cloudStatus('salvando na nuvem...');
     sb.from('user_data').upsert({ user_id: currentUser.id, subjects: subj, updated_at: new Date().toISOString() }, { onConflict: 'user_id' }).select('updated_at').maybeSingle().then(function(r){
       if(r && r.error){ cloudStatus('sem salvar na nuvem (tentarei de novo)'); setTimeout(schedulePush, 30000); return cb(); }
@@ -170314,7 +170326,8 @@ if ('serviceWorker' in navigator) {
           if(localStr) lsSet('gd_backup_local', localStr);
           setLocal(cloudStr); markSynced(row2.updated_at, cloudH); lsSet('gd_exemplo_visto', marca);
           cloudStatus(''); end(); scheduleAttSync();
-          refreshView(true);
+          // 25/11/2026: recarrega a tela para nada da memoria antiga ser salvo por cima do que veio da nuvem
+          bdTrava = Date.now() + 15000; setTimeout(function(){ location.reload(); }, 200);
           return;
         }
         if(!localChanged || localH === cloudH){
@@ -170322,6 +170335,7 @@ if ('serviceWorker' in navigator) {
           if(accountSwitched && localStr) lsSet('gd_backup_local', localStr);
           setLocal(cloudStr); markSynced(row2.updated_at, cloudH);
           cloudStatus(''); end(); scheduleAttSync();
+          if(accountSwitched || !localStr || localStr === '[]'){ bdTrava = Date.now() + 15000; setTimeout(function(){ location.reload(); }, 200); return; }
           refreshView(accountSwitched);
           return;
         }
