@@ -169286,15 +169286,15 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
           if(!g){ var ab=[].slice.call(document.querySelectorAll('#tree .tnode.open')); g=ab[ab.length-1]||null; }
           if(g){ g.classList.remove('open'); [].slice.call(g.querySelectorAll('.tnode.open')).forEach(function(k){ k.classList.remove('open'); }); }
           vbVer(); return; }
-        var b=document.getElementById('backBtn'); if(b) b.click(); });
+        var b=document.getElementById('backBtn'); if(b&&!b.hidden) b.click(); else { var hb=document.getElementById('homeBtn'); if(hb) hb.click(); else if(history.length>1) history.back(); } });
       (function(){ var tr=document.getElementById('tree'); if(!tr) return;
         tr.addEventListener('click',function(e){ var rg=e.target.closest('.trow-group'); setTimeout(function(){ if(rg&&rg.parentNode&&rg.parentNode.classList.contains('open')) vbAbertos.push(rg.parentNode); vbVer(); },0); }); })();
-      function vbPos(){ if(vb.hidden) return; var mx=parseFloat(mic.style.left)||window.innerWidth/2;
+      function vbPos(){ if(vb.hidden) return; vb.textContent='← Página anterior'; vb.style.left='12px'; return; var mx=parseFloat(mic.style.left)||window.innerWidth/2;
         vb.textContent='← Página anterior'; var w=vb.offsetWidth, l=mx-30-10-w;
         if(l<8){ vb.textContent='← Voltar'; w=vb.offsetWidth; l=mx-30-10-w; }
         if(l<8) l=mx+30+10; vb.style.left=l+'px'; }
       function vbVer(){ var b=document.getElementById('backBtn');
-        vb.hidden=getComputedStyle(mic).display==='none'||(vbNaHome()?!vbArvAberta():(!b||b.hidden)); vbPos(); }
+        vb.hidden=vbNaHome()?!vbArvAberta():false; vbPos(); }  // 25/11/2026: sempre a esquerda, em todas as paginas
       (function(){ var b=document.getElementById('backBtn'), vi=document.getElementById('view-index'); if(!window.MutationObserver) return;
         var mo=new MutationObserver(vbVer); if(b) mo.observe(b,{attributes:true,attributeFilter:['hidden']}); if(vi) mo.observe(vi,{attributes:true,attributeFilter:['hidden']}); })();
       var KX='bd_mic_x';
