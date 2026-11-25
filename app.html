@@ -166563,6 +166563,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         }).catch(function(){ pa.removeAttribute('data-busy'); toast('Não consegui ler este arquivo Word (.docx)'); });
         return;
       }
+      if(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent)){ return openAtt(pa.getAttribute('data-att')); }  // celular nao mostra PDF dentro da pagina
       var url=URL.createObjectURL(new Blob([r.blob],{type:'application/pdf'}));
       var f=document.createElement('iframe'); f.className='pdfview'; f.src=url; f.setAttribute('data-url',url); f.title=r.name||'PDF';
       pa.appendChild(f); pa.classList.add('open');
