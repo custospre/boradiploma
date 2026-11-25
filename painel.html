@@ -482,13 +482,15 @@
   // mensagem curta de acesso (a mesma em todos os envios)
   function linkEscola(link){ return String(link||'').replace(/^https?:\/\/[^?#]*\/entrar\.html/, 'https://escola.boradiploma.com.br/entrar.html'); }
   function msgAcesso(nome, link){
-    // link com www: nenhum app instalado no celular (ex.: Escola antigo) e dono desse endereco, entao o Android
-    // abre no Chrome; o site leva para boradiploma.com.br mantendo o codigo do link (24/11/2026)
     // 24/11/2026: a Faculdade mudou para faculdade.boradiploma.com.br (endereco que nenhum app antigo "pega")
     link = String(link||'').replace(/^https:\/\/(www\.)?boradiploma\.com\.br\//, 'https://faculdade.boradiploma.com.br/');
-    return 'Oi' + (nome?(' '+nome):'') + '! 🎓 Seu acesso ao BoraDiploma' + (/escola\.boradiploma/.test(link)?' Escola':'') + ' está liberado.\n\n'
-      + '1️⃣ Toque aqui para entrar: ' + link + '\n'
-      + '2️⃣ Quando o app abrir, toque em *Instalar* para ter o ícone na tela.';
+    return 'Oi' + (nome?(' '+nome):'') + '! 🎓 Aqui é do *BoraDiploma*, o app do estudante de Direito.\n\n'
+      + 'Recebemos o seu pedido de acesso e ele já está *liberado*! ✅\n\n'
+      + '*Como entrar:*\n'
+      + '1️⃣ Toque neste link (ele é só seu, não compartilhe):\n' + link + '\n\n'
+      + '2️⃣ O app abre já com você conectado(a).\n\n'
+      + '3️⃣ Toque em *Instalar* (ou no menu ⋮ do Chrome → *Adicionar à tela inicial*) para ter o ícone na tela do celular.\n\n'
+      + 'Depois é só abrir pelo ícone. Se o link não abrir, responda esta mensagem. 😉';
   }
   function abrirWhats(wa, nome, link, win){
     _plWa = waDigits(wa);
