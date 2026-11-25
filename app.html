@@ -1044,7 +1044,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
 <p class="lead">Seus dados (disciplinas, aulas, materiais, prazos e os PDF/Word anexados) ficam na sua conta e neste aparelho. Mesmo assim, guarde uma cópia sua de vez em quando, num pen drive ou na nuvem.</p>
 <div class="bkcards">
 <div class="bkcard bklevar"><button type="button" class="act bkbig" id="bkLevar">📦 Levar meus estudos</button><p>Baixa um arquivo <b>.zip</b> para abrir <b>sem o app</b>: uma pasta por disciplina, cada aula e material em <b>Word</b>, os PDF e Word anexados e uma lista de prazos e agenda. Bom para guardar ou se um dia deixar de usar o BoraDiploma.</p></div>
-<div class="bkcard"><button type="button" class="act bkbig" id="bkDown">⬇ Baixar backup</button><p>Gera um arquivo <b>boradiploma-backup-AAAA-MM-DD.json</b> com tudo, inclusive os PDF e Word. Ele vai para a pasta de downloads.</p></div>
+<div class="bkcard"><button type="button" class="act bkbig" id="bkNuvem">☁ Trazer da nuvem</button><p>Troca o que está <b>neste aparelho</b> pelo que está salvo na sua conta (na nuvem). Use quando o celular estiver mostrando coisa diferente do computador.</p></div><div class="bkcard"><button type="button" class="act bkbig" id="bkDown">⬇ Baixar backup</button><p>Gera um arquivo <b>boradiploma-backup-AAAA-MM-DD.json</b> com tudo, inclusive os PDF e Word. Ele vai para a pasta de downloads.</p></div>
 <div class="bkcard"><label class="act bkbig" style="display:inline-block;cursor:pointer">⬆ Restaurar backup<input type="file" id="bkUp" accept="application/json,.json" style="display:none"></label><p>Escolha um arquivo de backup (.json). As disciplinas dele são <b>acrescentadas</b> às atuais — nada é apagado.</p></div>
 </div></section>
 <section id="view-sim" hidden></section><section id="view-sug" hidden></section><section id="view-seg" hidden></section>
@@ -170333,6 +170333,21 @@ if ('serviceWorker' in navigator) {
       }
     }).catch(function(){ cloudStatus(''); end(); });
   }
+
+  // 25/11/2026: botao "Trazer da nuvem" (tela Backup): substitui os dados deste aparelho pelos da conta
+  document.addEventListener('click', function(e){
+    var b = e.target && e.target.closest && e.target.closest('#bkNuvem'); if(!b) return;
+    if(!sb || !currentUser){ alert('Entre na sua conta primeiro.'); return; }
+    if(!confirm('Trocar o que está neste aparelho pelo que está salvo na sua conta?\n\nO que foi feito só neste aparelho e não subiu para a nuvem será perdido.')) return;
+    b.disabled = true; b.textContent = 'Trazendo...';
+    sb.from('user_data').select('subjects,updated_at').eq('user_id', currentUser.id).maybeSingle().then(function(r){
+      b.disabled = false; b.textContent = '☁ Trazer da nuvem';
+      var row = r && r.data; if(!row || row.subjects == null){ alert('Não achei dados na nuvem para esta conta.'); return; }
+      var str = JSON.stringify(row.subjects), old = getLocal(); if(old) lsSet('gd_backup_local', old);
+      setLocal(str); markSynced(row.updated_at, hashStr(str)); lsSet('gd_exemplo_visto', String(Date.now()));
+      scheduleAttSync(); alert('Pronto! Os dados da nuvem foram trazidos para este aparelho.'); location.reload();
+    }, function(){ b.disabled = false; b.textContent = '☁ Trazer da nuvem'; alert('Sem internet. Tente de novo.'); });
+  }, true);
 
   // confere a nuvem quando o app volta para a frente, e de minuto em minuto enquanto esta aberto
   document.addEventListener('visibilitychange', function(){ if(currentUser){ sync(); if(document.visibilityState === 'visible') checkAccess(); } });
