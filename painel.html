@@ -457,7 +457,7 @@
 
   function criarDoPedido(b){
     if(b._go){ var g=b._go; b._go=null; g(); return; }
-    var id=b.getAttribute('data-ped'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa'), escola=b.getAttribute('data-app')==='escola';
+    var id=b.getAttribute('data-ped'), nome=b.getAttribute('data-nome'), wa=b.getAttribute('data-wa'), escola=false; // 25/11: Escola abandonado, todo pedido vai para a Faculdade
     b.disabled=true; b.textContent='Gerando...';
     // pedido sem numero (a pessoa pediu pelo proprio WhatsApp): cria a conta com um e-mail interno
     // e mostra o link pra voce copiar e colar na conversa dela
