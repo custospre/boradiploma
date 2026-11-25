@@ -170272,7 +170272,9 @@ if ('serviceWorker' in navigator) {
       var storedAcc = lsGet(K_ACCOUNT);
       if(storedAcc && storedAcc !== uid){ setLocal('[]'); lsSet(K_ACCOUNT, uid); lsSet(K_SYNC_AT, ''); lsSet(K_SYNC_H, ''); cloudStatus(''); end(); refreshView(true); return; }
       lsSet(K_ACCOUNT, uid);
-      if(localStr && localStr !== '[]'){ upload(localStr, hashStr(localStr), end); return; }
+      // 25/11/2026: conta nova nunca recebe o que estava guardado no aparelho (era de outra conta, ex.: iPhone
+      // com conta apagada subia o 'zzzz'). Guarda uma copia e comeca com o exemplo.
+      if(localStr && localStr !== '[]') lsSet('gd_backup_local', localStr);
       seedDemo(end);
     }
     sb.from('user_data').select('updated_at').eq('user_id', uid).maybeSingle().then(function(r){
