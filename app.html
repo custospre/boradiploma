@@ -35,7 +35,8 @@ html,body{overflow-x:clip;max-width:100%}
   body:has(#view-index:not([hidden])) main{padding-block:12px 20vh}
 }
 </style>
-<title>BoraDiploma</title>
+<title>BoraDiploma Faculdade</title>
+<style>.bd-nome:after{content:'FACULDADE';display:block;font-size:.6em;letter-spacing:.25em;color:#fff;background:#7a1f2b;border-radius:6px;padding:2px 8px;margin-top:4px;text-align:center;font-weight:700}.bd-rotulo{display:block;margin:6px auto 0;width:max-content;font:700 13px/1 system-ui,sans-serif;letter-spacing:.25em;color:#fff;background:#7a1f2b;border-radius:6px;padding:5px 12px}</style>
 <style>
 /* Layout: index of folders -> folder listing -> code reader with article nº / word search */
 :root{
@@ -169738,7 +169739,7 @@ if ('serviceWorker' in navigator) {
     <div class="bd-marca" style="margin:0 auto 14px"><img src="icons/logo.png" alt=""><div class="bd-nome">Bora<b>Diploma</b></div></div>
     <div id="gd-auth-loading" class="spin">Carregando...</div>
     <div id="gd-auth-form" hidden>
-      <p class="sub">Peca seu acesso — gratis pra testar 15 dias.</p>
+      <p class="sub">Peca seu acesso — é grátis.</p>
       <label for="gd-pedir-nome">Seu nome</label>
       <input id="gd-pedir-nome" type="text" autocomplete="name" placeholder="nome completo">
       <label for="gd-pedir-wa">Seu WhatsApp (com DDD)</label>
@@ -171218,3 +171219,4 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
   window.bdSugAbrir=desenhar;
 })();
 </script>
+<script>(function(){function f(){var b=document.querySelector('.brandimg');if(b&&!document.querySelector('.bd-rotulo')){var x=document.createElement('span');x.className='bd-rotulo';x.textContent='FACULDADE';b.insertAdjacentElement('afterend',x);}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',f);else f();})();</script>
