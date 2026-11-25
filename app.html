@@ -166522,14 +166522,14 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     })();
   }
   function getAtt(id,cb){ fileStore('readonly',function(st){ return st.get(id); },function(r){
-    if(r&&r.blob||!sb||!currentUser||!id) return cb(r||null);
+    var N=window.bdNuvem&&window.bdNuvem(); if(r&&r.blob||!N||!N.sb||!N.u||!id) return cb(r||null);
     // 25/11/2026: nao esta no aparelho -> busca na nuvem (pasta da pessoa, depois a do exemplo) e guarda
     toast('Baixando arquivo…');
     var el=document.querySelector('.pdfatt[data-att="'+id+'"]'), nm=el&&(el.querySelector('.pdfname')||{}).textContent||'arquivo.pdf', dx=/\.docx$/i.test(nm);
-    var pastas=[currentUser.id]; if(currentUser.id!==OWNER_UID) pastas.push(OWNER_UID);
+    var pastas=[N.u.id]; if(N.u.id!==N.dono) pastas.push(N.dono);
     (function tenta(i){
       if(i>=pastas.length) return cb(null);
-      sb.storage.from(ATT_BUCKET).download(pastas[i]+'/'+id).then(function(x){
+      N.sb.storage.from(N.b).download(pastas[i]+'/'+id).then(function(x){
         if(!x||!x.data) return tenta(i+1);
         var row={id:id,name:nm,type:dx?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/pdf',kind:dx?'docx':'pdf',size:x.data.size||0,blob:x.data,added:Date.now()};
         row.novo=1; idbPut(row,function(){ cb(row); });
@@ -166552,13 +166552,14 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     var fr=pa.querySelector('.pdfview,.docview');
     if(fr){ (fr.getAttribute('data-url')||'').split(' ').forEach(function(u){ if(u) try{ URL.revokeObjectURL(u); }catch(e){} }); pa.removeChild(fr); pa.classList.remove('open'); return; }
     if(pa.getAttribute('data-busy'))return;
-    if(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent) && sb && currentUser && pa.getAttribute('data-kind')!=='docx'){
+    var N=window.bdNuvem&&window.bdNuvem();
+    if(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent) && N && N.sb && N.u && pa.getAttribute('data-kind')!=='docx'){
       // 25/11/2026: celular nao mostra PDF dentro da pagina nem abre blob; abre a aba ja no toque e carrega o link da nuvem
       var aid=pa.getAttribute('data-att'), w=window.open('','_blank'); toast('Abrindo PDF…');
-      var pastas=[currentUser.id]; if(currentUser.id!==OWNER_UID) pastas.push(OWNER_UID);
+      var pastas=[N.u.id]; if(N.u.id!==N.dono) pastas.push(N.dono);
       (function tenta(i){
         if(i>=pastas.length){ try{ w&&w.close(); }catch(e){} toast('Arquivo não encontrado na nuvem'); return; }
-        sb.storage.from(ATT_BUCKET).createSignedUrl(pastas[i]+'/'+aid, 3600).then(function(x){
+        N.sb.storage.from(N.b).createSignedUrl(pastas[i]+'/'+aid, 3600).then(function(x){
           if(!x||x.error||!x.data||!x.data.signedUrl) return tenta(i+1);
           if(w) w.location.href=x.data.signedUrl; else location.href=x.data.signedUrl;
         }).catch(function(){ tenta(i+1); });
@@ -169935,6 +169936,7 @@ if ('serviceWorker' in navigator) {
   var trialEl = document.getElementById('gd-trial');
 
   var currentUser = null, pushTimer = null, pulling = false, applyingRemote = false;
+  window.bdNuvem=function(){ return {sb:sb,u:currentUser,dono:OWNER_UID,b:ATT_BUCKET}; };  // 25/11/2026: anexos (abrir PDF) usam a nuvem
   var attTimer = null, attSyncing = false;
   var pendingPerfil = null;
   var modo = false;
