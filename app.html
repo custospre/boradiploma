@@ -759,7 +759,7 @@ html.bd-semsel #editor::selection,html.bd-semsel #editor ::selection{background:
 .docpage img{max-width:100%;height:auto}
 .docpage a{color:#0563c1;text-decoration:underline}
 .docpage hr.dpg{border:none;border-top:1px dashed #aaa;margin:18pt 0}
-.pdfatt .pdfview{flex-basis:100%;width:100%;height:78vh;border:1px solid var(--line);border-radius:8px;margin-top:10px;background:#fff;cursor:auto}
+.pdfatt .pdfview{flex-basis:100%;width:100%;height:92vh;border:1px solid var(--line);border-radius:8px;margin-top:10px;background:#fff;cursor:auto}
 #editor.dropping{outline:3px dashed var(--accent);outline-offset:-6px}
 .ctxmenu{position:fixed;z-index:95;background:var(--surface);border:1px solid var(--line);border-radius:10px;
   box-shadow:0 10px 30px rgba(0,0,0,.25);padding:5px;min-width:210px;font-family:var(--font-head)}
@@ -166578,7 +166578,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         return;
       }
       var url=URL.createObjectURL(new Blob([r.blob],{type:'application/pdf'}));
-      var f=document.createElement('iframe'); f.className='pdfview'; f.src=url; f.setAttribute('data-url',url); f.title=r.name||'PDF';
+      var f=document.createElement('iframe'); f.className='pdfview'; f.src=url+'#view=FitH'; f.setAttribute('data-url',url); f.title=r.name||'PDF';
       pa.appendChild(f); pa.classList.add('open');
     });
   }
