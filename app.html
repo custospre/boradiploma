@@ -166521,7 +166521,21 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         if(ok===null) return; insertIntoOpenNote(attHTML(id,f.name||('arquivo.'+kind),f.size,kind)); next(); });
     })();
   }
-  function getAtt(id,cb){ fileStore('readonly',function(st){ return st.get(id); },function(r){ cb(r||null); }); }
+  function getAtt(id,cb){ fileStore('readonly',function(st){ return st.get(id); },function(r){
+    if(r&&r.blob||!sb||!currentUser||!id) return cb(r||null);
+    // 25/11/2026: nao esta no aparelho -> busca na nuvem (pasta da pessoa, depois a do exemplo) e guarda
+    toast('Baixando arquivo…');
+    var el=document.querySelector('.pdfatt[data-att="'+id+'"]'), nm=el&&(el.querySelector('.pdfname')||{}).textContent||'arquivo.pdf', dx=/\.docx$/i.test(nm);
+    var pastas=[currentUser.id]; if(currentUser.id!==OWNER_UID) pastas.push(OWNER_UID);
+    (function tenta(i){
+      if(i>=pastas.length) return cb(null);
+      sb.storage.from(ATT_BUCKET).download(pastas[i]+'/'+id).then(function(x){
+        if(!x||!x.data) return tenta(i+1);
+        var row={id:id,name:nm,type:dx?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/pdf',kind:dx?'docx':'pdf',size:x.data.size||0,blob:x.data,added:Date.now()};
+        idbPut(row,function(){ cb(row); });
+      }).catch(function(){ tenta(i+1); });
+    })(0);
+  }); }
   function openAtt(id){ getAtt(id,function(r){ if(!r||!r.blob){ toast('Arquivo não encontrado neste aparelho'); return; }
     if(r.kind==='docx'||/\.docx$/i.test(r.name||'')){
       docxToHTML(r.blob,true).then(function(d){
