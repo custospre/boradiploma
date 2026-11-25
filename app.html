@@ -170224,6 +170224,9 @@ if ('serviceWorker' in navigator) {
   function startSync(){ sync(); }
 
   var bdTrava = 0;
+  // recarrega so UMA vez por abertura (evita ficar recarregando sem parar, ex.: memoria do iPhone cheia)
+  function bdRecarrega(){ var ja=null; try{ ja=sessionStorage.getItem('bd_recarregou'); }catch(_){}
+    if(ja){ refreshView(true); return; } try{ sessionStorage.setItem('bd_recarregou','1'); }catch(_){} setTimeout(function(){ location.reload(); }, 200); }
   function upload(str, h, cb){
     var subj; try{ subj = JSON.parse(str || '[]'); }catch(e){ return cb(); }
     if(Date.now() < bdTrava) return cb();   // logo apos trazer da nuvem: nao manda nada (a tela vai recarregar)
@@ -170327,7 +170330,7 @@ if ('serviceWorker' in navigator) {
           setLocal(cloudStr); markSynced(row2.updated_at, cloudH); lsSet('gd_exemplo_visto', marca);
           cloudStatus(''); end(); scheduleAttSync();
           // 25/11/2026: recarrega a tela para nada da memoria antiga ser salvo por cima do que veio da nuvem
-          bdTrava = Date.now() + 15000; setTimeout(function(){ location.reload(); }, 200);
+          bdTrava = Date.now() + 15000; bdRecarrega();
           return;
         }
         if(!localChanged || localH === cloudH){
@@ -170335,7 +170338,7 @@ if ('serviceWorker' in navigator) {
           if(accountSwitched && localStr) lsSet('gd_backup_local', localStr);
           setLocal(cloudStr); markSynced(row2.updated_at, cloudH);
           cloudStatus(''); end(); scheduleAttSync();
-          if(accountSwitched || !localStr || localStr === '[]'){ bdTrava = Date.now() + 15000; setTimeout(function(){ location.reload(); }, 200); return; }
+          if(accountSwitched || !localStr || localStr === '[]'){ bdTrava = Date.now() + 15000; bdRecarrega(); return; }
           refreshView(accountSwitched);
           return;
         }
