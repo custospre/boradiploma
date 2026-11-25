@@ -482,6 +482,9 @@
   // mensagem curta de acesso (a mesma em todos os envios)
   function linkEscola(link){ return String(link||'').replace(/^https?:\/\/[^?#]*\/entrar\.html/, 'https://escola.boradiploma.com.br/entrar.html'); }
   function msgAcesso(nome, link){
+    // link com www: nenhum app instalado no celular (ex.: Escola antigo) e dono desse endereco, entao o Android
+    // abre no Chrome; o site leva para boradiploma.com.br mantendo o codigo do link (24/11/2026)
+    link = String(link||'').replace(/^https:\/\/boradiploma\.com\.br\//, 'https://www.boradiploma.com.br/');
     return 'Oi' + (nome?(' '+nome):'') + '! 🎓 Seu acesso ao BoraDiploma' + (/escola\.boradiploma/.test(link)?' Escola':'') + ' está liberado.\n\n'
       + '1️⃣ Toque aqui para entrar: ' + link + '\n'
       + '2️⃣ Quando o app abrir, toque em *Instalar* para ter o ícone na tela.';
