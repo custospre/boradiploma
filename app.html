@@ -167697,6 +167697,14 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       if(!src.noteId){ toast('Esta p\u00e1gina n\u00e3o \u00e9 uma aula; nada a guardar'); return; }
       var d=document.createElement('div'); d.innerHTML=junta();
       [].slice.call(d.querySelectorAll('.prtBreak,.prtTitle,.prtNum')).forEach(function(n){ n.remove(); });
+      // anexo aberto na impressao volta a ser o quadrinho original (as paginas em imagem nao vao para a aula)
+      var vistos={};
+      [].slice.call(d.querySelectorAll('.prtAnexo')).forEach(function(n){
+        var k=n.getAttribute('data-anx');
+        if(vistos[k]||!_anxOrig[k]){ n.remove(); return; }
+        vistos[k]=1; var t=document.createElement('div'); t.innerHTML=_anxOrig[k];
+        if(t.firstChild) n.parentNode.replaceChild(t.firstChild,n); else n.remove();
+      });
       var a=getSubs(), r=findAula(a,src.noteId);
       if(!r){ toast('N\u00e3o achei a p\u00e1gina para guardar'); return; }
       r.aula.body=d.innerHTML; r.aula.updated=Date.now(); saveSubs(a);
@@ -167790,8 +167798,60 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       ov.querySelector('#prtSave').style.display=src.noteId?'':'none';
       sheetsBox.innerHTML='<div class="prtWait">Preparando as folhas\u2026</div>';
       info.textContent='montando\u2026'; ov.scrollTop=0;
-      setTimeout(function(){ desenha(function(){ ov.scrollTop=0; }); ov.scrollTop=0; },60);
+      var temAnexo=/class="pdfatt/.test(src.html);
+      if(temAnexo){ info.textContent='abrindo os anexos\u2026'; sheetsBox.innerHTML='<div class="prtWait">Colocando as p\u00e1ginas dos anexos (PDF/Word)\u2026</div>'; }
+      var srcAtual=src;
+      setTimeout(function(){
+        (temAnexo?expandeAnexos(src.html):Promise.resolve(src.html)).then(function(h){
+          if(src!==srcAtual||!ov||ov.hidden) return;
+          src.html=h; desenha(function(){ ov.scrollTop=0; }); ov.scrollTop=0;
+        });
+      },60);
     });
+
+    // ---- anexos na impressao (24/11/2026): PDF vira imagens das paginas, Word vira o texto dele ----
+    // O quadrinho original fica guardado em _anxOrig e volta para a aula no "Guardar correcoes".
+    var _anxOrig={};
+    function pdfPaginas(blob){
+      return loadPdfJs().then(function(lib){ return blob.arrayBuffer().then(function(buf){
+        return lib.getDocument({data:buf}).promise.then(function(pdf){
+          var out=[], ch=Promise.resolve();
+          for(var i=1;i<=pdf.numPages;i++){ (function(n){ ch=ch.then(function(){ return pdf.getPage(n).then(function(pg){
+            var v1=pg.getViewport({scale:1}), s=Math.min(2,1400/(v1.width||600)), vp=pg.getViewport({scale:s});
+            var cv=document.createElement('canvas'); cv.width=Math.ceil(vp.width); cv.height=Math.ceil(vp.height);
+            var cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+            return pg.render({canvasContext:cx, viewport:vp}).promise.then(function(){ out.push(cv.toDataURL('image/jpeg',0.85)); });
+          }); }); })(i); }
+          return ch.then(function(){ return out; });
+        });
+      }); });
+    }
+    function expandeAnexos(html){
+      var d=document.createElement('div'); d.innerHTML=html;
+      var pas=[].slice.call(d.querySelectorAll('.pdfatt[data-att]'));
+      _anxOrig={};
+      if(!pas.length) return Promise.resolve(html);
+      var CP=cfgPagina(), alt=Math.max(80,(CP.deitado?CP.w:CP.h)-2*CP.margem-28);
+      return Promise.all(pas.map(function(pa,k){ return new Promise(function(res){
+        var nm=(pa.querySelector('.pdfname')||{}).textContent||'arquivo';
+        var troca=function(inner){
+          var w=document.createElement('div'); w.className='prtAnexo'; w.setAttribute('data-anx',String(k));
+          _anxOrig[k]=pa.outerHTML;
+          w.innerHTML='<p class="prtAnexoNome"><i>\ud83d\udcce Anexo: '+esc(nm)+'</i></p>'+inner;
+          if(pa.parentNode) pa.parentNode.replaceChild(w,pa); res();
+        };
+        try{
+          getAtt(pa.getAttribute('data-att'),function(r){
+            if(!r||!r.blob){ res(); return; }
+            if(pa.getAttribute('data-kind')==='docx'||r.kind==='docx'){
+              docxToHTML(r.blob,false).then(function(x){ troca(x.html); }).catch(function(){ res(); }); return; }
+            pdfPaginas(r.blob).then(function(urls){
+              troca(urls.map(function(u){ return '<p class="prtPdfPg"><img src="'+u+'" alt="" style="display:block;max-width:100%;max-height:'+alt+'mm;width:auto;height:auto;margin:0 auto"></p>'; }).join(''));
+            }).catch(function(){ toast('N\u00e3o consegui abrir o PDF \u201c'+nm+'\u201d (precisa de internet na 1\u00aa vez)'); res(); });
+          });
+        }catch(e){ res(); }
+      }); })).then(function(){ return d.innerHTML; });
+    }
   })();
 
   function copyAll(){
