@@ -166187,7 +166187,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     if(goEst) goEst.textContent=(sec==='avals')?'📝 Lista de Avaliações':((sec==='trabalhos')?'📋 Lista de Trabalhos':(isEst?'📚 Lista de Material de Estudo':'📚 Material de Estudo'));
     if(goAula){ var ra=isEst&&o.aula?s.aulas.filter(function(x){return x.id===o.aula;})[0]:null;
       goAula.hidden=!ra; if(ra){ var gt=ra.title||'aula'; if(gt.length>22) gt=gt.slice(0,22)+'…'; goAula.textContent='📝 Aula: '+gt; } }
-    noteTitle.value=(isEst?o.label:o.title)||''; noteTitle.classList.toggle('tem-nome',!!noteTitle.value); editor.innerHTML=o.body||''; window.bdGapCites(editor); saveState.textContent='salvo';
+    noteTitle.value=(isEst?o.label:o.title)||''; noteTitle.classList.toggle('tem-nome',!!noteTitle.value); editor.innerHTML=o.body||''; window.bdGapCites(editor); [].forEach.call(editor.querySelectorAll('.cite'),function(c){ c.classList.add('fechado'); }); saveState.textContent='salvo';
     var nlk=linkify(editor);
     savedRange=(o.caret&&!nlk)?rangeFromPath(editor,o.caret):null;
     renderMat(o);
