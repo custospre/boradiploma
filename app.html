@@ -654,12 +654,12 @@ html.bd-semsel #editor::selection,html.bd-semsel #editor ::selection{background:
 .cite{border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;
   padding:10px 12px;margin:12px 0;font-size:.95rem;overflow-wrap:anywhere;word-break:break-word}
 .cite-h{font-family:var(--font-head);font-weight:700;color:var(--accent);font-size:.78rem;margin-bottom:5px;letter-spacing:.03em}
-/* sanfona do artigo inserido: fechado por padrao, toque no titulo abre/fecha */
+/* sanfona do artigo inserido: aberto por padrao, toque no titulo fecha/abre */
 #editor .cite-h{cursor:pointer;user-select:none;margin-bottom:0}
-#editor .cite-h:before{content:'▸ ';display:inline-block;width:1.1em}
-#editor .cite.aberto .cite-h{margin-bottom:5px}
-#editor .cite.aberto .cite-h:before{content:'▾ '}
-#editor .cite:not(.aberto) > :not(.cite-h){display:none}
+#editor .cite-h:before{content:'▾ ';display:inline-block;width:1.1em}
+#editor .cite:not(.fechado) .cite-h{margin-bottom:5px}
+#editor .cite.fechado .cite-h:before{content:'▸ '}
+#editor .cite.fechado > :not(.cite-h){display:none}
 @media print{#editor .cite > *{display:block!important}#editor .cite-h:before{content:''}}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));
   background:var(--fg);color:var(--bg);font-family:var(--font-head);font-size:.86rem;padding:11px 18px;border-radius:12px;
@@ -166399,7 +166399,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     if(!hd || !editor.contains(hd)) return;
     var c=hd.closest('.cite'); if(!c) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    hideCtx(); c.classList.toggle('aberto');
+    hideCtx(); c.classList.toggle('fechado');
   },true);
   if(editor && window.matchMedia && window.matchMedia('(pointer: coarse)').matches){
     editor.addEventListener('click',function(e){
