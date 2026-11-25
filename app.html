@@ -166532,11 +166532,12 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       sb.storage.from(ATT_BUCKET).download(pastas[i]+'/'+id).then(function(x){
         if(!x||!x.data) return tenta(i+1);
         var row={id:id,name:nm,type:dx?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/pdf',kind:dx?'docx':'pdf',size:x.data.size||0,blob:x.data,added:Date.now()};
-        idbPut(row,function(){ cb(row); });
+        row.novo=1; idbPut(row,function(){ cb(row); });
       }).catch(function(){ tenta(i+1); });
     })(0);
   }); }
   function openAtt(id){ getAtt(id,function(r){ if(!r||!r.blob){ toast('Arquivo não encontrado neste aparelho'); return; }
+    if(r.novo&&/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent)){ toast('Arquivo baixado ✓ Toque de novo para abrir'); return; }
     if(r.kind==='docx'||/\.docx$/i.test(r.name||'')){
       docxToHTML(r.blob,true).then(function(d){
         var css=[].slice.call(document.styleSheets).map(function(ss){ try{ return [].slice.call(ss.cssRules).map(function(x){ return x.cssText; }).filter(function(t){ return /docview|docpage/.test(t); }).join('\n'); }catch(e){ return ''; } }).join('\n');
