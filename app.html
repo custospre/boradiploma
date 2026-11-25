@@ -170285,18 +170285,22 @@ if ('serviceWorker' in navigator) {
       var accountSwitched = !!(storedAcc && storedAcc !== uid);
       var localChanged = !accountSwitched && localH !== lsGet(K_SYNC_H);
       var cloudChanged = accountSwitched || row.updated_at !== lsGet(K_SYNC_AT);
-      if(!cloudChanged){
-        if(localChanged) return upload(localStr, localH, end);
-        return end();
-      }
-      cloudStatus('sincronizando...');
-      // o dono mandou um exemplo novo pelo painel? entao troca tudo (sem juntar com o que esta aqui)
+      // o dono mandou um exemplo novo pelo painel? entao troca tudo (sem juntar com o que esta aqui).
+      // 25/11/2026: confere a marca SEMPRE (antes so quando a data da nuvem mudava, e no iPhone o
+      // exemplo novo nao chegava) e nao compara mais com o relogio do aparelho.
       sb.from('billing').select('status').eq('user_id', uid).maybeSingle().then(function(rb){
         var st = (rb && rb.data && rb.data.status) || '', m = /^exemplo:(\d+)/.exec(st);
-        var forcar = !!(m && Number(m[1]) > (Number(lsGet('gd_exemplo_visto') || '0') || 0)
-          && Number(m[1]) > (Date.parse(lsGet(K_SYNC_AT) || '') || 0));   // este aparelho ainda nao recebeu esse exemplo
-        baixar(forcar, m ? m[1] : '');
-      }, function(){ baixar(false, ''); });
+        var forcar = !!(m && Number(m[1]) > (Number(lsGet('gd_exemplo_visto') || '0') || 0));   // este aparelho ainda nao recebeu esse exemplo
+        segue(forcar, m ? m[1] : '');
+      }, function(){ segue(false, ''); });
+      function segue(forcar, marca){
+        if(!forcar && !cloudChanged){
+          if(localChanged) return upload(localStr, localH, end);
+          return end();
+        }
+        cloudStatus('sincronizando...');
+        baixar(forcar, marca);
+      }
       function baixar(forcar, marca){
       sb.from('user_data').select('subjects,updated_at').eq('user_id', uid).maybeSingle().then(function(r2){
         var row2 = r2 && r2.data;
