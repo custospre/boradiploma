@@ -306,7 +306,9 @@ main:has(> #view-index:not([hidden])){margin-left:0;margin-right:auto;max-width:
 .prtSheet{position:relative;background:#fff;color:#000;box-shadow:0 3px 14px rgba(0,0,0,.45);
   box-sizing:border-box;overflow:visible;flex:0 0 auto}
 .prtBody{outline:none;font-family:var(--font-body);line-height:1.5;color:#000;overflow-wrap:break-word}
-.prtBody *{color:#000;background:transparent;box-shadow:none}
+.prtBody *{background:transparent;box-shadow:none}
+.prtBody *:not(font[color]):not([style*="color"]){color:inherit}
+.prtSheet,.prtSheet *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .prtBody h1,.prtBody h2,.prtBody h3{font-family:var(--font-head);line-height:1.25;margin:0 0 .45em}
 .prtBody h1{font-size:1.5em}
 .prtBody h1.prtTitle{border-bottom:1px solid #999;padding-bottom:.2em}
