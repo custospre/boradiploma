@@ -166552,6 +166552,19 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     var fr=pa.querySelector('.pdfview,.docview');
     if(fr){ (fr.getAttribute('data-url')||'').split(' ').forEach(function(u){ if(u) try{ URL.revokeObjectURL(u); }catch(e){} }); pa.removeChild(fr); pa.classList.remove('open'); return; }
     if(pa.getAttribute('data-busy'))return;
+    if(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent) && sb && currentUser && pa.getAttribute('data-kind')!=='docx'){
+      // 25/11/2026: celular nao mostra PDF dentro da pagina nem abre blob; abre a aba ja no toque e carrega o link da nuvem
+      var aid=pa.getAttribute('data-att'), w=window.open('','_blank'); toast('Abrindo PDF…');
+      var pastas=[currentUser.id]; if(currentUser.id!==OWNER_UID) pastas.push(OWNER_UID);
+      (function tenta(i){
+        if(i>=pastas.length){ try{ w&&w.close(); }catch(e){} toast('Arquivo não encontrado na nuvem'); return; }
+        sb.storage.from(ATT_BUCKET).createSignedUrl(pastas[i]+'/'+aid, 3600).then(function(x){
+          if(!x||x.error||!x.data||!x.data.signedUrl) return tenta(i+1);
+          if(w) w.location.href=x.data.signedUrl; else location.href=x.data.signedUrl;
+        }).catch(function(){ tenta(i+1); });
+      })(0);
+      return;
+    }
     getAtt(pa.getAttribute('data-att'),function(r){
       if(!r||!r.blob){ toast('Arquivo não encontrado neste aparelho'); return; }
       if(pa.getAttribute('data-kind')==='docx'||r.kind==='docx'){
@@ -166563,7 +166576,6 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         }).catch(function(){ pa.removeAttribute('data-busy'); toast('Não consegui ler este arquivo Word (.docx)'); });
         return;
       }
-      if(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent)){ return openAtt(pa.getAttribute('data-att')); }  // celular nao mostra PDF dentro da pagina
       var url=URL.createObjectURL(new Blob([r.blob],{type:'application/pdf'}));
       var f=document.createElement('iframe'); f.className='pdfview'; f.src=url; f.setAttribute('data-url',url); f.title=r.name||'PDF';
       pa.appendChild(f); pa.classList.add('open');
