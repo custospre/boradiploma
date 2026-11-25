@@ -164,7 +164,7 @@
   var SB_URL = 'https://epumhsiqdxvcboisurvu.supabase.co';
   var SB_KEY = 'sb_publishable_JW7iq8Kayqkp3OL--TCccg_aTBKOs_S';
   var OWNER = '3d501b85-058c-43d7-a5c2-a759460074db';
-  var APP_URL = 'https://boradiploma.com.br/app.html';
+  var APP_URL = 'https://faculdade.boradiploma.com.br/app.html';
   var sb; try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){}
 
   var loginCard = document.getElementById('login-card');
@@ -484,7 +484,8 @@
   function msgAcesso(nome, link){
     // link com www: nenhum app instalado no celular (ex.: Escola antigo) e dono desse endereco, entao o Android
     // abre no Chrome; o site leva para boradiploma.com.br mantendo o codigo do link (24/11/2026)
-    link = String(link||'').replace(/^https:\/\/boradiploma\.com\.br\//, 'https://www.boradiploma.com.br/');
+    // 24/11/2026: a Faculdade mudou para faculdade.boradiploma.com.br (endereco que nenhum app antigo "pega")
+    link = String(link||'').replace(/^https:\/\/(www\.)?boradiploma\.com\.br\//, 'https://faculdade.boradiploma.com.br/');
     return 'Oi' + (nome?(' '+nome):'') + '! 🎓 Seu acesso ao BoraDiploma' + (/escola\.boradiploma/.test(link)?' Escola':'') + ' está liberado.\n\n'
       + '1️⃣ Toque aqui para entrar: ' + link + '\n'
       + '2️⃣ Quando o app abrir, toque em *Instalar* para ter o ícone na tela.';
@@ -532,6 +533,7 @@
     var el=document.getElementById('pedlink');
     if(!el){ alert('Link de entrada (copie e envie):\n\n'+link); return; }
     var nEl=document.getElementById('pl-nome'); if(nEl) nEl.textContent = nome?('Para: '+nome):'';
+    link = String(link||'').replace(/^https:\/\/(www\.)?boradiploma\.com\.br\//, 'https://faculdade.boradiploma.com.br/');
     var tEl=document.getElementById('pl-link'); if(tEl) tEl.value = _plWa ? link : _plMsg;
     var waBtn=document.getElementById('pl-wa'); if(waBtn) waBtn.style.display = '';
     el.hidden=false;
