@@ -170454,12 +170454,23 @@ if ('serviceWorker' in navigator) {
       if(res && res.data){ return res.data.text().then(function(t){ try{ return JSON.parse(t)||{}; }catch(e){ return {}; } }); }
       return {};
     }).catch(function(){ return {}; }).then(function(manifest){
-      manifest = manifest || {};
+      // 25/11/2026: anexos do exemplo (PDF/Word do dono) ficam so na pasta do dono; busca o indice dela
+      if(uid === OWNER_UID) return [manifest, {}];
+      return sb.storage.from(ATT_BUCKET).download(OWNER_UID + '/manifest.json').then(function(r){
+        if(r && r.data) return r.data.text().then(function(t){ var o={}; try{ o=JSON.parse(t)||{}; }catch(e){} return [manifest, o]; });
+        return [manifest, {}];
+      }).catch(function(){ return [manifest, {}]; });
+    }).then(function(par){
+      var manifest = par[0] || {}, donoMan = par[1] || {};
       idbAllIds(function(localIds){
         var localSet = {}; localIds.forEach(function(id){ localSet[id]=1; });
         var cloudIds = Object.keys(manifest);
-        var toUpload = localIds.filter(function(id){ return !manifest[id]; });
+        var toUpload = localIds.filter(function(id){ return !manifest[id] && !donoMan[id]; });   // anexo do exemplo nao e copiado para a pasta da pessoa
         var toDownload = cloudIds.filter(function(id){ return !localSet[id]; });
+        // anexos do exemplo que aparecem nas aulas/materiais desta pessoa e ainda nao estao no aparelho
+        var usados = {}; try{ (getLocal()||'').replace(/data-att=\\?"([^"\\]+)/g, function(_, id){ usados[id]=1; return _; }); }catch(e){}
+        var doDono = Object.keys(donoMan).filter(function(id){ return usados[id] && !localSet[id] && !manifest[id]; });
+        toDownload = toDownload.concat(doDono);
         var changed = false;
 
         function finish(){
@@ -170474,9 +170485,10 @@ if ('serviceWorker' in navigator) {
           if(i >= toDownload.length){ return finish(); }
           var id = toDownload[i];
           cloudStatus('baixando anexos...');
-          sb.storage.from(ATT_BUCKET).download(uid+'/'+id).then(function(r){
+          var pasta = (!manifest[id] && donoMan[id]) ? OWNER_UID : uid;
+          sb.storage.from(ATT_BUCKET).download(pasta+'/'+id).then(function(r){
             if(r && r.data){
-              var meta = manifest[id] || {};
+              var meta = manifest[id] || donoMan[id] || {};
               var row = { id:id, name:meta.name||('arquivo.'+(meta.kind||'pdf')), type:meta.type||'application/pdf', kind:meta.kind||'pdf', size:meta.size||(r.data.size||0), blob:r.data, added:meta.added||Date.now() };
               idbPut(row, function(){ doDownloads(i+1); });
             } else { doDownloads(i+1); }
@@ -170496,7 +170508,7 @@ if ('serviceWorker' in navigator) {
           });
         }
 
-        if(!toUpload.length && !toDownload.length){ done(); return; }
+        if(!toUpload.length && !toDownload.length){ attSyncing = false; cloudStatus(''); return; }
         doUploads(0);
       });
     }).catch(function(){ attSyncing = false; cloudStatus(''); });
