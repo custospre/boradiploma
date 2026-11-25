@@ -165882,13 +165882,10 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     else if(p[0]==='est'){ openSubject(p[1],{est:true,estItem:p[2]||null}); }
     else if(p[0]==='estpg'){ openNote(p[1],p[2]); }
     else if(p[0]==='itper'){ var aI=getSubs(), sI=findSub(aI,p[1]), lI=sI&&sI[p[2]]||[]; if(!lI.length) return;
-      var psI=periodos(), vI=prompt('Para qual período você quer mudar itens de '+(sI.name||'')+'? (ex.: 1 ou 2º Período)'+(psI.length?('
-Períodos que você já tem: '+psI.join(', ')):''), sI.periodo||'');
+      var psI=periodos(), vI=prompt('Para qual período você quer mudar itens de '+(sI.name||'')+'? (ex.: 1 ou 2º Período)'+(psI.length?('\nPeríodos que você já tem: '+psI.join(', ')):''), sI.periodo||'');
       if(vI===null) return; vI=perNorm(vI); if(!vI) return;
-      var txI=lI.map(function(it,i){ return (i+1)+'. '+(it.label||'(sem nome)')+' ['+(perNorm(it.periodo||sI.periodo)||'sem período')+']'; }).join('
-');
-      var nI=prompt('Digite os números dos itens que são do '+vI+' (ex.: 1,3,4):
-'+txI,''); if(!nI) return;
+      var txI=lI.map(function(it,i){ return (i+1)+'. '+(it.label||'(sem nome)')+' ['+(perNorm(it.periodo||sI.periodo)||'sem período')+']'; }).join('\n');
+      var nI=prompt('Digite os números dos itens que são do '+vI+' (ex.: 1,3,4):\n'+txI,''); if(!nI) return;
       var cI=0; nI.split(/[^0-9]+/).forEach(function(x){ var it=lI[parseInt(x,10)-1]; if(it){ it.periodo=vI; it.updated=Date.now(); cI++; } });
       if(!cI) return; saveSubs(aI); var abI=treeOpenKeys(); renderTree(); treeReopen(abI); toast(cI+' item(ns) no '+vI); return; }
     else if(p[0]==='newest'){ var o3=newEstudo(p[1]); if(o3) openNote(p[1],o3.id); }
