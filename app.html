@@ -165763,7 +165763,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
           kids.push({label:'＋ incluir material da AV'+k, act:'newestp:'+s.id+':P'+k, vz:''});
           pastas.push({label:'📁 Material AV'+k, children:kids, vz:DN?('Abrir material AV'+k+DN):''}); })(k); }
         var r=top.concat(pastas); r.push({label:'＋ Material AV'+(mx+1), act:'novaprova:'+s.id+':'+(mx+1), vz:''});
-        if(itens.length) r.push({label:'↔ Mudar material de prova', act:'itprova:'+s.id, vz:''});
+        if(itens.length) r.push({label:'↔ Mudar material de AV', act:'itprova:'+s.id, vz:''});
         return r; }
       function dlist(kind,arr,addlbl,actf,sec){ var out=dlist0(kind,arr,addlbl,actf,sec), byId={}, ord=[], grp={};
         (arr||[]).forEach(function(it){ byId[it.id]=it; });
@@ -165914,12 +165914,28 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     else if(p[0]==='novaprova'){ var aP=getSubs(), sP=findSub(aP,p[1]); if(!sP) return; sP.provas=parseInt(p[2],10)||2; saveSubs(aP);
       var abP=treeOpenKeys(); renderTree(); treeReopen(abP); toast('Pasta Material AV'+sP.provas+' criada'); return; }
     else if(p[0]==='itprova'){ var aQ=getSubs(), sQ=findSub(aQ,p[1]), lQ=sQ&&sQ.estudos||[]; if(!lQ.length) return;
-      var vQ=prompt('Para qual prova você quer mudar os materiais de '+(sQ.name||'')+'? (ex.: 1 para AV1, 2 para AV2)','2'); if(vQ===null) return;
-      var nP=parseInt(String(vQ).replace(/\D/g,''),10); if(!(nP>0)) return;
-      var txQ=lQ.map(function(it,i){ var k=parseInt(String(it.prova||'').replace(/\D/g,''),10)||1; return (i+1)+'. '+(it.label||'(sem nome)')+' [AV'+k+']'; }).join('\n');
-      var nQ=prompt('Digite os números dos materiais que são da AV'+nP+' (ex.: 1,3,4):\n'+txQ,''); if(!nQ) return;
-      var cQ=0; nQ.split(/[^0-9]+/).forEach(function(x){ var it=lQ[parseInt(x,10)-1]; if(it){ it.prova='P'+nP; it.updated=Date.now(); cQ++; } });
-      if(!cQ) return; if((parseInt(sQ.provas,10)||1)<nP) sQ.provas=nP; saveSubs(aQ); var abQ=treeOpenKeys(); renderTree(); treeReopen(abQ); toast(cQ+' material(is) na AV'+nP); return; }
+      // tela com caixinhas: marca os materiais, escolhe a AV e toca em Mover
+      var avN=function(it){ return parseInt(String(it.prova||'').replace(/\D/g,''),10)||1; };
+      var mxQ=Math.max(1,parseInt(sQ.provas,10)||1); lQ.forEach(function(it){ mxQ=Math.max(mxQ,avN(it)); });
+      var escH=function(t){ return String(t==null?'':t).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+      var opQ=''; for(var kq=1;kq<=mxQ+1;kq++) opQ+='<option value="'+kq+'"'+(kq===2?' selected':'')+'>AV'+kq+(kq===mxQ+1?' (nova)':'')+'</option>';
+      var ov=document.createElement('div'); ov.id='bdMovAv';
+      ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px';
+      ov.innerHTML='<div style="background:var(--bg,#fff);color:var(--fg,#222);border-radius:16px;max-width:480px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.35)">'
+        +'<div style="padding:16px 18px 8px"><b style="font-size:18px">↔ Mudar material de AV</b><div style="opacity:.75;font-size:14px;margin-top:4px">1) Marque os materiais &nbsp; 2) Escolha a AV &nbsp; 3) Toque em Mover</div></div>'
+        +'<div style="overflow:auto;padding:4px 18px;flex:1">'+lQ.map(function(it,i){ return '<label style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.2);cursor:pointer"><input type="checkbox" data-mi="'+i+'" style="width:22px;height:22px;flex:none"><span style="flex:1">'+escH(it.label||'(sem nome)')+'</span><span style="opacity:.6;font-size:13px">AV'+avN(it)+'</span></label>'; }).join('')+'</div>'
+        +'<div style="padding:12px 18px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid rgba(128,128,128,.2)"><span>Mover para</span><select id="bdMovSel" style="font:inherit;padding:8px 10px;border-radius:10px">'+opQ+'</select>'
+        +'<button type="button" data-mv="ok" style="font:inherit;font-weight:700;padding:10px 18px;border:0;border-radius:999px;background:#8a1c2e;color:#fff;cursor:pointer">Mover</button>'
+        +'<button type="button" data-mv="x" style="font:inherit;padding:10px 14px;border:0;background:none;color:inherit;cursor:pointer;text-decoration:underline">Cancelar</button></div></div>';
+      document.body.appendChild(ov);
+      ov.addEventListener('click',function(ev){ if(ev.target===ov){ ov.remove(); return; } var bt=ev.target.closest('[data-mv]'); if(!bt) return;
+        if(bt.getAttribute('data-mv')==='x'){ ov.remove(); return; }
+        var nP=parseInt(ov.querySelector('#bdMovSel').value,10)||1, cQ=0;
+        ov.querySelectorAll('input[data-mi]:checked').forEach(function(cb){ var it=lQ[parseInt(cb.getAttribute('data-mi'),10)]; if(it){ it.prova='P'+nP; it.updated=Date.now(); cQ++; } });
+        if(!cQ){ toast('Marque pelo menos um material'); return; }
+        if((parseInt(sQ.provas,10)||1)<nP) sQ.provas=nP; saveSubs(aQ); ov.remove();
+        var abQ=treeOpenKeys(); renderTree(); treeReopen(abQ); toast(cQ+' material(is) na AV'+nP); });
+      return; }
     else if(p[0]==='prazos'){ openPrazos(p[1]); }
     else if(p[0]==='agenda'){ openAgenda(p[1]); }
     else if(p[0]==='sec'){ openSubject(p[1],{sec:p[2]}); }
