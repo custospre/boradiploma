@@ -166128,15 +166128,17 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       L.forEach(function(o){ mxA=Math.max(mxA,avOf(o)); });
       h+='<div class="notemeta" style="margin-bottom:4px">'+L.length+' materia'+(L.length===1?'l':'is')+' · arraste ⠿ para reordenar</div>';
       for(var kA=1;kA<=mxA;kA++){ var LA=L.filter(function(o){ return avOf(o)===kA; });
-        h+='<h3 style="margin:16px 0 6px;font-size:17px">📁 Material AV'+kA+' <span class="notemeta" style="font-weight:400">('+LA.length+')</span></h3><div class="items">';
+        var abA=false; try{ abA=localStorage.getItem('bd_avab_'+s.id+'_'+kA)==='1'; }catch(_){}
+        h+='<details class="avgrp" data-av="'+kA+'"'+(abA?' open':'')+' style="margin:10px 0;border:1px solid var(--line,#ddd);border-radius:12px;padding:0 12px"><summary style="cursor:pointer;padding:12px 0;font-size:17px;font-weight:700">📁 Material AV'+kA+' <span class="notemeta" style="font-weight:400">('+LA.length+')</span></summary><div class="items">';
         LA.forEach(function(o){
         h+='<div class="item" style="cursor:default" draggable="true" data-okind="estudos" data-osub="'+s.id+'" data-oid="'+o.id+'"><span class="dhandle" title="Arraste para reordenar">⠿</span><button class="estopen" data-id="'+o.id+'" style="all:unset;cursor:pointer;flex:1;min-width:0"><b>'+esc(o.label||'(sem título)')+'</b></button>'+
            '<button class="linkbtn danger estdel" data-id="'+o.id+'">excluir</button></div>'; });
         if(!LA.length) h+='<div class="notemeta" style="padding:4px 0">Nenhum material nesta AV ainda.</div>';
-        h+='</div><button class="linkbtn estnewav" data-av="'+kA+'" style="margin:4px 0 0">＋ Novo material na AV'+kA+'</button>'; }
+        h+='</div><button class="linkbtn estnewav" data-av="'+kA+'" style="margin:4px 0 12px">＋ Novo material na AV'+kA+'</button></details>'; }
     }
     estsBox.innerHTML=h;
     var bn=document.getElementById('btnNewEst'); if(bn) bn.addEventListener('click',function(){ var o=newEstudo(curSubjectId,estFromAula); if(o) openNote(curSubjectId,o.id); });
+    [].slice.call(estsBox.querySelectorAll('details.avgrp')).forEach(function(d){ d.addEventListener('toggle',function(){ try{ localStorage.setItem('bd_avab_'+s.id+'_'+d.dataset.av,d.open?'1':'0'); }catch(_){} }); });
     [].slice.call(estsBox.querySelectorAll('.estnewav')).forEach(function(b){ b.addEventListener('click',function(){ var o=newEstudo(curSubjectId,estFromAula,'P'+b.dataset.av); if(o) openNote(curSubjectId,o.id); }); });
     [].slice.call(estsBox.querySelectorAll('.estopen')).forEach(function(b){ b.addEventListener('click',function(){ openNote(curSubjectId,b.dataset.id); }); });
     [].slice.call(estsBox.querySelectorAll('.estdel')).forEach(function(b){ b.addEventListener('click',function(){
