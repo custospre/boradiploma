@@ -171186,12 +171186,18 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
     if(aberto){ desenharSimulado(); return; }
     var h='<h1>📝 Simulados</h1>';
     if(lista==null){ box.innerHTML=h+'<p class="fcdim">Carregando…</p>'; return; }
-    var esta=lista.filter(function(x){ return x.esta_semana; })[0];
+    var estas=lista.filter(function(x){ return x.esta_semana; });
+    estas.forEach(function(esta){
+      h+='<div class="fccard">';
+      if(!esta.respondido) h+='<p>Seu simulado de <b>'+E(esta.materia)+'</b> está pronto: '+esta.total+' questões.</p><button type="button" class="fcbtn" data-sm="abrir" data-id="'+esta.id+'">Responder agora</button>';
+      else h+='<p>✅ Você acertou <b>'+esta.acertos+' de '+esta.total+'</b> em <b>'+E(esta.materia)+'</b>. O próximo de '+E(esta.materia)+' libera na segunda-feira.</p><button type="button" class="fcbtn2" data-sm="abrir" data-id="'+esta.id+'">Ver gabarito e explicações</button>';
+      h+='</div>';
+    });
     h+='<div class="fccard">';
     if(erro) h+='<p>⚠️ '+E(erro)+'</p>';
-    if(!esta){
-      var ds=disciplinas();
-      h+='<p>Toda semana você pode gerar <b>1 simulado</b> com <b>10 questões no estilo da OAB</b> (4 alternativas), feito pela IA a partir das <b>suas anotações</b> das aulas, materiais e trabalhos que você marcar. Depois de responder, você vê o gabarito e a explicação de cada alternativa.</p>';
+    {
+      var feitas=estas.map(function(x){ return String(x.materia); }); var ds=disciplinas().filter(function(d){ return feitas.indexOf(d)<0; });
+      h+='<p>Toda semana você pode gerar <b>1 simulado por disciplina</b> com <b>10 questões no estilo da OAB</b> (4 alternativas), feito pela IA a partir das <b>suas anotações</b> das aulas, materiais e trabalhos que você marcar. Depois de responder, você vê o gabarito e a explicação de cada alternativa.</p>';
       if(ds.length&&ds.indexOf(matSel)<0) matSel=ds[0];
       h+=ds.length?('<div class="fcacts"><select class="fcsel" id="simMat">'+ds.map(function(d){ return '<option'+(d===matSel?' selected':'')+'>'+E(d)+'</option>'; }).join('')+'</select>'
         +'<button type="button" class="fcbtn" data-sm="gerar"'+(gerando?' disabled':'')+'>'+(gerando?'⏳ Gerando…':'✨ Gerar meu simulado')+'</button></div>'
@@ -171199,11 +171205,7 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
           +'<div class="simbarra"><span></span></div><span class="fcdim">Pode levar até 2 minutos · <span id="simSeg">0 s</span>. Não feche o app.</span></div></div>')
           :('<p class="fcdim" id="simProg" style="margin:10px 0 0">Quanto mais anotações nas aulas marcadas, mais o simulado fica parecido com as suas aulas.</p>'
         +'<div id="simItens">'+listaItens(matSel)+'</div>')))
-        :'<p class="fcdim">Crie uma disciplina (Índice › Disciplinas) e anote as aulas para gerar o simulado.</p>';
-    } else if(!esta.respondido){
-      h+='<p>Seu simulado de <b>'+E(esta.materia)+'</b> está pronto: '+esta.total+' questões.</p><button type="button" class="fcbtn" data-sm="abrir" data-id="'+esta.id+'">Responder agora</button>';
-    } else {
-      h+='<p>✅ Você acertou <b>'+esta.acertos+' de '+esta.total+'</b> em <b>'+E(esta.materia)+'</b>. O próximo simulado libera na segunda-feira.</p><button type="button" class="fcbtn2" data-sm="abrir" data-id="'+esta.id+'">Ver gabarito e explicações</button>';
+        :(estas.length?'<p>✅ Você já fez o simulado desta semana de todas as disciplinas. Na segunda-feira libera de novo.</p>':'<p class="fcdim">Crie uma disciplina (Índice › Disciplinas) e anote as aulas para gerar o simulado.</p>');
     }
     h+='</div>';
     var ant=lista.filter(function(x){ return !x.esta_semana; });
