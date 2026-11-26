@@ -165748,7 +165748,16 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     subs.forEach(function(s){
       var DN=s.name?(' disciplina '+s.name):'';
       var aulas=sortAulas(s.aulas).map(function(a){ return {label:a.title||'(sem título)', act:'aula:'+s.id+':'+a.id, okind:'aula', oid:a.id, osub:s.id, vz:(DN&&a.title)?('Abrir aula '+a.title+DN):''}; });
-      aulas.push({label:'＋ Nova aula', act:'newaula:'+s.id, vz:DN?('Nova aula'+DN):''});
+      aulas=(function(){ // 26/11/2026: aulas em pastas por avaliacao (AV1, AV2...)
+        var byA={}; (s.aulas||[]).forEach(function(a){ byA[a.id]=a; });
+        var nA=function(a){ var n=parseInt(String(a&&a.prova||'').replace(/\D/g,''),10); return n>0?n:1; };
+        var mx=Math.max(1,parseInt(s.provas,10)||1); aulas.forEach(function(n){ mx=Math.max(mx,nA(byA[n.oid])); });
+        var r=[]; for(var k=1;k<=mx;k++){ (function(k){ var kids=aulas.filter(function(n){ return nA(byA[n.oid])===k; });
+          kids.push({label:'＋ Nova aula na AV'+k, act:'newaulap:'+s.id+':P'+k, vz:(DN&&k===1)?('Nova aula'+DN):''});
+          r.push({label:'📁 Aulas AV'+k, children:kids, vz:''}); })(k); }
+        r.push({label:'＋ Aulas AV'+(mx+1), act:'novaprova:'+s.id+':'+(mx+1), vz:''});
+        if(aulas.length) r.push({label:'↔ Mudar aula de AV', act:'itprova:'+s.id+':aulas', vz:''});
+        return r; })();
       var VZK={avals:['Abrir todas as AV3','Abrir avaliação ','Incluir avaliação'],trabalhos:['Abrir todos os trabalhos','Abrir trabalho ','Incluir trabalho'],estudos:['Abrir todos os materiais','Abrir material ','Incluir material de estudo']};
       function vzk(kind,i,lbl){ return (DN&&VZK[kind]&&(i!==1||lbl))?(VZK[kind][i]+(i===1?lbl:'')+DN):''; }
       // 25/11/2026: a mesma materia em mais de um periodo -> itens agrupados pelo periodo de cada um
@@ -165900,6 +165909,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     else if(p[0]==='subject'){ openSubject(p[1]); }
     else if(p[0]==='aula'){ openNote(p[1],p[2]); }
     else if(p[0]==='newaula'){ var o2=newAula(p[1]); openNote(p[1],o2.id); }
+    else if(p[0]==='newaulap'){ var o5=newAula(p[1],p[2]); openNote(p[1],o5.id); }
     else if(p[0]==='est'){ openSubject(p[1],{est:true,estItem:p[2]||null}); }
     else if(p[0]==='estpg'){ openNote(p[1],p[2]); }
     else if(p[0]==='itper'){ var aI=getSubs(), sI=findSub(aI,p[1]), lI=sI&&sI[p[2]]||[]; if(!lI.length) return;
@@ -165913,7 +165923,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     else if(p[0]==='newestp'){ var o4=newEstudo(p[1],'',p[2]); if(o4) openNote(p[1],o4.id); }
     else if(p[0]==='novaprova'){ var aP=getSubs(), sP=findSub(aP,p[1]); if(!sP) return; sP.provas=parseInt(p[2],10)||2; saveSubs(aP);
       var abP=treeOpenKeys(); renderTree(); treeReopen(abP); toast('Pasta Material AV'+sP.provas+' criada'); return; }
-    else if(p[0]==='itprova'){ var aQ=getSubs(), sQ=findSub(aQ,p[1]), lQ=sQ&&sQ.estudos||[]; if(!lQ.length) return;
+    else if(p[0]==='itprova'){ var kQ=p[2]==='aulas'?'aulas':'estudos', aQ=getSubs(), sQ=findSub(aQ,p[1]), lQ=sQ&&sQ[kQ]||[]; if(!lQ.length) return; if(kQ==='aulas') lQ=sortAulas(lQ);
       // tela com caixinhas: marca os materiais, escolhe a AV e toca em Mover
       var avN=function(it){ return parseInt(String(it.prova||'').replace(/\D/g,''),10)||1; };
       var mxQ=Math.max(1,parseInt(sQ.provas,10)||1); lQ.forEach(function(it){ mxQ=Math.max(mxQ,avN(it)); });
@@ -165922,8 +165932,8 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
       var ov=document.createElement('div'); ov.id='bdMovAv';
       ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px';
       ov.innerHTML='<div style="background:var(--bg,#fff);color:var(--fg,#222);border-radius:16px;max-width:480px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.35)">'
-        +'<div style="padding:16px 18px 8px"><b style="font-size:18px">↔ Mudar material de AV</b><div style="opacity:.75;font-size:14px;margin-top:4px">1) Marque os materiais &nbsp; 2) Escolha a AV &nbsp; 3) Toque em Mover</div></div>'
-        +'<div style="overflow:auto;padding:4px 18px;flex:1">'+lQ.map(function(it,i){ return '<label style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.2);cursor:pointer"><input type="checkbox" data-mi="'+i+'" style="width:22px;height:22px;flex:none"><span style="flex:1">'+escH(it.label||'(sem nome)')+'</span><span style="opacity:.6;font-size:13px">AV'+avN(it)+'</span></label>'; }).join('')+'</div>'
+        +'<div style="padding:16px 18px 8px"><b style="font-size:18px">↔ Mudar '+(kQ==='aulas'?'aula':'material')+' de AV</b><div style="opacity:.75;font-size:14px;margin-top:4px">1) Marque '+(kQ==='aulas'?'as aulas':'os materiais')+' &nbsp; 2) Escolha a AV &nbsp; 3) Toque em Mover</div></div>'
+        +'<div style="overflow:auto;padding:4px 18px;flex:1">'+lQ.map(function(it,i){ return '<label style="display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.2);cursor:pointer"><input type="checkbox" data-mi="'+i+'" style="width:22px;height:22px;flex:none"><span style="flex:1">'+escH(it.label||it.title||'(sem nome)')+'</span><span style="opacity:.6;font-size:13px">AV'+avN(it)+'</span></label>'; }).join('')+'</div>'
         +'<div style="padding:12px 18px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid rgba(128,128,128,.2)"><span>Mover para</span><select id="bdMovSel" style="font:inherit;padding:8px 10px;border-radius:10px">'+opQ+'</select>'
         +'<button type="button" data-mv="ok" style="font:inherit;font-weight:700;padding:10px 18px;border:0;border-radius:999px;background:#8a1c2e;color:#fff;cursor:pointer">Mover</button>'
         +'<button type="button" data-mv="x" style="font:inherit;padding:10px 14px;border:0;background:none;color:inherit;cursor:pointer;text-decoration:underline">Cancelar</button></div></div>';
@@ -165932,9 +165942,9 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
         if(bt.getAttribute('data-mv')==='x'){ ov.remove(); return; }
         var nP=parseInt(ov.querySelector('#bdMovSel').value,10)||1, cQ=0;
         ov.querySelectorAll('input[data-mi]:checked').forEach(function(cb){ var it=lQ[parseInt(cb.getAttribute('data-mi'),10)]; if(it){ it.prova='P'+nP; it.updated=Date.now(); cQ++; } });
-        if(!cQ){ toast('Marque pelo menos um material'); return; }
+        if(!cQ){ toast(kQ==='aulas'?'Marque pelo menos uma aula':'Marque pelo menos um material'); return; }
         if((parseInt(sQ.provas,10)||1)<nP) sQ.provas=nP; saveSubs(aQ); ov.remove();
-        var abQ=treeOpenKeys(); renderTree(); treeReopen(abQ); toast(cQ+' material(is) na AV'+nP); });
+        var abQ=treeOpenKeys(); renderTree(); treeReopen(abQ); toast(cQ+(kQ==='aulas'?' aula(s)':' material(is)')+' na AV'+nP); });
       return; }
     else if(p[0]==='prazos'){ openPrazos(p[1]); }
     else if(p[0]==='agenda'){ openAgenda(p[1]); }
@@ -166010,7 +166020,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   function newEstudo(sid,aulaId,prova){ var a=getSubs(), s=findSub(a,sid); if(!s)return null; if(!s.estudos)s.estudos=[];
     var o={id:uid(),label:'Material '+(s.estudos.length+1),url:'',aula:aulaId||'',body:'',created:Date.now(),updated:Date.now()}; if(prova) o.prova=prova; s.estudos.push(o); saveSubs(a); return o; }
   function newSubject(per){ var a=getSubs(); var o={id:uid(),name:'',prof:'',created:Date.now(),aulas:[],estudos:[]}; if(per) o.periodo=per; var no=nextOrd(a); if(no!=null)o.ord=no; a.unshift(o); saveSubs(a); setActSub(o.id); return o; }
-  function newAula(sid){ var a=getSubs(); var s=findSub(a,sid); if(!s){ s=newSubject(); a=getSubs(); sid=getActSub(); s=findSub(a,sid); } var o={id:uid(),title:'Aula '+new Date().toLocaleDateString('pt-BR'),body:'',created:Date.now(),updated:Date.now()}; var no=nextOrd(s.aulas); if(no!=null)o.ord=no; s.aulas.unshift(o); saveSubs(a); setActSub(sid); setActAula(o.id); return o; }
+  function newAula(sid,prova){ var a=getSubs(); var s=findSub(a,sid); if(!s){ s=newSubject(); a=getSubs(); sid=getActSub(); s=findSub(a,sid); } var o={id:uid(),title:'Aula '+new Date().toLocaleDateString('pt-BR'),body:'',created:Date.now(),updated:Date.now()}; if(prova) o.prova=prova; var no=nextOrd(s.aulas); if(no!=null)o.ord=no; s.aulas.unshift(o); saveSubs(a); setActSub(sid); setActAula(o.id); return o; }
 
   // --- Disciplinas list ---
   function showSubjects(){
@@ -166110,12 +166120,23 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
   function renderAulas(s){
     var h='<div class="rowbtns"><button class="act" id="btnNewAula">＋ Nova aula</button></div>';
     if(!s.aulas.length){ h+='<div class="placeholder">Nenhuma aula nesta disciplina ainda.</div>'; }
-    else { h+='<div class="notemeta" style="margin-bottom:4px">'+s.aulas.length+' aula'+(s.aulas.length===1?'':'s')+' · arraste ⠿ para reordenar</div><div class="items">'; sortAulas(s.aulas).forEach(function(o){
-      h+='<div class="item" style="cursor:default" draggable="true" data-okind="aula" data-osub="'+s.id+'" data-oid="'+o.id+'"><span class="dhandle" title="Arraste para reordenar">⠿</span><button class="aulaopen" data-id="'+o.id+'" style="all:unset;cursor:pointer;flex:1;min-width:0"><b>'+esc(o.title||'(sem título)')+'</b></button>'+
-         '<button class="linkbtn danger auladel" data-id="'+o.id+'">excluir</button></div>'; });
-      h+='</div>'; }
+    else { // 26/11/2026: aulas em sanfonas por avaliacao (AV1, AV2...)
+      var avA=function(o){ return parseInt(String(o.prova||'').replace(/\D/g,''),10)||1; }, mxU=Math.max(1,parseInt(s.provas,10)||1), SA=sortAulas(s.aulas);
+      SA.forEach(function(o){ mxU=Math.max(mxU,avA(o)); });
+      h+='<div class="notemeta" style="margin-bottom:4px">'+s.aulas.length+' aula'+(s.aulas.length===1?'':'s')+' · arraste ⠿ para reordenar</div>';
+      for(var kU=1;kU<=mxU;kU++){ var LU=SA.filter(function(o){ return avA(o)===kU; });
+        var abU=false; try{ abU=localStorage.getItem('bd_auab_'+s.id+'_'+kU)==='1'; }catch(_){}
+        h+='<details class="augrp" data-av="'+kU+'"'+(abU?' open':'')+' style="margin:10px 0;border:1px solid var(--line,#ddd);border-radius:12px;padding:0 12px"><summary style="cursor:pointer;padding:12px 0;font-size:17px;font-weight:700">📁 Aulas AV'+kU+' <span class="notemeta" style="font-weight:400">('+LU.length+')</span></summary><div class="items">';
+        LU.forEach(function(o){
+        h+='<div class="item" style="cursor:default" draggable="true" data-okind="aula" data-osub="'+s.id+'" data-oid="'+o.id+'"><span class="dhandle" title="Arraste para reordenar">⠿</span><button class="aulaopen" data-id="'+o.id+'" style="all:unset;cursor:pointer;flex:1;min-width:0"><b>'+esc(o.title||'(sem título)')+'</b></button>'+
+           '<button class="linkbtn danger auladel" data-id="'+o.id+'">excluir</button></div>'; });
+        if(!LU.length) h+='<div class="notemeta" style="padding:4px 0">Nenhuma aula nesta AV ainda.</div>';
+        h+='</div><button class="linkbtn aulanewav" data-av="'+kU+'" style="margin:4px 0 12px">＋ Nova aula na AV'+kU+'</button></details>'; }
+    }
     aulasBody.innerHTML=h;
     var bn=document.getElementById('btnNewAula'); if(bn) bn.addEventListener('click',function(){ var o=newAula(curSubjectId); openNote(curSubjectId,o.id); });
+    [].slice.call(aulasBody.querySelectorAll('details.augrp')).forEach(function(d){ d.addEventListener('toggle',function(){ try{ localStorage.setItem('bd_auab_'+s.id+'_'+d.dataset.av,d.open?'1':'0'); }catch(_){} }); });
+    [].slice.call(aulasBody.querySelectorAll('.aulanewav')).forEach(function(b){ b.addEventListener('click',function(){ var o=newAula(curSubjectId,'P'+b.dataset.av); openNote(curSubjectId,o.id); }); });
     [].slice.call(aulasBody.querySelectorAll('.aulaopen')).forEach(function(b){ b.addEventListener('click',function(){ openNote(curSubjectId,b.dataset.id); }); });
     [].slice.call(aulasBody.querySelectorAll('.auladel')).forEach(function(b){ b.addEventListener('click',function(){ if(confirm('Excluir esta aula? O texto dela será apagado.')) delAula(curSubjectId,b.dataset.id); }); });
   }
