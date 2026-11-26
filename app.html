@@ -165804,7 +165804,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     t.push({label:'Painel de prazos', children:pk, vz:'Abrir painel de prazos'});
     t.push({label:'📝 Simulados', act:'simulado', vz:'Abrir simulado'});
     t.push({label:'🔒 PIN e digital', act:'seguranca', vz:'Abrir PIN'});
-    t.push({label:'💡 Sugerir melhoria', act:'sugestao', vz:'Abrir sugestões'});
+    t.push({label:'💬 Suporte e sugestões', act:'sugestao', vz:'Abrir suporte'});
     t.push({label:'🛟 Backup', act:'backup', vz:'Abrir backup'});
     t.push({label:'📖 Manual do app', act:'manual', vz:'Abrir manual do app'});
     return t;
@@ -165874,7 +165874,7 @@ html.rib-tudo body:has(#view-note:not([hidden])) .ribSep{display:block;width:2px
     if(act==='fora'){ openFora(); return; }
     if(act==='backup'){ openBackup(); return; }
     if(act==='simulado'){ openExtra('view-sim','Simulados'); if(window.bdSimAbrir) window.bdSimAbrir(); return; }
-    if(act==='sugestao'){ openExtra('view-sug','Sugerir melhoria'); if(window.bdSugAbrir) window.bdSugAbrir(); return; }
+    if(act==='sugestao'){ openExtra('view-sug','Suporte e sugestões'); if(window.bdSugAbrir) window.bdSugAbrir(); return; }
     if(act==='seguranca'){ openExtra('view-seg','PIN e digital'); if(window.bdSegAbrir) window.bdSegAbrir(); return; }
     if(act==='config'){ openConfig(); return; }
     if(act==='agenda'){ openAgenda(); return; }
@@ -171405,21 +171405,23 @@ body:not(:has(#view-note:not([hidden]))) #iaBtn{display:none!important}
   var WA='5549999791136', MAIL='aguicco@gmail.com', K='bd_sug_rasc';
   function E(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function nome(){ try{ return (localStorage.getItem('bd_nome')||'').trim(); }catch(_){ return ''; } }
-  function msg(t){ return '💡 Sugestão para o BoraDiploma (faculdade)'+(nome()?' — de '+nome():'')+'\n\n'+t; }
+  var TIPO='Sugestão', TIPOS={'Sugestão':'💡','Dúvida':'❓','Problema':'⚠️'};
+  function msg(t){ return TIPOS[TIPO]+' '+TIPO+' — BoraDiploma (faculdade)'+(nome()?' — de '+nome():'')+'\n\n'+t; }
   function desenhar(){
     var r=''; try{ r=localStorage.getItem(K)||''; }catch(_){}
-    box.innerHTML='<h1>💡 Sugerir melhoria</h1><div class="fccard"><p>Teve uma ideia ou achou algo para melhorar? Escreva aqui do seu jeito. Pode mandar várias, uma por vez.</p>'
-      +'<textarea id="sugTx" rows="7" style="width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);resize:vertical" placeholder="Ex.: queria poder marcar o texto com outras cores" spellcheck="true" lang="pt-BR">'+E(r)+'</textarea>'
+    box.innerHTML='<h1>💬 Suporte e sugestões</h1><div class="fccard"><p><b>Nos ajude a melhorar!</b> Deixe sua sugestão, tire uma dúvida ou conte um problema. A gente lê tudo e responde.</p>'
+      +'<div class="fcacts" style="margin:0 0 10px">'+Object.keys(TIPOS).map(function(k){ return '<button type="button" class="'+(k===TIPO?'fcbtn':'fcbtn2')+'" data-tp="'+k+'">'+TIPOS[k]+' '+k+'</button>'; }).join('')+'</div>'
+      +'<textarea id="sugTx" rows="7" style="width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--fg);resize:vertical" placeholder="'+(TIPO==='Dúvida'?'Ex.: como coloco um PDF dentro da aula?':TIPO==='Problema'?'Ex.: o PDF não abre no meu celular':'Ex.: queria poder marcar o texto com outras cores')+'" spellcheck="true" lang="pt-BR">'+E(r)+'</textarea>'
       +'<div class="fcacts" style="margin-top:10px"><button type="button" class="fcbtn" data-sg2="wa">📲 Enviar pelo WhatsApp</button><button type="button" class="fcbtn2" data-sg2="mail">✉️ Enviar por e-mail</button></div>'
       +'<p class="fcdim" style="margin:10px 0 0">A mensagem abre pronta no WhatsApp ou no e-mail; é só tocar em enviar.</p></div>';
     var tx=box.querySelector('#sugTx'); tx.addEventListener('input',function(){ try{ localStorage.setItem(K,tx.value); }catch(_){} });
   }
-  box.addEventListener('click',function(e){ var b=e.target.closest('[data-sg2]'); if(!b) return; var tx=box.querySelector('#sugTx'), t=(tx&&tx.value||'').trim();
-    if(!t){ if(window.bdToast) window.bdToast('Escreva a sugestão primeiro'); if(tx) tx.focus(); return; }
+  box.addEventListener('click',function(e){ var tp=e.target.closest('[data-tp]'); if(tp){ TIPO=tp.getAttribute('data-tp'); desenhar(); return; } var b=e.target.closest('[data-sg2]'); if(!b) return; var tx=box.querySelector('#sugTx'), t=(tx&&tx.value||'').trim();
+    if(!t){ if(window.bdToast) window.bdToast('Escreva a mensagem primeiro'); if(tx) tx.focus(); return; }
     var m=msg(t);
     if(b.getAttribute('data-sg2')==='wa') window.open('https://wa.me/'+WA+'?text='+encodeURIComponent(m),'_blank');
-    else location.href='mailto:'+MAIL+'?subject='+encodeURIComponent('Sugestão para o BoraDiploma')+'&body='+encodeURIComponent(m);
-    try{ localStorage.removeItem(K); }catch(_){} setTimeout(desenhar,800); if(window.bdToast) window.bdToast('Obrigado pela sugestão!'); });
+    else location.href='mailto:'+MAIL+'?subject='+encodeURIComponent(TIPO+' — BoraDiploma')+'&body='+encodeURIComponent(m);
+    try{ localStorage.removeItem(K); }catch(_){} setTimeout(desenhar,800); if(window.bdToast) window.bdToast('Obrigado! Vamos responder em breve.'); });
   window.bdSugAbrir=desenhar;
 })();
 </script>
